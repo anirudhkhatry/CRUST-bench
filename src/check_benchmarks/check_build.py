@@ -2,8 +2,10 @@ import subprocess
 import os
 from tqdm import tqdm
 from pathlib import Path
-import csv
 import shutil
+
+DATASETS_PATH = Path(__file__).parent / '../../datasets/'
+
 def compile_rust_test_proj(proj_name):
     env = os.environ.copy()
     env["RUST_FLAGS"] = "-Awarnings"
@@ -28,8 +30,9 @@ def clean_rust_project(proj_name):
     )
     return True
 
+
 def compile_rust_projs():
-    path = Path('../../datasets/RBench_formatted')
+    path = DATASETS_PATH / 'RBench_formatted'
     ctr = 0
     error_list = []
     proj_list = list(path.iterdir())
@@ -57,18 +60,21 @@ def format_into_compilable_rust(proj_name):
         shutil.rmtree(interfaces_path)
 
 def format_rust_proj():
-    path = Path('../../datasets/RBench')
-    output_path = Path('../../datasets/RBench_formatted')
-    if not output_path.exists():
-        output_path.mkdir(parents=True, exist_ok=True)
+    path = DATASETS_PATH / 'RBench'
+    output_path = DATASETS_PATH / 'RBench_formatted'
+    if output_path.exists():
+        shutil.rmtree(output_path)
+    output_path.mkdir(parents=True, exist_ok=True)
     proj_list = list(path.iterdir())
     for proj in tqdm(proj_list):
+        if not proj.is_dir():
+            continue
         shutil.copytree(proj, output_path / proj.name, dirs_exist_ok=True)
         format_into_compilable_rust(output_path / proj.name)
 
         
 def clean_rust_projects():
-    path = Path('../../datasets/RBench_formatted')
+    path = DATASETS_PATH / 'RBench_formatted'
     proj_list = list(path.iterdir())
     for proj in tqdm(proj_list):
         if proj.is_dir():
