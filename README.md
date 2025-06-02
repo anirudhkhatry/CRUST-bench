@@ -99,7 +99,7 @@ NOTE: You must ensure that both `CBench` and `RBench` folders are in the `datase
 To perform a sanity type check, we provide the `check_benchmarks/check_build.py` script that produces a compilable version of the rust project with the `unimplemented!()` function bodies that can be type checked. To run the script, you need to have `rust` installed on you system. You can run the script as follows:
 
 ```python
-python check_benchmarks/check_build.py
+python src/check_benchmarks/check_build.py
 ```
 
 The `src/dataset_stats` aids in plotting metrics over the C repositories and the annotated Rust interfaces and tests.
