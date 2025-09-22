@@ -12,7 +12,7 @@ FILE_PATH = Path(__file__)
 from utils.parse_rust import get_rust_functions
 
 Language.build_library(
-    FILE_PATH.parent / "rust_build/my-languages.so",
+    str(FILE_PATH.parent / "rust_build/my-languages.so"),
     [FILE_PATH.parent.parent / "resources/tree-sitter-rust"],
 )
 
