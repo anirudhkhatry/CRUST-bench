@@ -30,11 +30,12 @@ regex==2024.11.6
 requests==2.32.3
 safetensors==0.5.2
 sniffio==1.3.1
+tiktoken
 tokenizers==0.21.0
 tomli==2.2.1
 tqdm==4.67.1
 transformers==4.48.1
-tree-sitter==0.21.0
+tree-sitter==0.20.4
 typing_extensions==4.12.2
 urllib3==2.3.0
 matplotlib==3.10.6
