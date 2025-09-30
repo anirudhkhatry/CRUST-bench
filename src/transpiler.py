@@ -85,7 +85,7 @@ class Transpiler:
             get_results_benchmark, endpoint=self.endpoint, config=self.config
         )
         results = []
-        if "prallel" in self.config and self.config["parallel"] == "False":
+        if "parallel" in self.config and self.config["parallel"] in ["False", False]:
             for prompt in prompts:
                 results.append(get_result_fn((self.lock, prompt)))
         else:
