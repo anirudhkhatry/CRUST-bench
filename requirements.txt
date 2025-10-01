@@ -18,7 +18,7 @@ idna==3.10
 jiter==0.8.2
 mypy-extensions==1.0.0
 numpy==2.2.2
-openai==1.60.2
+openai==2.0.1
 packaging==24.2
 pathlib==1.0.1
 pathspec==0.12.1
@@ -34,7 +34,7 @@ tokenizers==0.21.0
 tomli==2.2.1
 tqdm==4.67.1
 transformers==4.48.1
-tree-sitter==0.21.0
+tree-sitter==0.20.4
 typing_extensions==4.12.2
 urllib3==2.3.0
 matplotlib==3.10.6
