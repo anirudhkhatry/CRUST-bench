@@ -1,5 +1,10 @@
 import json
 import os
+
+## set API keys
+os.environ['OPENAI_API_KEY'] = os.getenv('TRACTOR_OPENAI_API_KEY')
+os.environ['ANTHROPIC_API_KEY'] = os.getenv('TRACTOR_ANTHROPIC_API_KEY')
+
 import sys
 import csv
 from pathlib import Path
