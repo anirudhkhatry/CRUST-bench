@@ -108,7 +108,7 @@ To get the statistics of the dataset, you can run the following command:
 
 ```python
 python src/dataset_stats/get_c_stats.py datasets/CBench
-python src/dataset_stats/get_interfaces_stats.py datasets/RBench
+python src/dataset_stats/get_interface_stats.py datasets/RBench
 ```
 
 ### Recreating experiments from CRUST-bench.
