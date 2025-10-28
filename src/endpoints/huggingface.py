@@ -1,6 +1,7 @@
+import json
 import re
 import transformers
-from typing import Union
+from typing import Any, Optional, Union
 
 
 def create_pipeline(model_id: str) -> transformers.pipeline:
@@ -21,7 +22,8 @@ def run_pipeline(
     pipe: transformers.pipeline,
     prompt: Union[str, list[dict[str,str]]],
     max_new_tokens: int,
-    gen_kwargs: dict = {}
+    gen_kwargs: dict = {},
+    reasoning: Optional[str] = None
 ) -> str:
     """
     Return the results of running the given `prompt` through pipeline `pipe` to generate `max_new_tokens` of text under `gen_kwargs` generation settings.
@@ -55,6 +57,14 @@ def run_pipeline(
     - For gpt_oss, reasoning doesn't seem to have any effect on runtime. But CoT length reduces for lower reasoning.
     - Runtime increases proportionate to max_new_tokens.
     """
+    if reasoning is not None:
+        reasoning_instruction = "Do NOT explain your reasoning" if reasoning == 'no' else f'Reasoning: {reasoning}'
+        if type(prompt) == str:
+            prompt += f'\n{reasoning_instruction}'
+        else:
+            for p in prompt:
+                if p['role'] == 'system':
+                    p['content'] += f'\n{reasoning_instruction}'
     output = pipe(
         prompt,
         return_full_text = False,
@@ -77,53 +87,30 @@ def postprocess_pipeline_output_gptoss(pipe_out: str) -> tuple[str,str]:
     return m.group('out'), m.group('cot')
 
 
-if __name__ == "__main__":
-
-    pipe = create_pipeline(model_id = "openai/gpt-oss-20b")
-
-    pipe_out = run_pipeline(
-        pipe = pipe,
-        prompt = [
-            {"role": "system", "content": "Reasoning: medium"},
-            {"role": "user", "content": "Explain quantum mechanics clearly and concisely."}
-        ],
-        max_new_tokens = 256,
-        gen_kwargs = {
-            'temperature': 1.0,
-            'top_p': 1.0
+def get_result_gptoss(messages: list[dict[str,str]], config: dict[str,Any]) -> dict[str,Any]:
+    current_prompt = (
+        "\n".join([msg["content"] for msg in messages]) + f"\n{json.dumps(config)}"
+    )
+    try:
+        pipe = create_pipeline(model_id = f"openai/{config['model']}")
+        pipe_out = run_pipeline(
+            pipe = pipe,
+            prompt = messages,
+            max_new_tokens = config['max_new_tokens'],
+            gen_kwargs = config['gen_kwargs'],
+            reasoning = 'no'
+        )
+        out, cot = postprocess_pipeline_output_gptoss(pipe_out = pipe_out)
+    except Exception as e:
+        return {
+            "prompt": current_prompt,
+            "response": str(e),
+            "cot": "",
+            "usage": {}
         }
-    )
-    out, cot = postprocess_pipeline_output_gptoss(pipe_out = pipe_out)
-    print(f"====================\nOutput:\n====================\n{out}\n\n====================\nChain-of-thought:\n====================\n{cot}")
-
-    pipe_out = run_pipeline(
-        pipe = pipe,
-        prompt = [
-            {"role": "system", "content": "Reasoning: high"},
-            {"role": "user", "content": "Explain quantum mechanics clearly and concisely."}
-        ],
-        max_new_tokens = 256,
-        gen_kwargs = {
-            'temperature': 1.0,
-            'top_p': 1.0
-        }
-    )
-    out, cot = postprocess_pipeline_output_gptoss(pipe_out = pipe_out)
-    print(f"====================\nOutput:\n====================\n{out}\n\n====================\nChain-of-thought:\n====================\n{cot}")
-
-
-    pipe = create_pipeline(model_id = "EleutherAI/pythia-6.9b")
-
-    pipe_out = run_pipeline(
-        pipe = pipe,
-        prompt = "Hello, how are you?",
-        max_new_tokens = 10,
-    )
-    print(f"====================\nOutput:\n====================\n{pipe_out}")
-
-    pipe_out = run_pipeline(
-        pipe = pipe,
-        prompt = "Hello, how are you?",
-        max_new_tokens = 30,
-    )
-    print(f"====================\nOutput:\n====================\n{pipe_out}")
+    return {
+        "prompt": current_prompt,
+        "response": out,
+        "chain_of_thought": cot,
+        "usage": {}
+    }

@@ -81,6 +81,8 @@ class Transpiler:
                     break
             if user_input.lower() == "n":
                 exit(0)
+        elif self.config['model'].startswith('gpt-oss'):
+            print('Zero costs since model is open source!')
         get_result_fn = partial(
             get_results_benchmark, endpoint=self.endpoint, config=self.config
         )

@@ -2,6 +2,7 @@ import endpoints.claude as claude
 import endpoints.claude37 as claude37
 import endpoints.gpt as gpt
 import endpoints.qwq as qwq
+import endpoints.huggingface as hf
 # uncomment the next line if you want to use gemini
 # import endpoints.gemini as gemini
 import multiprocessing
@@ -27,6 +28,8 @@ def get_result(messages, lock, model, config):
         return m.get_result(messages, lock, config)
     elif model == "gemini":
         return gemini.get_result(messages, lock, config)
+    elif model.startswith('gpt-oss'):
+        return hf.get_result_gptoss(messages, config)
     else:
         raise ValueError("Invalid model")
 
