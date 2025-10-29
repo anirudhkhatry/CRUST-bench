@@ -57,14 +57,13 @@ def run_pipeline(
     - For gpt_oss, reasoning doesn't seem to have any effect on runtime. But CoT length reduces for lower reasoning.
     - Runtime increases proportionate to max_new_tokens.
     """
-    if reasoning is not None:
-        reasoning_instruction = "Do NOT explain your reasoning" if reasoning == 'no' else f'Reasoning: {reasoning}'
-        if type(prompt) == str:
-            prompt += f'\n{reasoning_instruction}'
-        else:
-            for p in prompt:
-                if p['role'] == 'system':
-                    p['content'] += f'\n{reasoning_instruction}'
+    reasoning_instruction = f'Reasoning: {reasoning}'
+    if type(prompt) == str:
+        prompt += f'\n{reasoning_instruction}'
+    else:
+        for p in prompt:
+            if p['role'] == 'system':
+                p['content'] += f'\n{reasoning_instruction}'
     output = pipe(
         prompt,
         return_full_text = False,
@@ -98,7 +97,7 @@ def get_result_gptoss(messages: list[dict[str,str]], config: dict[str,Any]) -> d
             prompt = messages,
             max_new_tokens = config['max_new_tokens'],
             gen_kwargs = config['gen_kwargs'],
-            reasoning = 'no'
+            reasoning = 'minimal'
         )
         out, cot = postprocess_pipeline_output_gptoss(pipe_out = pipe_out)
     except Exception as e:
