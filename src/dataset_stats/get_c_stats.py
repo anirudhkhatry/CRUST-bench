@@ -13,15 +13,12 @@ from tree_sitter import Language, Parser
 
 FILE_PATH = Path(__file__)
 
-# Assuming the Language setup is already done as in your code
-# If not, uncomment these lines and adjust the paths
-"""
 Language.build_library(
-    "c_build/my-languages.so",
-    ["path/to/tree-sitter-c"],
+    str(FILE_PATH.parent / "c_build/my-languages.so"),
+    [FILE_PATH.parent.parent / "resources/tree-sitter-c"],
 )
-"""
-C_LANGUAGE = Language(FILE_PATH.parent / "utils/c_build/my-languages.so", "c")
+
+C_LANGUAGE = Language(str(FILE_PATH.parent / "c_build/my-languages.so"), "c")
 PARSER = Parser()
 PARSER.set_language(C_LANGUAGE)
 
