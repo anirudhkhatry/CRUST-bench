@@ -22,9 +22,17 @@ CACHE = {json.loads(line)["prompt"]: json.loads(line) for line in data}
 def get_text_from_openai_response(response):
     text = ""
     for output in response.output:
-        if output.content is not None:
+        if output.type == 'message' and output.content:
             for content in output.content:
                 text += content.text
+    return text
+
+def get_reasoning_from_openai_response(response):
+    text = ""
+    for output in response.output:
+        if output.type == 'reasoning' and output.summary:
+            for summary in output.summary:
+                text += (summary.text + '\n\n')
     return text
 
 def call_gpt(messages, config, n=1):
@@ -42,6 +50,18 @@ def call_gpt(messages, config, n=1):
         response = client.responses.create(
             model=config["model"],
             input=messages
+        )
+    elif config["model"] == "gpt-oss-120b":
+        response = client.responses.create(
+            model = config["model"],
+            input = messages,
+            temperature = config["temperature"],
+            max_output_tokens = config["max_tokens"],
+            top_p = config["top_p"],
+            reasoning = {
+                "effort": config.get("reasoning_effort", "medium"),
+                "summary": config.get("reasoning_summary", "auto")
+            }
         )
     else:
         raise ValueError("Model not supported")
@@ -65,10 +85,12 @@ def get_result(messages, lock, config):
     data = {
         "prompt": current_prompt,
         "response": get_text_from_openai_response(response),
+        "reasoning": get_reasoning_from_openai_response(response),
         "usage": {
             "completion_tokens": response.usage.output_tokens,
             "prompt_tokens": response.usage.input_tokens,
             "total_tokens": response.usage.total_tokens,
+            "reasoning_tokens": response.usage.output_tokens_details.reasoning_tokens
         },
     }
     if CACHE_FLAG:
@@ -99,10 +121,12 @@ def get_result_n(messages, lock, config, n):
     data = {
         "prompt": current_prompt,
         "response": [get_text_from_openai_response(response)], #NOTE from Sourya: enclosing this in a list to preserve compatibility with what used to be here prior to using the Responses API
+        "reasoning": [get_reasoning_from_openai_response(response)],
         "usage": {
             "completion_tokens": response.usage.output_tokens,
             "prompt_tokens": response.usage.input_tokens,
             "total_tokens": response.usage.total_tokens,
+            "reasoning_tokens": response.usage.output_tokens_details.reasoning_tokens
         },
     }
     if CACHE_FLAG:

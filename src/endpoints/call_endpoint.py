@@ -16,7 +16,7 @@ def get_result(messages, lock, model, config):
         return claude.get_result(messages, lock, config)
     elif model == "claude37":
         return claude37.get_result(messages, lock, config)
-    elif model == "gpt-4o" or model == "o1-mini" or model == "o1":
+    elif model in ["gpt-4o", "o1-mini", "o1", "gpt-oss-120b"]:
         return gpt.get_result(messages, lock, config)
     elif (
         model == "QwQ-32B-Preview"
@@ -28,7 +28,7 @@ def get_result(messages, lock, model, config):
         return m.get_result(messages, lock, config)
     elif model == "gemini":
         return gemini.get_result(messages, lock, config)
-    elif model.startswith('gpt-oss'):
+    elif model == 'gpt-oss-20b':
         return hf.get_result_gptoss(messages, config)
     else:
         raise ValueError("Invalid model")
