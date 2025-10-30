@@ -108,7 +108,7 @@ To get the statistics of the dataset, you can run the following command:
 
 ```python
 python src/dataset_stats/get_c_stats.py datasets/CBench
-python src/dataset_stats/get_interfaces_stats.py datasets/RBench
+python src/dataset_stats/get_interface_stats.py datasets/RBench
 ```
 
 ### Recreating experiments from CRUST-bench.
@@ -157,9 +157,10 @@ python run.py \
     --repairer_format bullet_point_with_system_instructions \
     --repairer_strategy all \
     --iterations 3 \
-    --mode ./endpoints/configs/o1.json \
+    --config ./endpoints/configs/o1.json \
     --endpoint "o1" \
-    --rust_dir "../datasets/RBench"
+    --rust_dir "../datasets/RBench" \
+    --mode normal
 ```
 
 For running more scripts, please refer to the `scripts` folder.
