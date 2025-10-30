@@ -16,8 +16,9 @@ def get_results_benchmark(lock_and_prompts, endpoint, config):
     lock, prompts = lock_and_prompts
     result = []
     for prompt in prompts[1]:
+        run_result = get_result(prompt, lock, endpoint, config)
         result.append(
-            (prompts[0], get_result(prompt, lock, endpoint, config)["response"])
+            (prompts[0], run_result["response"], run_result["reasoning"])
         )
         if endpoint == 'claude':
             time.sleep(20)
@@ -45,7 +46,7 @@ class Transpiler:
     def log_benchmarks(self, results):
         for result in results:
             for ben_res in result:
-                (cur_bench, response) = ben_res
+                (cur_bench, response, reasoning) = ben_res
                 metadata_path = cur_bench.rust_path / "metadata"
                 output_metadata_path = metadata_path / "output"
                 if not output_metadata_path.exists():
@@ -54,6 +55,10 @@ class Transpiler:
                     output_metadata_path / "initial.txt", "w", encoding="utf-8"
                 ) as f:
                     f.write(response)
+                with open(
+                    output_metadata_path / "initial_reasoning.txt", "w", encoding="utf-8"
+                ) as f:
+                    f.write(reasoning)
 
     def dump_transpilation_prompt(self, prompt, benchmark):
         metadata_path = benchmark.rust_path / "metadata"
@@ -81,6 +86,8 @@ class Transpiler:
                     break
             if user_input.lower() == "n":
                 exit(0)
+        elif self.config['model'].startswith('gpt-oss'):
+            print('Zero costs since model is open source!')
         get_result_fn = partial(
             get_results_benchmark, endpoint=self.endpoint, config=self.config
         )
@@ -105,7 +112,7 @@ class Transpiler:
         
         for result in results:
             for ben_res in result:
-                (curr_benchmark, response) = ben_res
+                (curr_benchmark, response, _) = ben_res
                 parsed = self.prompter.parse_response(response)
                 current_benchmark_rust_files = {
                     p["file_name"]: p["content"] for p in curr_benchmark.rust_files

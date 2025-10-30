@@ -11,8 +11,9 @@ def get_results_benchmark(lock_and_prompts, endpoint, config):
     lock, prompts = lock_and_prompts
     result = []
     for prompt in prompts[1]:
+        run_result = get_result(prompt, lock, endpoint, config)
         result.append(
-            (prompts[0], get_result(prompt, lock, endpoint, config)["response"])
+            (prompts[0], run_result["response"], run_result["reasoning"])
         )
         if endpoint == 'claude':
             time.sleep(20)
@@ -33,7 +34,7 @@ class Repairer:
         bechmarks = []
         for result in results:
             for ben_res in result:
-                (cur_bench, response) = ben_res
+                (cur_bench, response, _) = ben_res
                 parsed = self.repair_prompter.parse_response(response)
                 rust_files = cur_bench.rust_files.copy()
                 cur_bench.rust_files = []
@@ -60,7 +61,7 @@ class Repairer:
     def log_results(self, results):
         for result in results:
             for ben_res in result:
-                (cur_bench, response) = ben_res
+                (cur_bench, response, reasoning) = ben_res
                 metadata_path = cur_bench.rust_path / "metadata"
                 output_metadata_path = metadata_path / "output"
                 if not output_metadata_path.exists():
@@ -74,6 +75,12 @@ class Repairer:
                 print(
                     f"Written to {output_metadata_path / f'res_{self.iteration}.txt'}"
                 )
+                with open(
+                    output_metadata_path / f"res_{self.iteration}_reasoning.txt",
+                    "w",
+                    encoding="utf-8",
+                ) as f:
+                    f.write(reasoning)
 
     def run(self):
         prompts = []
