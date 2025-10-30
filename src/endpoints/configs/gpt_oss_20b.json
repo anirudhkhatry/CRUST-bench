@@ -1,0 +1,9 @@
+{
+    "model": "gpt-oss-20b",
+    "parallel": "False",
+    "max_new_tokens": 16384,
+    "gen_kwargs": {
+        "temperature": 1.0,
+        "top_p": 1
+    }
+}
