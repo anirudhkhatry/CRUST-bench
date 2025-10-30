@@ -1,5 +1,6 @@
 {
     "model": "gpt-4o",
+    "parallel": "False",
     "temperature": 0.0,
     "max_tokens": 16384,
     "top_p": 1,
