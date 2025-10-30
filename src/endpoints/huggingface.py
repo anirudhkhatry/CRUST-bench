@@ -104,12 +104,12 @@ def get_result_gptoss(messages: list[dict[str,str]], config: dict[str,Any]) -> d
         return {
             "prompt": current_prompt,
             "response": str(e),
-            "cot": "",
+            "reasoning": "",
             "usage": {}
         }
     return {
         "prompt": current_prompt,
         "response": out,
-        "chain_of_thought": cot,
+        "reasoning": cot,
         "usage": {}
     }
