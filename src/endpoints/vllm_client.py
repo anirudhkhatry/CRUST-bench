@@ -6,6 +6,8 @@ import json
 import multiprocessing
 from openai import OpenAI
 
+from endpoints.gpt import get_text_from_openai_response
+
 FILE_PATH = Path(__file__)
 CACHE_FILE = FILE_PATH.parent / "cache/os_model_cache.jsonl"
 if not CACHE_FILE.parent.exists():
@@ -46,10 +48,9 @@ class VLLMServer:
             temperature = config["temperature"]
         else:
             temperature = 0.0
-        messages = messages
-        response = self.client.chat.completions.create(
+        response = self.client.responses.create(
             model=config["model"],
-            messages=messages,
+            input=messages,
             temperature=temperature,
         )
         return response
@@ -70,10 +71,10 @@ class VLLMServer:
             return {"prompt": current_prompt, "response": str(e), "usage": {}}
         data = {
             "prompt": current_prompt,
-            "response": response.choices[0].message.content,
+            "response": get_text_from_openai_response(response),
             "usage": {
-                "completion_tokens": response.usage.completion_tokens,
-                "prompt_tokens": response.usage.prompt_tokens,
+                "completion_tokens": response.usage.output_tokens,
+                "prompt_tokens": response.usage.input_tokens,
                 "total_tokens": response.usage.total_tokens,
             },
         }
