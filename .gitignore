@@ -1,5 +1,22 @@
+# original
 datasets/CBench/
 datasets/RBench/
 **/__pycache__/
 **/cache/
 **/results/
+
+# added by galois
+
+## from running check_build.py
+error_list.txt
+
+## from running get_c_stats.py
+c_project_stats.json
+src/dataset_stats/c_build/
+
+## from running get_interface_stats.py
+rust_analysis_report.json
+src/dataset_stats/rust_build/
+
+## from model runs
+outputs/
