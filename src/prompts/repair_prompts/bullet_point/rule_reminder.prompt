@@ -2,10 +2,10 @@ Reminder for Repairing Rust Code:
 I need you to repair the provided Rust files, with the following instructions that you MUST follow:
  - You MUST address each error by reasoning about it.
  - Each error MUST be solved using safe Rust code.
- - The transpiled Rust code MUST compile successfully.
- - The transpiled Rust code MUST NOT contain Foreign Function Interface calls, such as the libc library.
+ - The repaired Rust code MUST compile successfully.
+ - The repaired Rust code MUST NOT contain Foreign Function Interface calls, such as the libc library.
 
-Please think step-by-step and return your final solution for each transpiled file in the following format:
+Please think step-by-step and return your final solution for each repaired file in the following format:
 
 {{filename.rs}} 
 ```rust
