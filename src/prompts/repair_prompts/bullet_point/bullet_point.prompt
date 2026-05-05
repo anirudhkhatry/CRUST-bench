@@ -6,19 +6,19 @@ You will be provided with Rust code in the format:
   ```
 After the Rust code, you will be given the errors obtained from the compiler corresponding to the Rust code.
 I need you to repair the provided Rust files, with the following instructions that you MUST follow:
-  - You MUST produce the entire file when repairing it an not just the intended change.
+  - You MUST produce the entire file when repairing it and not just the intended change.
   - You MUST NOT change the function signatures.
   - You MUST address each error by reasoning about it.
   - Each error MUST be solved using safe Rust code.
-  - The transpiled Rust code MUST compile successfully.
-  - The transpiled Rust code MUST NOT contain Foreign Function Interface calls, such as the libc library.
+  - The repaired Rust code MUST compile successfully.
+  - The repaired Rust code MUST NOT contain Foreign Function Interface calls, such as the libc library.
   - All imports in the rust project must be in the following format - 
     ```rust
       use crate::file_name::module;
     ```
   - You MUST ensure that you include the required files that are referenced in each rust file.
   - You MUST ensure not to change the function signatures and return types of the functions when you are performing repair.
-  Please think step-by-step and return your final solution for each transpiled file in the following format:
+  Please think step-by-step and return your final solution for each repaired file in the following format:
 
   {{filename.rs}} 
   ```rust

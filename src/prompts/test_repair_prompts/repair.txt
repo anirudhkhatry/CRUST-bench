@@ -4,7 +4,7 @@ You will be provided with Rust code in the format:
   ```rust
   // Input Rust code
   ```
-After the Rust code, you will be given the test files that were executed on the Rust source code in the format
+After the Rust code, you will be given the test files that were executed on the Rust source code in the format:
   {{filename.rs}}
   ```rust
   // Input Rust code
@@ -18,7 +18,7 @@ I need you to repair the provided Rust files, with the following instructions th
   - Each test failure MUST be addressed using safe Rust code.
   - The corrected Rust code MUST compile successfully.
   - The corrected Rust code MUST NOT contain Foreign Function Interface calls, such as the libc library.
-  - All imports in the rust project must be in the following format - 
+  - All imports in the rust project must be in the following format:
     ```rust
       use crate::file_name::module;
     ```

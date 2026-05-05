@@ -1,6 +1,6 @@
 I need you to transpile the provided code files from C to Rust, with the following instructions that you MUST follow:
   - Each C file I provide MUST be transpiled into a corresponding Rust file.
-  - You MUST use the same name as the Rust interface file name, when generating the transpiled Rust Code
+  - You MUST use the same name as the Rust interface file name, when generating the transpiled Rust Code.
   - You MUST always implement the Rust Interface files using the C code as reference.
   - You MUST ensure that you implement ALL unimplemented!() parts strictly.
   - You MUST NOT change the function signatures of the Rust code.
