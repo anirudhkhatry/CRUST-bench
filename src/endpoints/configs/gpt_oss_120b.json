@@ -1,0 +1,8 @@
+{
+    "model": "gpt-oss-120b",
+    "parallel": "False",
+    "temperature": 1.0,
+    "max_tokens": 32768,
+    "top_p": 1,
+	"reasoning_effort": "high"
+}

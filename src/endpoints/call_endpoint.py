@@ -15,7 +15,7 @@ def get_result(messages, lock, model, config):
         return claude.get_result(messages, lock, config)
     elif model == "claude37":
         return claude37.get_result(messages, lock, config)
-    elif model == "gpt-4o" or model == "o1-mini" or model == "o1":
+    elif model in ["gpt-4o", "o1-mini", "o1", "gpt-oss-120b"]:
         return gpt.get_result(messages, lock, config)
     elif (
         model == "QwQ-32B-Preview"

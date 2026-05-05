@@ -19,29 +19,49 @@ with open(CACHE_FILE, "r", encoding="utf-8") as file:
 CACHE = {json.loads(line)["prompt"]: json.loads(line) for line in data}
 
 
+def get_text_from_openai_response(response):
+    text = ""
+    for output in response.output:
+        if output.type == 'message' and output.content:
+            for content in output.content:
+                text += content.text
+    return text
+
+def get_reasoning_from_openai_response(response):
+    text = ""
+    for output in response.output:
+        if output.type == 'reasoning' and output.summary:
+            for summary in output.summary:
+                text += (summary.text + '\n\n')
+    return text
+
 def call_gpt(messages, config, n=1):
+    #NOTE from Sourya: Argument n is no longer used since the Responses API doesn't support it
+    # but I have kept it around for function signature compatibility
     if config["model"] == "gpt-4o":
-        response = client.chat.completions.create(
+        response = client.responses.create(
             model=config["model"],
-            messages=messages,
+            input=messages,
             temperature=config["temperature"],
-            max_tokens=config["max_tokens"],
-            top_p=config["top_p"],
-            frequency_penalty=config["frequency_penalty"],
-            presence_penalty=config["presence_penalty"],
-            response_format=config["response_format"],
-            n=n,
+            max_output_tokens=config["max_tokens"],
+            top_p=config["top_p"]
         )
     elif config["model"] == "o1" or config["model"] == "o1-mini":
-        messages = [
-            {
-                "role": "user",
-                "content": messages[0]["content"] + "\n" + messages[1]["content"],
-            }
-        ]
-        response = client.chat.completions.create(
+        response = client.responses.create(
             model=config["model"],
-            messages=messages,
+            input=messages
+        )
+    elif config["model"] == "gpt-oss-120b":
+        response = client.responses.create(
+            model = config["model"],
+            input = messages,
+            temperature = config["temperature"],
+            max_output_tokens = config["max_tokens"],
+            top_p = config["top_p"],
+            reasoning = {
+                "effort": config.get("reasoning_effort", "medium"),
+                "summary": config.get("reasoning_summary", "auto")
+            }
         )
     else:
         raise ValueError("Model not supported")
@@ -64,11 +84,13 @@ def get_result(messages, lock, config):
         return {"prompt": current_prompt, "response": str(e), "usage": {}}
     data = {
         "prompt": current_prompt,
-        "response": response.choices[0].message.content,
+        "response": get_text_from_openai_response(response),
+        "reasoning": get_reasoning_from_openai_response(response),
         "usage": {
-            "completion_tokens": response.usage.completion_tokens,
-            "prompt_tokens": response.usage.prompt_tokens,
+            "completion_tokens": response.usage.output_tokens,
+            "prompt_tokens": response.usage.input_tokens,
             "total_tokens": response.usage.total_tokens,
+            "reasoning_tokens": response.usage.output_tokens_details.reasoning_tokens
         },
     }
     if CACHE_FLAG:
@@ -98,11 +120,13 @@ def get_result_n(messages, lock, config, n):
         return {"prompt": current_prompt, "response": str(e), "usage": {}}
     data = {
         "prompt": current_prompt,
-        "response": [choice.message.content for choice in response.choices],
+        "response": [get_text_from_openai_response(response)], #NOTE from Sourya: enclosing this in a list to preserve compatibility with what used to be here prior to using the Responses API
+        "reasoning": [get_reasoning_from_openai_response(response)],
         "usage": {
-            "completion_tokens": response.usage.completion_tokens,
-            "prompt_tokens": response.usage.prompt_tokens,
+            "completion_tokens": response.usage.output_tokens,
+            "prompt_tokens": response.usage.input_tokens,
             "total_tokens": response.usage.total_tokens,
+            "reasoning_tokens": response.usage.output_tokens_details.reasoning_tokens
         },
     }
     if CACHE_FLAG:
