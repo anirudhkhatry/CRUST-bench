@@ -280,6 +280,26 @@ class TestCfgTestExclusion(unittest.TestCase):
         self.assertEqual(replacements(gen(text, [tops.OVERFLOW_DISCIPLINE])),
                          ["a.wrapping_add(b)"])
 
+    def test_a_comment_does_not_break_the_pairing(self):
+        """A comment between the attribute and the item is a sibling of both.
+
+        Pairing `#[cfg(test)]` with the comment instead of the module would leave the
+        whole test module mutable, and silently -- no error, just scored mutants inside
+        code that is not scored code.
+        """
+        text = ("fn real(a: u32, b: u32) -> u32 { a + b }\n"
+                "#[cfg(test)]\n// the crate's own unit tests\nmod tests {\n"
+                "    fn t(c: u32, d: u32) -> u32 { c + d }\n}\n")
+        self.assertEqual(replacements(gen(text, [tops.OVERFLOW_DISCIPLINE])),
+                         ["a.wrapping_add(b)"])
+
+    def test_a_doc_comment_does_not_break_the_pairing(self):
+        text = ("fn real(a: u32, b: u32) -> u32 { a + b }\n"
+                "#[cfg(test)]\n/* block */\nmod tests {\n"
+                "    fn t(c: u32, d: u32) -> u32 { c + d }\n}\n")
+        self.assertEqual(replacements(gen(text, [tops.OVERFLOW_DISCIPLINE])),
+                         ["a.wrapping_add(b)"])
+
     def test_skips_a_compound_cfg_predicate(self):
         text = ("#[cfg(all(test, feature = \"x\"))]\n"
                 "mod tests { fn t(c: u32, d: u32) -> u32 { c + d } }\n")

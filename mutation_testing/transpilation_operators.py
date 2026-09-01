@@ -186,15 +186,19 @@ def _cfg_test_ranges(root, src):
     instead of re-deriving it and drifting.
 
     In tree-sitter-rust an attribute is a *sibling* preceding the item it decorates, so the
-    scan pairs each gating attribute with the next non-attribute sibling.
+    scan pairs each gating attribute with the next non-attribute sibling. Comments are
+    siblings too, so they are stepped over rather than mistaken for the gated item -- a
+    comment between `#[cfg(test)]` and `mod tests` is ordinary Rust style, and pairing the
+    attribute with it would silently leave the whole test module mutable.
     """
     ranges, stack = [], [root]
     while stack:
         node = stack.pop()
         gated = False
         for child in node.children:
-            if child.type == "attribute_item":
-                gated = gated or _is_cfg_test(child, src)
+            if child.type in ("attribute_item", "line_comment", "block_comment"):
+                gated = gated or (child.type == "attribute_item"
+                                  and _is_cfg_test(child, src))
                 continue
             if gated:
                 ranges.append((child.start_byte, child.end_byte))
