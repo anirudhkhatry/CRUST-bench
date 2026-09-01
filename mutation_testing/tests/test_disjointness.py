@@ -41,7 +41,10 @@ def transpile_keys():
         if not core.is_dir():
             continue
         for src in (core / "src").rglob("*.rs"):
-            if "bin" in src.relative_to(core / "src").parts:
+            # never mutate test bins or interfaces -- must match list_transpile_mutants,
+            # or this guard measures a different population than the harness scores
+            parts = src.relative_to(core / "src").parts
+            if "bin" in parts or "interfaces" in parts:
                 continue
             # cargo-mutants records paths relative to the workspace, e.g. core/src/ulid.rs
             rel = "core/" + str(src.relative_to(core))

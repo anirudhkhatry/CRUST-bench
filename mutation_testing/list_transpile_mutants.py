@@ -20,7 +20,8 @@ def list_transpile_mutants(ws, package, env=None, timeout=900):
     records = []
     for src in sorted((core / "src").rglob("*.rs")):
         rel_to_src = src.relative_to(core / "src")
-        if "bin" in rel_to_src.parts:
+        # never mutate test bins or interfaces -- same rule as mutate_shared.EXCLUDES
+        if "bin" in rel_to_src.parts or "interfaces" in rel_to_src.parts:
             continue
         text = src.read_text(encoding="utf-8", errors="replace")
         records.extend(generate(text, "core/" + str(src.relative_to(core)),
