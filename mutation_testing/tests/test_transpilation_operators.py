@@ -239,7 +239,11 @@ class TestShiftDiscipline(unittest.TestCase):
         self.assertEqual(replacements(recs), ["(a + b).wrapping_shl(2)"])
 
 
-class TestDisjointGenres(unittest.TestCase):
+class TestGenrePrefix(unittest.TestCase):
+    """Every genre must be namespaced, so a transpilation mutant is never mistaken for a
+    cargo-mutants one downstream. (Operator *disjointness* is a corpus-scale property and
+    is asserted in tests/test_disjointness.py, not here.)"""
+
     def test_every_genre_is_prefixed(self):
         recs = gen("fn f(a: u32, b: u8) -> u32 { a.wrapping_add(b as u32) << 1 }")
         self.assertTrue(recs)
