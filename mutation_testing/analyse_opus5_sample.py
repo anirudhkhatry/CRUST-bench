@@ -26,11 +26,15 @@ Mutation types
 
 import json
 import re
+import sys
 from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent / "results/claude/opus5_sample"
-OUT = ROOT / "_mutants_out"
+# Which run to score. The transpilation-operator run writes the same outcomes.json shape
+# to a different directory, so one argument switches the whole analysis over to it:
+#     python analyse_opus5_sample.py _transpile_out
+OUT = ROOT / (sys.argv[1] if len(sys.argv) > 1 else "_mutants_out")
 WS = ROOT / "_workspaces"
 
 SETTINGS = [("src", "src"), ("src+test", "src+test"),
@@ -60,6 +64,12 @@ def mutation_type(project, mut):
     """
     genre, repl = mut["genre"], (mut["replacement"] or "").strip()
     ret = ((mut.get("function") or {}).get("return_type") or "").strip()
+    if genre.startswith("Transpile"):
+        # The generator already writes the substitution as the label, after the position:
+        # "core/src/cset.rs:224:2: replace wrapping_add with saturating_add". Not every
+        # transpilation label is an "X with Y" pair ("transpose arguments 1 and 2"), so
+        # take the label whole rather than trying to parse a shape it may not have.
+        return genre, mut["name"].split(": ", 1)[-1], ret
     if genre == "FnValue":
         return genre, f"body -> {repl or '<deleted>'}", ret
     m = NAME_RE.search(mut["name"])
