@@ -26,12 +26,29 @@ class TestEndianness(unittest.TestCase):
     def test_swaps_method_form(self):
         recs = gen("fn f(x: u32) -> [u8; 4] { x.to_le_bytes() }",
                    [tops.ENDIANNESS])
-        self.assertEqual(replacements(recs), ["to_be_bytes", "to_ne_bytes"])
+        self.assertEqual(replacements(recs), ["to_be_bytes"])
 
     def test_swaps_path_form(self):
         recs = gen("fn f() -> u32 { u32::from_be_bytes([0, 0, 0, 0]) }",
                    [tops.ENDIANNESS])
-        self.assertEqual(replacements(recs), ["from_le_bytes", "from_ne_bytes"])
+        self.assertEqual(replacements(recs), ["from_le_bytes"])
+
+    def test_never_emits_a_native_endian_replacement(self):
+        """On a little-endian host `ne` is `le`, so a `*_ne_*` replacement is either a
+        no-op (from `le`) or a duplicate of the `le` swap (from `be`)."""
+        for src in ("fn f(x: u32) -> [u8; 4] { x.to_le_bytes() }",
+                    "fn f(x: u32) -> [u8; 4] { x.to_be_bytes() }",
+                    "fn f() -> u32 { u32::from_le_bytes([0; 4]) }",
+                    "fn f() -> u32 { u32::from_be_bytes([0; 4]) }",
+                    "fn f() -> u32 { u32::from_ne_bytes([0; 4]) }"):
+            with self.subTest(src=src):
+                self.assertNotIn("ne", "".join(replacements(gen(src, [tops.ENDIANNESS]))))
+
+    def test_native_endian_swaps_only_to_big_endian(self):
+        """`from_ne_bytes -> from_le_bytes` is the same no-op read backwards; the swap to
+        big-endian is genuinely live and is kept."""
+        recs = gen("fn f() -> u32 { u32::from_ne_bytes([0; 4]) }", [tops.ENDIANNESS])
+        self.assertEqual(replacements(recs), ["from_be_bytes"])
 
     def test_ignores_unrelated_methods(self):
         self.assertEqual(gen("fn f(v: Vec<u8>) -> usize { v.len() }",
@@ -184,6 +201,18 @@ class TestOverflowDiscipline(unittest.TestCase):
         """Shifts belong to shift-discipline, so the two operators cannot double-count."""
         self.assertEqual(gen("fn f(a: u32) -> u32 { a << 2 }",
                              [tops.OVERFLOW_DISCIPLINE]), [])
+
+    def test_ignores_division_and_remainder(self):
+        """C defines no wraparound for `/` or `%`, and `wrapping_div`/`wrapping_rem`
+        differ from `/`/`%` only at `iN::MIN / -1` -- never for unsigned types. Equivalent
+        by construction, so never generated."""
+        for src in ("fn f(a: u32, b: u32) -> u32 { a / b }",
+                    "fn f(a: u32, b: u32) -> u32 { a % b }",
+                    "fn f(a: u32, b: u32) -> u32 { a.wrapping_div(b) }",
+                    "fn f(a: u32, b: u32) -> u32 { a.wrapping_rem(b) }",
+                    "fn f(a: u32, b: u32) -> u32 { a.saturating_div(b) }"):
+            with self.subTest(src=src):
+                self.assertEqual(gen(src, [tops.OVERFLOW_DISCIPLINE]), [])
 
     def test_ignores_non_arithmetic_operators(self):
         self.assertEqual(gen("fn f(a: u32, b: u32) -> bool { a == b }",

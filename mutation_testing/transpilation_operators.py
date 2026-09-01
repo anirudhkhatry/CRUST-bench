@@ -240,14 +240,34 @@ _ENDIAN_GROUPS = [
     ("from_be", "from_le"),
 ]
 
+# On a little-endian host -- every host this benchmark runs on -- native-endian *is*
+# little-endian, which makes two whole classes of endianness swap equivalent mutants by
+# construction, decidable here for free rather than quarantined later at ~17 s of build
+# time each (the ground on which arg-transposition already drops its identical-argument
+# case):
+#
+#   * anything -> a `*_ne_*` name. Against a `_le_` original it is a no-op; against a
+#     `_be_` original it is byte-for-byte the same mutation as the `_le_` swap that is
+#     already emitted, so it is a duplicate rather than a new mutant.
+#   * `*_ne_*` -> the matching `*_le_*` name, which is the same no-op read backwards.
+#
+# A `*_ne_*` original swapped to the *big*-endian name is genuinely live and is kept, which
+# is why the names stay in the groups above rather than being deleted from them.
+_NATIVE_ENDIAN = {"to_ne_bytes": "to_le_bytes", "from_ne_bytes": "from_le_bytes"}
+
 
 def _rewrite_endianness(node, src):
     name = _text(node, src)
     for group in _ENDIAN_GROUPS:
         if name in group:
             for other in group:
-                if other != name:
-                    yield node, other, f"replace {name} with {other}"
+                if other == name:
+                    continue
+                if other in _NATIVE_ENDIAN:
+                    continue  # equivalent to, or a duplicate of, the little-endian swap
+                if _NATIVE_ENDIAN.get(name) == other:
+                    continue  # ne -> le is a no-op on a little-endian host
+                yield node, other, f"replace {name} with {other}"
             return
 
 
@@ -285,7 +305,13 @@ _CAST_QUERY = "(type_cast_expression type: (primitive_type) @ty)"
 
 # Arithmetic only. Shifts are handled by shift-discipline so the two cannot double-count
 # the same site.
-_WRAP_FAMILIES = {"add": "+", "sub": "-", "mul": "*", "div": "/", "rem": "%"}
+#
+# `div` and `rem` are deliberately absent. C defines no wraparound for `/` or `%`, so
+# swapping the discipline there models no C/Rust divergence at all; and `wrapping_div` /
+# `wrapping_rem` differ from `/` / `%` only at `iN::MIN / -1`, and for unsigned types
+# differ for no input whatsoever. They are equivalent mutants decidable for free here,
+# so they are not generated rather than quarantined later at ~17 s of build time each.
+_WRAP_FAMILIES = {"add": "+", "sub": "-", "mul": "*"}
 _SHIFT_OPS = {"<<": "shl", ">>": "shr"}
 
 
