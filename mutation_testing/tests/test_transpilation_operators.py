@@ -5,6 +5,7 @@ file runs in well under a second and can be run on every edit.
 """
 
 import unittest
+from unittest.mock import patch
 
 import transpilation_operators as tops
 from mutate_shared import splice
@@ -92,6 +93,27 @@ class TestRoundTrip(unittest.TestCase):
         for rec in recs:
             self.assertEqual(splice(text, rec["span"], rec["replacement"]),
                              text.replace("to_be", rec["replacement"]))
+
+
+class TestRecordVerification(unittest.TestCase):
+    """The splice round-trip check alone is tautological: ``_position`` and
+    ``mutate_shared._offset`` are exact inverses for any integer, so it would pass even
+    given a wrong byte->char conversion. This exercises the independent ground-truth
+    check that ``_record`` must also perform.
+    """
+
+    def test_bad_char_index_is_rejected(self):
+        text = "// ééé non-ascii comment\nfn f(x: u32) -> [u8; 4] { x.to_le_bytes() }"
+
+        def broken_char_index(src, byte_offset):
+            # Simulates forgetting the .decode("utf-8") step: treats a byte offset as
+            # though it were already a character offset. Wrong the moment the file has
+            # a multi-byte character before the target node.
+            return byte_offset
+
+        with patch.object(tops, "_char_index", side_effect=broken_char_index):
+            recs = gen(text, [tops.ENDIANNESS])
+        self.assertEqual(recs, [])
 
 
 if __name__ == "__main__":

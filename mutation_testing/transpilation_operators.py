@@ -100,12 +100,25 @@ def _genre(op_name):
 def _record(text, src, rel_path, package, op, node, replacement, label):
     """Build one record, or None if it cannot be verified.
 
-    The verification is the point: tree-sitter counts bytes and ``_offset`` counts
-    characters, so a non-ASCII file could otherwise produce a span that splices somewhere
-    other than where the operator looked. A record that cannot reproduce its own edit is
-    dropped rather than emitted.
+    Two independent checks guard against a silently wrong span, which matters because
+    tree-sitter counts bytes and ``mutate_shared._offset`` counts characters, so a
+    non-ASCII file could otherwise produce a span that splices somewhere other than where
+    the operator looked:
+
+    * The first check catches a mis-derived byte->char conversion: it compares the text
+      sliced by the computed character offsets against the node's own text, independently
+      of ``splice``. ``_position``/``_offset`` are exact inverses for *any* integer, so a
+      wrong ``start``/``end`` (e.g. a raw byte offset that skipped ``.decode()``) would
+      still satisfy a splice-only comparison -- this check is what actually catches that.
+    * The second check catches a splice/record disagreement: it confirms
+      ``mutate_shared.splice`` -- the harness's own application logic, driven by the
+      ``span`` dict as emitted -- reproduces the exact same edit the generator intended.
+
+    A record that fails either check is dropped rather than emitted.
     """
     span, start, end = _span(text, src, node)
+    if text[start:end] != _text(node, src):
+        return None
     if splice(text, span, replacement) != text[:start] + replacement + text[end:]:
         return None
     pos = span["start"]
