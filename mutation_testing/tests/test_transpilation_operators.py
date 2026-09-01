@@ -188,5 +188,32 @@ class TestDisjointGenres(unittest.TestCase):
         self.assertTrue(all(r["genre"].startswith("Transpile") for r in recs))
 
 
+class TestTextUnit(unittest.TestCase):
+    def test_swaps_chars_for_bytes(self):
+        recs = gen("fn f(s: &str) -> usize { s.chars().count() }", [tops.TEXT_UNIT])
+        self.assertIn("bytes", replacements(recs))
+
+    def test_rewrites_len_as_char_count(self):
+        recs = gen("fn f(s: &str) -> usize { s.len() }", [tops.TEXT_UNIT])
+        self.assertIn("s.chars().count()", replacements(recs))
+
+    def test_ignores_unrelated_calls(self):
+        self.assertEqual(gen("fn f(v: Vec<u8>) -> Option<&u8> { v.first() }",
+                             [tops.TEXT_UNIT]), [])
+
+
+class TestFloatWidth(unittest.TestCase):
+    def test_narrows_f64(self):
+        recs = gen("fn f(x: i32) -> f64 { x as f64 }", [tops.FLOAT_WIDTH])
+        self.assertEqual(replacements(recs), ["f32"])
+
+    def test_widens_f32(self):
+        recs = gen("fn f(x: i32) -> f32 { x as f32 }", [tops.FLOAT_WIDTH])
+        self.assertEqual(replacements(recs), ["f64"])
+
+    def test_ignores_integer_casts(self):
+        self.assertEqual(gen("fn f(x: u8) -> u32 { x as u32 }", [tops.FLOAT_WIDTH]), [])
+
+
 if __name__ == "__main__":
     unittest.main()

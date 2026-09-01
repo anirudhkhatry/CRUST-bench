@@ -320,7 +320,41 @@ SHIFT_DISCIPLINE = Operator(name="shift-discipline", family="F1-integer",
                             query="(binary_expression) @b", rewrite=_rewrite_shift)
 
 
+# C's strlen counts bytes. A translator reaching for `chars()` is right on ASCII and wrong
+# on everything else -- exactly the bug a weak suite cannot see.
+def _rewrite_text_unit(node, src):
+    name = _text(node, src)
+    if name in ("chars", "bytes"):
+        other = "bytes" if name == "chars" else "chars"
+        yield node, other, f"replace {name} with {other}"
+        return
+    if name == "len":
+        call = node.parent.parent
+        if call is not None and call.type == "call_expression":
+            recv = call.child_by_field_name("function").child_by_field_name("value")
+            if recv is not None:
+                yield call, f"{_text(recv, src)}.chars().count()", \
+                    "replace len with chars().count()"
+
+
+TEXT_UNIT = Operator(name="text-unit", family="F2-representation",
+                     query=_METHOD_OR_PATH, rewrite=_rewrite_text_unit)
+
+
+_FLOAT_FLIP = {"f32": "f64", "f64": "f32"}
+
+
+def _rewrite_float_width(node, src):
+    name = _text(node, src)
+    if name in _FLOAT_FLIP:
+        yield node, _FLOAT_FLIP[name], f"replace cast {name} with {_FLOAT_FLIP[name]}"
+
+
+FLOAT_WIDTH = Operator(name="float-width", family="F2-representation",
+                       query=_CAST_QUERY, rewrite=_rewrite_float_width)
+
+
 OPERATORS = [
-    ENDIANNESS,
+    ENDIANNESS, TEXT_UNIT, FLOAT_WIDTH,
     CAST_WIDTH, CAST_SIGN, OVERFLOW_DISCIPLINE, SHIFT_DISCIPLINE,
 ]
