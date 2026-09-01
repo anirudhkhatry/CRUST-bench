@@ -116,5 +116,77 @@ class TestRecordVerification(unittest.TestCase):
         self.assertEqual(recs, [])
 
 
+class TestCastWidth(unittest.TestCase):
+    def test_widens_and_narrows_unsigned(self):
+        recs = gen("fn f(x: u8) -> u32 { x as u32 }", [tops.CAST_WIDTH])
+        self.assertEqual(replacements(recs), ["u16", "u64"])
+
+    def test_stays_within_signedness(self):
+        recs = gen("fn f(x: i8) -> i32 { x as i32 }", [tops.CAST_WIDTH])
+        self.assertEqual(replacements(recs), ["i16", "i64"])
+
+    def test_usize_maps_to_the_unsigned_ladder(self):
+        recs = gen("fn f(n: u64) -> usize { n as usize }", [tops.CAST_WIDTH])
+        self.assertIn("u32", replacements(recs))
+
+    def test_ignores_float_casts(self):
+        self.assertEqual(gen("fn f(x: i32) -> f64 { x as f64 }", [tops.CAST_WIDTH]), [])
+
+
+class TestCastSign(unittest.TestCase):
+    def test_flips_sign_at_same_width(self):
+        recs = gen("fn f(x: u8) -> i32 { x as i32 }", [tops.CAST_SIGN])
+        self.assertEqual(replacements(recs), ["u32"])
+
+    def test_flips_unsigned_to_signed(self):
+        recs = gen("fn f(x: i8) -> u32 { x as u32 }", [tops.CAST_SIGN])
+        self.assertEqual(replacements(recs), ["i32"])
+
+    def test_ignores_usize(self):
+        self.assertEqual(gen("fn f(n: u64) -> usize { n as usize }", [tops.CAST_SIGN]), [])
+
+
+class TestOverflowDiscipline(unittest.TestCase):
+    def test_swaps_wrapping_for_saturating(self):
+        recs = gen("fn f(a: u32, b: u32) -> u32 { a.wrapping_add(b) }",
+                   [tops.OVERFLOW_DISCIPLINE])
+        self.assertIn("saturating_add", replacements(recs))
+
+    def test_drops_wrapping_for_the_bare_operator(self):
+        recs = gen("fn f(a: u32, b: u32) -> u32 { a.wrapping_add(b) }",
+                   [tops.OVERFLOW_DISCIPLINE])
+        self.assertIn("a + b", replacements(recs))
+
+    def test_adds_wrapping_to_a_bare_operator(self):
+        recs = gen("fn f(a: u32, b: u32) -> u32 { a + b }", [tops.OVERFLOW_DISCIPLINE])
+        self.assertEqual(replacements(recs), ["a.wrapping_add(b)"])
+
+    def test_ignores_shifts(self):
+        """Shifts belong to shift-discipline, so the two operators cannot double-count."""
+        self.assertEqual(gen("fn f(a: u32) -> u32 { a << 2 }",
+                             [tops.OVERFLOW_DISCIPLINE]), [])
+
+    def test_ignores_non_arithmetic_operators(self):
+        self.assertEqual(gen("fn f(a: u32, b: u32) -> bool { a == b }",
+                             [tops.OVERFLOW_DISCIPLINE]), [])
+
+
+class TestShiftDiscipline(unittest.TestCase):
+    def test_wraps_a_left_shift(self):
+        recs = gen("fn f(a: u32) -> u32 { a << 2 }", [tops.SHIFT_DISCIPLINE])
+        self.assertEqual(replacements(recs), ["a.wrapping_shl(2)"])
+
+    def test_wraps_a_right_shift(self):
+        recs = gen("fn f(a: u32) -> u32 { a >> 2 }", [tops.SHIFT_DISCIPLINE])
+        self.assertEqual(replacements(recs), ["a.wrapping_shr(2)"])
+
+
+class TestDisjointGenres(unittest.TestCase):
+    def test_every_genre_is_prefixed(self):
+        recs = gen("fn f(a: u32, b: u8) -> u32 { a.wrapping_add(b as u32) << 1 }")
+        self.assertTrue(recs)
+        self.assertTrue(all(r["genre"].startswith("Transpile") for r in recs))
+
+
 if __name__ == "__main__":
     unittest.main()

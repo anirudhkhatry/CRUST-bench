@@ -200,4 +200,127 @@ ENDIANNESS = Operator(
 )
 
 
-OPERATORS = [ENDIANNESS]
+# --------------------------------------------------------------------------------------
+# F1. Integer semantics
+# --------------------------------------------------------------------------------------
+
+# C's int/long/size_t map onto Rust's fixed widths by a judgement call the translator has
+# to make, and it can pick the neighbour. Mutating one rung along the ladder models that
+# directly; jumping further would be a less plausible bug.
+_INT_LADDER = {
+    "u8": ["u16"], "u16": ["u8", "u32"], "u32": ["u16", "u64"],
+    "u64": ["u32", "u128"], "u128": ["u64"], "usize": ["u32", "u64"],
+    "i8": ["i16"], "i16": ["i8", "i32"], "i32": ["i16", "i64"],
+    "i64": ["i32", "i128"], "i128": ["i64"], "isize": ["i32", "i64"],
+}
+
+# C `char` signedness is platform-defined, and sign decides whether `>>` is arithmetic or
+# logical. usize/isize are excluded: they are chosen for indexing, not for sign, so a flip
+# there models nothing real.
+_SIGN_FLIP = {
+    "u8": "i8", "u16": "i16", "u32": "i32", "u64": "i64", "u128": "i128",
+    "i8": "u8", "i16": "u16", "i32": "u32", "i64": "u64", "i128": "u128",
+}
+
+_CAST_QUERY = "(type_cast_expression type: (primitive_type) @ty)"
+
+# Arithmetic only. Shifts are handled by shift-discipline so the two cannot double-count
+# the same site.
+_WRAP_FAMILIES = {"add": "+", "sub": "-", "mul": "*", "div": "/", "rem": "%"}
+_SHIFT_OPS = {"<<": "shl", ">>": "shr"}
+
+
+def _rewrite_cast_width(node, src):
+    name = _text(node, src)
+    for other in _INT_LADDER.get(name, []):
+        yield node, other, f"replace cast {name} with {other}"
+
+
+def _rewrite_cast_sign(node, src):
+    name = _text(node, src)
+    if name in _SIGN_FLIP:
+        other = _SIGN_FLIP[name]
+        yield node, other, f"replace cast {name} with {other}"
+
+
+CAST_WIDTH = Operator(name="cast-width", family="F1-integer",
+                      query=_CAST_QUERY, rewrite=_rewrite_cast_width)
+
+CAST_SIGN = Operator(name="cast-sign", family="F1-integer",
+                     query=_CAST_QUERY, rewrite=_rewrite_cast_sign)
+
+
+def _binary_parts(node, src):
+    """(left, op_token, right) for a binary_expression, or None if it is not one.
+
+    The grammar gives the operator as an unnamed child, so it is found positionally
+    rather than by field name.
+    """
+    if node.type != "binary_expression" or len(node.children) != 3:
+        return None
+    left, op, right = node.children
+    if op.is_named:
+        return None
+    return _text(left, src), _text(op, src), _text(right, src)
+
+
+def _rewrite_overflow(node, src):
+    # Direction 1: a named wrapping/saturating call. Swap the discipline, or drop it for
+    # the bare operator, which is what a translator does when it forgets C wraps.
+    if node.type == "field_identifier" or node.type == "identifier":
+        name = _text(node, src)
+        for prefix, other in (("wrapping_", "saturating_"), ("saturating_", "wrapping_")):
+            if name.startswith(prefix) and name[len(prefix):] in _WRAP_FAMILIES:
+                stem = name[len(prefix):]
+                yield node, other + stem, f"replace {name} with {other}{stem}"
+                call = node.parent.parent  # field_identifier -> field_expression -> call
+                if call is not None and call.type == "call_expression":
+                    recv = call.child_by_field_name("function").child_by_field_name("value")
+                    args = call.child_by_field_name("arguments")
+                    inner = [c for c in args.children if c.is_named] if args else []
+                    if recv is not None and len(inner) == 1:
+                        expr = (f"{_text(recv, src)} {_WRAP_FAMILIES[stem]} "
+                                f"{_text(inner[0], src)}")
+                        yield call, expr, f"replace {name} with bare {_WRAP_FAMILIES[stem]}"
+                return
+        return
+
+    # Direction 2: a bare arithmetic operator that could have needed wrapping.
+    parts = _binary_parts(node, src)
+    if parts is None:
+        return
+    left, op, right = parts
+    for stem, symbol in _WRAP_FAMILIES.items():
+        if op == symbol:
+            yield node, f"{left}.wrapping_{stem}({right})", \
+                f"replace {op} with wrapping_{stem}"
+            return
+
+
+OVERFLOW_DISCIPLINE = Operator(
+    name="overflow-discipline",
+    family="F1-integer",
+    query=_METHOD_OR_PATH + "\n(binary_expression) @b",
+    rewrite=_rewrite_overflow,
+)
+
+
+def _rewrite_shift(node, src):
+    parts = _binary_parts(node, src)
+    if parts is None:
+        return
+    left, op, right = parts
+    if op in _SHIFT_OPS:
+        stem = _SHIFT_OPS[op]
+        yield node, f"{left}.wrapping_{stem}({right})", \
+            f"replace {op} with wrapping_{stem}"
+
+
+SHIFT_DISCIPLINE = Operator(name="shift-discipline", family="F1-integer",
+                            query="(binary_expression) @b", rewrite=_rewrite_shift)
+
+
+OPERATORS = [
+    ENDIANNESS,
+    CAST_WIDTH, CAST_SIGN, OVERFLOW_DISCIPLINE, SHIFT_DISCIPLINE,
+]
