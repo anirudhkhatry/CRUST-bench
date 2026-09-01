@@ -72,6 +72,14 @@ class TestDisjointness(unittest.TestCase):
                          f"{len(overlap)} edits collide with cargo-mutants: "
                          f"{sorted(overlap)[:5]}")
 
+    def test_names_are_unique_within_a_file(self):
+        """`mutate_fast --only-names-from` filters on the raw `name`, so a duplicated name
+        silently re-scores every sibling that shares it when a partial run is resumed."""
+        for project, rel, text in corpus_sources():
+            names = [r["name"] for r in tops.generate(text, rel, project)]
+            dupes = sorted({n for n in names if names.count(n) > 1})
+            self.assertEqual(dupes, [], f"duplicate names in {project}/{rel}: {dupes[:5]}")
+
     def test_operators_do_not_claim_each_others_edits(self):
         """No two operators may generate the same edit.
 

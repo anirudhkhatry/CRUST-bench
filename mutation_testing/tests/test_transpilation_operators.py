@@ -81,6 +81,15 @@ class TestRecordShape(unittest.TestCase):
         rec = gen(self.SRC, [tops.ENDIANNESS])[0]
         self.assertTrue(rec["name"].startswith("core/src/lib.rs:2:7: replace to_le_bytes"))
 
+    def test_names_are_unique_within_a_file(self):
+        """Nested wrapping calls share a start position and a label, so the name alone
+        collides. `--only-names-from` filters on the raw name, so it must not."""
+        text = ("fn f(a: u64, b: u64, c: u64) -> u64 "
+                "{ a.wrapping_add(b).wrapping_add(c) }")
+        names = [r["name"] for r in gen(text)]
+        self.assertEqual(len(names), len(set(names)), names)
+        self.assertTrue(any(n.endswith("#2") for n in names), names)
+
 
 class TestRoundTrip(unittest.TestCase):
     """Every record must splice to exactly the edit the generator intended.

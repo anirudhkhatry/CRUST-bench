@@ -222,9 +222,32 @@ def generate(text, rel_path, package, operators=None):
                     seen.add(key)
                     records.append(rec)
 
+    # The sort key repeats the whole dedup key, so it is a *total* order: no two surviving
+    # records can tie. That is what makes the ordinals below deterministic.
     records.sort(key=lambda r: (r["file"], r["span"]["start"]["line"],
-                                r["span"]["start"]["column"], r["replacement"]))
+                                r["span"]["start"]["column"], r["span"]["end"]["line"],
+                                r["span"]["end"]["column"], r["replacement"]))
+    _disambiguate_names(records)
     return records
+
+
+def _disambiguate_names(records):
+    """Make ``name`` unique within the file, in place.
+
+    ``name`` is ``file:line:col: label``, which is not unique: nested wrapping calls all
+    start at the same line and column and carry the same label, differing only in their
+    end and replacement. That is harmless for outcomes.json -- ``run_fast_mutation``
+    disambiguates into ``mutant_key`` itself -- but ``mutate_fast --only-names-from``
+    filters on the raw ``name``, so a duplicate silently drags every sibling that shares it
+    back into a resumed run. Colliding names get a ``#2``, ``#3`` ... suffix in sort order.
+
+    ``generate`` is per file, so uniqueness here is uniqueness within the file.
+    """
+    counts = {}
+    for rec in records:
+        n = counts[rec["name"]] = counts.get(rec["name"], 0) + 1
+        if n > 1:
+            rec["name"] = f"{rec['name']} #{n}"
 
 
 # --------------------------------------------------------------------------------------
