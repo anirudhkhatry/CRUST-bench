@@ -215,5 +215,63 @@ class TestFloatWidth(unittest.TestCase):
         self.assertEqual(gen("fn f(x: u8) -> u32 { x as u32 }", [tops.FLOAT_WIDTH]), [])
 
 
+class TestLostInPlaceUpdate(unittest.TestCase):
+    def test_clones_a_mutable_reference_argument(self):
+        recs = gen("fn f(acc: &mut u32) { g(&mut *acc); }", [tops.LOST_IN_PLACE_UPDATE])
+        self.assertIn("&mut (*acc).clone()", replacements(recs))
+
+    def test_clones_a_mutable_reference_to_a_binding(self):
+        recs = gen("fn f() { let mut a = 0u32; g(&mut a); }",
+                   [tops.LOST_IN_PLACE_UPDATE])
+        self.assertIn("&mut a.clone()", replacements(recs))
+
+    def test_ignores_shared_references(self):
+        self.assertEqual(gen("fn f() { let a = 0u32; g(&a); }",
+                             [tops.LOST_IN_PLACE_UPDATE]), [])
+
+
+class TestErrorPathErasure(unittest.TestCase):
+    def test_replaces_try_with_unwrap_or_default(self):
+        recs = gen("fn f(v: Result<u32, ()>) -> u32 { v? }", [tops.ERROR_PATH_ERASURE])
+        self.assertEqual(replacements(recs), ["v.unwrap_or_default()"])
+
+    def test_ignores_plain_expressions(self):
+        self.assertEqual(gen("fn f(v: u32) -> u32 { v }", [tops.ERROR_PATH_ERASURE]), [])
+
+
+class TestRangeBound(unittest.TestCase):
+    def test_makes_an_exclusive_range_inclusive(self):
+        recs = gen("fn f(b: &[u8]) -> &[u8] { &b[1..4] }", [tops.RANGE_BOUND])
+        self.assertIn("1..=4", replacements(recs))
+
+    def test_shortens_an_exclusive_range(self):
+        recs = gen("fn f(b: &[u8]) -> &[u8] { &b[1..4] }", [tops.RANGE_BOUND])
+        self.assertIn("1..4 - 1", replacements(recs))
+
+    def test_makes_an_inclusive_range_exclusive(self):
+        recs = gen("fn f(b: &[u8]) -> &[u8] { &b[1..=4] }", [tops.RANGE_BOUND])
+        self.assertIn("1..4", replacements(recs))
+
+    def test_ignores_open_ranges(self):
+        """`&b[..]` has no endpoints to be wrong about."""
+        self.assertEqual(gen("fn f(b: &[u8]) -> &[u8] { &b[..] }", [tops.RANGE_BOUND]), [])
+
+
+class TestArgTransposition(unittest.TestCase):
+    def test_swaps_two_adjacent_arguments(self):
+        recs = gen("fn f() { g(p, q); }", [tops.ARG_TRANSPOSITION])
+        self.assertEqual(replacements(recs), ["(q, p)"])
+
+    def test_swaps_each_adjacent_pair_of_three(self):
+        recs = gen("fn f() { g(a, b, c); }", [tops.ARG_TRANSPOSITION])
+        self.assertEqual(replacements(recs), ["(a, c, b)", "(b, a, c)"])
+
+    def test_ignores_single_argument_calls(self):
+        self.assertEqual(gen("fn f() { g(a); }", [tops.ARG_TRANSPOSITION]), [])
+
+    def test_ignores_empty_calls(self):
+        self.assertEqual(gen("fn f() { g(); }", [tops.ARG_TRANSPOSITION]), [])
+
+
 if __name__ == "__main__":
     unittest.main()

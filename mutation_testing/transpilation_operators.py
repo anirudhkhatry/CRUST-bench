@@ -354,7 +354,91 @@ FLOAT_WIDTH = Operator(name="float-width", family="F2-representation",
                        query=_CAST_QUERY, rewrite=_rewrite_float_width)
 
 
+# --------------------------------------------------------------------------------------
+# F3. Ownership and interface
+# --------------------------------------------------------------------------------------
+
+def _rewrite_lost_update(node, src):
+    """`&mut x` -> `&mut x.clone()`.
+
+    When the borrow checker fights a translation, the standard escape is to clone, and the
+    caller's update silently vanishes. `&mut x.clone()` borrows a temporary, which Rust
+    permits in argument position, so the mutant compiles and does nothing.
+    """
+    kids = node.children
+    if len(kids) != 3 or kids[1].type != "mutable_specifier":
+        return
+    inner = kids[2]
+    text = _text(inner, src)
+    # Parenthesise anything that is not a plain path, so `&mut *p` does not become
+    # `&mut *p.clone()`, which clones the pointer rather than the pointee.
+    if inner.type not in ("identifier", "field_expression", "scoped_identifier"):
+        text = f"({text})"
+    yield node, f"&mut {text}.clone()", "clone a &mut argument (lost in-place update)"
+
+
+LOST_IN_PLACE_UPDATE = Operator(name="lost-in-place-update", family="F3-ownership",
+                                query="(reference_expression) @r",
+                                rewrite=_rewrite_lost_update)
+
+
+def _rewrite_error_path(node, src):
+    """`v?` -> `v.unwrap_or_default()`: C's -1/NULL sentinel becomes a swallowed error."""
+    inner = node.children[0] if node.children else None
+    if inner is None:
+        return
+    yield node, f"{_text(inner, src)}.unwrap_or_default()", \
+        "replace ? with unwrap_or_default()"
+
+
+ERROR_PATH_ERASURE = Operator(name="error-path-erasure", family="F3-ownership",
+                              query="(try_expression) @t", rewrite=_rewrite_error_path)
+
+
+def _rewrite_range_bound(node, src):
+    """C pointer arithmetic becomes Rust slicing, and the bound slips by one."""
+    kids = node.children
+    named = [c for c in kids if c.is_named]
+    ops = [c for c in kids if not c.is_named and c.type in ("..", "..=")]
+    if len(named) != 2 or len(ops) != 1:
+        return  # open ranges such as `..` or `a..` have no endpoint to get wrong
+    left, right = _text(named[0], src), _text(named[1], src)
+    if ops[0].type == "..":
+        yield node, f"{left}..={right}", "replace .. with ..="
+        yield node, f"{left}..{right} - 1", "shorten range end by one"
+    else:
+        yield node, f"{left}..{right}", "replace ..= with .."
+
+
+RANGE_BOUND = Operator(name="range-bound", family="F3-ownership",
+                       query="(range_expression) @r", rewrite=_rewrite_range_bound)
+
+
+def _rewrite_arg_transposition(node, src):
+    """Swap adjacent arguments: the C signature order lost in translation.
+
+    tree-sitter has no types, so this cannot check that the two arguments are
+    interchangeable. Mis-typed swaps fail to compile and the harness records them
+    Unviable, which costs build time but not correctness.
+    """
+    args = [c for c in node.children if c.is_named]
+    if len(args) < 2:
+        return
+    texts = [_text(a, src) for a in args]
+    for i in range(len(texts) - 1):
+        swapped = list(texts)
+        swapped[i], swapped[i + 1] = swapped[i + 1], swapped[i]
+        yield node, "(" + ", ".join(swapped) + ")", \
+            f"transpose arguments {i + 1} and {i + 2}"
+
+
+ARG_TRANSPOSITION = Operator(name="arg-transposition", family="F3-ownership",
+                             query="(call_expression arguments: (arguments) @a)",
+                             rewrite=_rewrite_arg_transposition)
+
+
 OPERATORS = [
     ENDIANNESS, TEXT_UNIT, FLOAT_WIDTH,
     CAST_WIDTH, CAST_SIGN, OVERFLOW_DISCIPLINE, SHIFT_DISCIPLINE,
+    LOST_IN_PLACE_UPDATE, ERROR_PATH_ERASURE, RANGE_BOUND, ARG_TRANSPOSITION,
 ]
