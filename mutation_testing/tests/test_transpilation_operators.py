@@ -272,6 +272,13 @@ class TestArgTransposition(unittest.TestCase):
     def test_ignores_empty_calls(self):
         self.assertEqual(gen("fn f() { g(); }", [tops.ARG_TRANSPOSITION]), [])
 
+    def test_ignores_identical_adjacent_arguments(self):
+        self.assertEqual(gen("fn f() { g(x, x); }", [tops.ARG_TRANSPOSITION]), [])
+
+    def test_still_swaps_the_distinct_neighbouring_pair(self):
+        recs = gen("fn f() { g(x, x, y); }", [tops.ARG_TRANSPOSITION])
+        self.assertEqual(replacements(recs), ["(x, y, x)"])
+
 
 if __name__ == "__main__":
     unittest.main()

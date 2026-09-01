@@ -426,6 +426,8 @@ def _rewrite_arg_transposition(node, src):
         return
     texts = [_text(a, src) for a in args]
     for i in range(len(texts) - 1):
+        if texts[i] == texts[i + 1]:
+            continue  # identical adjacent arguments swap to the same text: no-op mutant
         swapped = list(texts)
         swapped[i], swapped[i + 1] = swapped[i + 1], swapped[i]
         yield node, "(" + ", ".join(swapped) + ")", \
