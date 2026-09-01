@@ -10,6 +10,19 @@ The module deliberately knows nothing about CRUST-bench. It takes source text an
 records shaped like cargo-mutants' own (``_MUTANT_KEYS`` in mutate_shared), which is what
 lets every downstream stage of the harness consume them unchanged.
 
+Scope note -- this catalog is a *subset* of the spec's. Each operator below implements the
+arm that fires most often on real transpiled code, not every arm the spec describes:
+
+* ``error-path-erasure`` implements only ``?`` -> ``unwrap_or_default()``. It does not
+  implement ``unwrap_or(x)`` -> ``unwrap_or(Default)``.
+* ``arg-transposition`` covers call sites only, not struct-literal fields.
+* ``lost-in-place-update`` covers ``&mut`` *arguments* only, not ``&mut`` receivers.
+* ``overflow-discipline`` and ``shift-discipline`` omit the ``checked_*().unwrap()`` arm.
+
+This matters downstream: the witness gate must not read the absence of a witness for one
+of these shapes as evidence that the bug class does not occur. It is evidence only that
+this generator does not currently emit that arm.
+
 Design note on precision: tree-sitter gives syntax, not types, so some generated mutants
 will not compile. That is acceptable rather than sloppy -- the harness already treats a
 failed build as ``Unviable`` and drops it from the denominator, so imprecision costs build
@@ -35,6 +48,10 @@ _METHOD_OR_PATH = (
     "(call_expression function: (field_expression field: (field_identifier) @m))\n"
     "(scoped_identifier name: (identifier) @m)"
 )
+
+# `x as T` for a built-in T. Shared by cast-width and cast-sign (F1) and float-width (F2),
+# so it lives here with the other cross-family query rather than inside one section.
+_CAST_QUERY = "(type_cast_expression type: (primitive_type) @ty)"
 
 
 @dataclass(frozen=True)
@@ -302,6 +319,40 @@ ENDIANNESS = Operator(
 )
 
 
+# C's strlen counts bytes. A translator reaching for `chars()` is right on ASCII and wrong
+# on everything else -- exactly the bug a weak suite cannot see.
+def _rewrite_text_unit(node, src):
+    name = _text(node, src)
+    if name in ("chars", "bytes"):
+        other = "bytes" if name == "chars" else "chars"
+        yield node, other, f"replace {name} with {other}"
+        return
+    if name == "len":
+        call = node.parent.parent
+        if call is not None and call.type == "call_expression":
+            recv = call.child_by_field_name("function").child_by_field_name("value")
+            if recv is not None:
+                yield call, f"{_text(recv, src)}.chars().count()", \
+                    "replace len with chars().count()"
+
+
+TEXT_UNIT = Operator(name="text-unit", family="F2-representation",
+                     query=_METHOD_OR_PATH, rewrite=_rewrite_text_unit)
+
+
+_FLOAT_FLIP = {"f32": "f64", "f64": "f32"}
+
+
+def _rewrite_float_width(node, src):
+    name = _text(node, src)
+    if name in _FLOAT_FLIP:
+        yield node, _FLOAT_FLIP[name], f"replace cast {name} with {_FLOAT_FLIP[name]}"
+
+
+FLOAT_WIDTH = Operator(name="float-width", family="F2-representation",
+                       query=_CAST_QUERY, rewrite=_rewrite_float_width)
+
+
 # --------------------------------------------------------------------------------------
 # F1. Integer semantics
 # --------------------------------------------------------------------------------------
@@ -323,8 +374,6 @@ _SIGN_FLIP = {
     "u8": "i8", "u16": "i16", "u32": "i32", "u64": "i64", "u128": "i128",
     "i8": "u8", "i16": "u16", "i32": "u32", "i64": "u64", "i128": "u128",
 }
-
-_CAST_QUERY = "(type_cast_expression type: (primitive_type) @ty)"
 
 # Arithmetic only. Shifts are handled by shift-discipline so the two cannot double-count
 # the same site.
@@ -461,40 +510,6 @@ def _rewrite_shift(node, src):
 
 SHIFT_DISCIPLINE = Operator(name="shift-discipline", family="F1-integer",
                             query="(binary_expression) @b", rewrite=_rewrite_shift)
-
-
-# C's strlen counts bytes. A translator reaching for `chars()` is right on ASCII and wrong
-# on everything else -- exactly the bug a weak suite cannot see.
-def _rewrite_text_unit(node, src):
-    name = _text(node, src)
-    if name in ("chars", "bytes"):
-        other = "bytes" if name == "chars" else "chars"
-        yield node, other, f"replace {name} with {other}"
-        return
-    if name == "len":
-        call = node.parent.parent
-        if call is not None and call.type == "call_expression":
-            recv = call.child_by_field_name("function").child_by_field_name("value")
-            if recv is not None:
-                yield call, f"{_text(recv, src)}.chars().count()", \
-                    "replace len with chars().count()"
-
-
-TEXT_UNIT = Operator(name="text-unit", family="F2-representation",
-                     query=_METHOD_OR_PATH, rewrite=_rewrite_text_unit)
-
-
-_FLOAT_FLIP = {"f32": "f64", "f64": "f32"}
-
-
-def _rewrite_float_width(node, src):
-    name = _text(node, src)
-    if name in _FLOAT_FLIP:
-        yield node, _FLOAT_FLIP[name], f"replace cast {name} with {_FLOAT_FLIP[name]}"
-
-
-FLOAT_WIDTH = Operator(name="float-width", family="F2-representation",
-                       query=_CAST_QUERY, rewrite=_rewrite_float_width)
 
 
 # --------------------------------------------------------------------------------------
