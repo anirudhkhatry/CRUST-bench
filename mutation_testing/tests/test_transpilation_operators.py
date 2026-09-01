@@ -155,11 +155,30 @@ class TestOverflowDiscipline(unittest.TestCase):
     def test_drops_wrapping_for_the_bare_operator(self):
         recs = gen("fn f(a: u32, b: u32) -> u32 { a.wrapping_add(b) }",
                    [tops.OVERFLOW_DISCIPLINE])
-        self.assertIn("a + b", replacements(recs))
+        self.assertIn("(a + b)", replacements(recs))
 
     def test_adds_wrapping_to_a_bare_operator(self):
         recs = gen("fn f(a: u32, b: u32) -> u32 { a + b }", [tops.OVERFLOW_DISCIPLINE])
         self.assertEqual(replacements(recs), ["a.wrapping_add(b)"])
+
+    def test_parenthesises_a_non_atomic_left_operand(self):
+        """`365 * yoe + yoe / 4` must not become `365 * yoe.wrapping_add(yoe / 4)`."""
+        recs = gen("fn f(a: u32, b: u32) -> u32 { a * b + b / 4 }",
+                   [tops.OVERFLOW_DISCIPLINE])
+        self.assertIn("(a * b).wrapping_add(b / 4)", replacements(recs))
+
+    def test_bare_operator_replacement_cannot_escape_its_context(self):
+        """`acc.wrapping_mul(P).wrapping_add(z)` must not become `acc * P.wrapping_add(z)`."""
+        recs = gen("fn f(a: u32, p: u32, z: u32) -> u32 { a.wrapping_mul(p).wrapping_add(z) }",
+                   [tops.OVERFLOW_DISCIPLINE])
+        self.assertIn("(a * p)", replacements(recs))
+        self.assertNotIn("a * p", replacements(recs))
+
+    def test_bare_operator_parenthesises_a_compound_argument(self):
+        """`a.wrapping_mul(x + 1)` must not become `a * x + 1`."""
+        recs = gen("fn f(a: u32, x: u32) -> u32 { a.wrapping_mul(x + 1) }",
+                   [tops.OVERFLOW_DISCIPLINE])
+        self.assertIn("(a * (x + 1))", replacements(recs))
 
     def test_ignores_shifts(self):
         """Shifts belong to shift-discipline, so the two operators cannot double-count."""
@@ -179,6 +198,16 @@ class TestShiftDiscipline(unittest.TestCase):
     def test_wraps_a_right_shift(self):
         recs = gen("fn f(a: u32) -> u32 { a >> 2 }", [tops.SHIFT_DISCIPLINE])
         self.assertEqual(replacements(recs), ["a.wrapping_shr(2)"])
+
+    def test_ignores_non_shift_operators(self):
+        """The negative case: only `<<`/`>>` are shifts. `a + b` belongs to
+        overflow-discipline, and `a + b << 2` must parenthesise rather than reassociate."""
+        self.assertEqual(gen("fn f(a: u32, b: u32) -> u32 { a + b }",
+                             [tops.SHIFT_DISCIPLINE]), [])
+
+    def test_parenthesises_a_non_atomic_left_operand(self):
+        recs = gen("fn f(a: u32, b: u32) -> u32 { a + b << 2 }", [tops.SHIFT_DISCIPLINE])
+        self.assertEqual(replacements(recs), ["(a + b).wrapping_shl(2)"])
 
 
 class TestDisjointGenres(unittest.TestCase):

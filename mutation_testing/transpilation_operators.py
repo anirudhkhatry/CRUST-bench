@@ -250,18 +250,42 @@ CAST_SIGN = Operator(name="cast-sign", family="F1-integer",
                      query=_CAST_QUERY, rewrite=_rewrite_cast_sign)
 
 
+# An expression is "atomic" here if a postfix `.method(..)` binds to the whole of it
+# rather than to some sub-part -- i.e. it is a primary or postfix expression. Anything
+# outside this set (a binary or unary expression, a cast, a reference, a block-like
+# expression) binds *looser* than `.`, so splicing it as a receiver would reassociate:
+# `a + b` spliced into `{}.wrapping_shl(2)` yields `a + b.wrapping_shl(2)`.
+# Parenthesising an expression is semantically neutral in Rust, so the set is kept
+# deliberately conservative: anything not listed here gets parentheses.
+_ATOMIC_EXPR = frozenset({
+    "identifier", "self", "scoped_identifier", "generic_function", "metavariable",
+    "integer_literal", "float_literal", "string_literal", "raw_string_literal",
+    "char_literal", "boolean_literal", "unit_expression",
+    "call_expression", "field_expression", "index_expression", "macro_invocation",
+    "parenthesized_expression", "tuple_expression", "array_expression",
+    "try_expression", "await_expression",
+})
+
+
+def _operand(node, src):
+    """A node's text, parenthesised unless it is already atomic (see ``_ATOMIC_EXPR``)."""
+    text = _text(node, src)
+    return text if node.type in _ATOMIC_EXPR else f"({text})"
+
+
 def _binary_parts(node, src):
-    """(left, op_token, right) for a binary_expression, or None if it is not one.
+    """(left_node, op_token_text, right_node) for a binary_expression, else None.
 
     The grammar gives the operator as an unnamed child, so it is found positionally
-    rather than by field name.
+    rather than by field name. Operands are returned as *nodes*, not text, because the
+    callers must know each operand's shape to decide whether it needs parenthesising.
     """
     if node.type != "binary_expression" or len(node.children) != 3:
         return None
     left, op, right = node.children
     if op.is_named:
         return None
-    return _text(left, src), _text(op, src), _text(right, src)
+    return left, _text(op, src), right
 
 
 def _rewrite_overflow(node, src):
@@ -279,8 +303,14 @@ def _rewrite_overflow(node, src):
                     args = call.child_by_field_name("arguments")
                     inner = [c for c in args.children if c.is_named] if args else []
                     if recv is not None and len(inner) == 1:
-                        expr = (f"{_text(recv, src)} {_WRAP_FAMILIES[stem]} "
-                                f"{_text(inner[0], src)}")
+                        # The replacement is a *binary* expression standing where a
+                        # postfix call stood, so it binds looser than what it replaces:
+                        # without the outer parentheses `acc.wrapping_mul(P).wrapping_add(z)`
+                        # would become `acc * P.wrapping_add(z)`. The operands are
+                        # parenthesised on the same rule, so `a.wrapping_mul(x + 1)` does
+                        # not become `a * x + 1`.
+                        expr = (f"({_operand(recv, src)} {_WRAP_FAMILIES[stem]} "
+                                f"{_operand(inner[0], src)})")
                         yield call, expr, f"replace {name} with bare {_WRAP_FAMILIES[stem]}"
                 return
         return
@@ -292,7 +322,10 @@ def _rewrite_overflow(node, src):
     left, op, right = parts
     for stem, symbol in _WRAP_FAMILIES.items():
         if op == symbol:
-            yield node, f"{left}.wrapping_{stem}({right})", \
+            # `_operand` on the left is what keeps `365 * yoe + yoe / 4` from becoming
+            # `365 * yoe.wrapping_add(yoe / 4)`. The right operand sits inside the call's
+            # own parentheses and so cannot reassociate.
+            yield node, f"{_operand(left, src)}.wrapping_{stem}({_text(right, src)})", \
                 f"replace {op} with wrapping_{stem}"
             return
 
@@ -312,7 +345,9 @@ def _rewrite_shift(node, src):
     left, op, right = parts
     if op in _SHIFT_OPS:
         stem = _SHIFT_OPS[op]
-        yield node, f"{left}.wrapping_{stem}({right})", \
+        # Same precedence guard as overflow-discipline: `a + b << 2` must become
+        # `(a + b).wrapping_shl(2)`, never `a + b.wrapping_shl(2)`.
+        yield node, f"{_operand(left, src)}.wrapping_{stem}({_text(right, src)})", \
             f"replace {op} with wrapping_{stem}"
 
 
