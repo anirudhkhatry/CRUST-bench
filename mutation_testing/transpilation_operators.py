@@ -133,6 +133,60 @@ def _record(text, src, rel_path, package, op, node, replacement, label):
     }
 
 
+def _is_cfg_test(attr_item, src):
+    """True for `#[cfg(test)]`, and for any `cfg` predicate mentioning `test`.
+
+    Structural rather than textual: the attribute's path must be `cfg`, and a `test`
+    identifier must appear inside its token tree. That accepts `#[cfg(test)]` and
+    `#[cfg(all(test, feature = "x"))]` while rejecting a `#[doc = "cfg(test)"]` or a
+    comment that merely contains the string.
+    """
+    attr = next((c for c in attr_item.children if c.type == "attribute"), None)
+    if attr is None or not attr.children:
+        return False
+    if _text(attr.children[0], src) != "cfg":
+        return False
+    stack = [c for c in attr.children[1:]]
+    while stack:
+        n = stack.pop()
+        if n.type == "identifier" and _text(n, src) == "test":
+            return True
+        stack.extend(n.children)
+    return False
+
+
+def _cfg_test_ranges(root, src):
+    """Byte ranges of every item gated behind a `#[cfg(test)]` attribute.
+
+    Inline `#[cfg(test)] mod tests` blocks are the crate's *own* unit tests, not the code
+    the generated suite is scored on: a mutant there can only ever report a fact about the
+    crate's inline tests. cargo-mutants skips this region by construction, so skipping it
+    here is also what keeps the two tools scoring the same population.
+
+    The exclusion lives in ``generate`` rather than in the workspace walker because it is a
+    fact about Rust, not about CRUST-bench's layout -- and because every caller
+    (list_transpile_mutants, the disjointness guard, future ones) then gets it for free
+    instead of re-deriving it and drifting.
+
+    In tree-sitter-rust an attribute is a *sibling* preceding the item it decorates, so the
+    scan pairs each gating attribute with the next non-attribute sibling.
+    """
+    ranges, stack = [], [root]
+    while stack:
+        node = stack.pop()
+        gated = False
+        for child in node.children:
+            if child.type == "attribute_item":
+                gated = gated or _is_cfg_test(child, src)
+                continue
+            if gated:
+                ranges.append((child.start_byte, child.end_byte))
+                gated = False
+                continue  # no need to descend: the whole item is excluded
+            stack.append(child)
+    return ranges
+
+
 def generate(text, rel_path, package, operators=None):
     """Every transpilation-aware mutant for one Rust source file.
 
@@ -142,13 +196,18 @@ def generate(text, rel_path, package, operators=None):
     operators = OPERATORS if operators is None else operators
     src = text.encode("utf-8")
     tree = _PARSER.parse(src)
+    skip = _cfg_test_ranges(tree.root_node, src)
 
     seen, records = set(), []
     for op in operators:
         cursor = ts.QueryCursor(ts.Query(_LANG, op.query))
         for nodes in cursor.captures(tree.root_node).values():
             for node in nodes:
+                if any(lo <= node.start_byte < hi for lo, hi in skip):
+                    continue
                 for target, replacement, label in op.rewrite(node, src):
+                    if any(lo <= target.start_byte < hi for lo, hi in skip):
+                        continue
                     rec = _record(text, src, rel_path, package, op, target,
                                   replacement, label)
                     if rec is None:

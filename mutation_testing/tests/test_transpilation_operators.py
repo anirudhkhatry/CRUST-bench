@@ -217,6 +217,45 @@ class TestDisjointGenres(unittest.TestCase):
         self.assertTrue(all(r["genre"].startswith("Transpile") for r in recs))
 
 
+class TestCfgTestExclusion(unittest.TestCase):
+    """Inline `#[cfg(test)]` items are the crate's own unit tests, not scored code.
+
+    The exclusion lives in ``generate`` so every caller shares it -- duplicating it in the
+    workspace walker and in the disjointness guard is exactly the drift the `interfaces`
+    exclusion already cost once.
+    """
+
+    def test_skips_a_cfg_test_module(self):
+        text = ("fn real(a: u32, b: u32) -> u32 { a + b }\n"
+                "#[cfg(test)]\nmod tests {\n"
+                "    fn t(c: u32, d: u32) -> u32 { c + d }\n}\n")
+        recs = gen(text, [tops.OVERFLOW_DISCIPLINE])
+        self.assertEqual(replacements(recs), ["a.wrapping_add(b)"])
+
+    def test_skips_a_cfg_test_function(self):
+        text = ("fn real(a: u32, b: u32) -> u32 { a + b }\n"
+                "#[cfg(test)]\nfn helper(c: u32, d: u32) -> u32 { c + d }\n")
+        self.assertEqual(replacements(gen(text, [tops.OVERFLOW_DISCIPLINE])),
+                         ["a.wrapping_add(b)"])
+
+    def test_skips_a_compound_cfg_predicate(self):
+        text = ("#[cfg(all(test, feature = \"x\"))]\n"
+                "mod tests { fn t(c: u32, d: u32) -> u32 { c + d } }\n")
+        self.assertEqual(gen(text, [tops.OVERFLOW_DISCIPLINE]), [])
+
+    def test_keeps_a_module_gated_on_something_else(self):
+        text = ("#[cfg(feature = \"x\")]\n"
+                "mod extra { fn t(c: u32, d: u32) -> u32 { c + d } }\n")
+        self.assertEqual(replacements(gen(text, [tops.OVERFLOW_DISCIPLINE])),
+                         ["c.wrapping_add(d)"])
+
+    def test_keeps_a_plain_module_named_tests(self):
+        """The skip is structural, not a name match on `mod tests`."""
+        text = "mod tests { fn t(c: u32, d: u32) -> u32 { c + d } }\n"
+        self.assertEqual(replacements(gen(text, [tops.OVERFLOW_DISCIPLINE])),
+                         ["c.wrapping_add(d)"])
+
+
 class TestTextUnit(unittest.TestCase):
     def test_swaps_chars_for_bytes(self):
         recs = gen("fn f(s: &str) -> usize { s.chars().count() }", [tops.TEXT_UNIT])
