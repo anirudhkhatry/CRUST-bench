@@ -62,10 +62,10 @@ model the **C tests to translate** (`src+test`) is clearly worst.
   setting**, and the tests live in the mutated crate, so a setting whose tests break
   compilation loses mutants from its own denominator (`src+test` loses the most, which
   flatters nothing but confounds the comparison). Three landed fixes:
-  `intersection_scores.py` rescores any existing results tree over the mutants viable in
-  *all four* settings; `run_mutation.py --split_crates` moves the tests out of the mutated
-  crate; and `mutate_shared.py` applies each mutant once and runs all four suites against
-  that single build (`run_mutation.py --split_crates --shared_mutants`), which is what
+  `analysis/intersection_scores.py` rescores any existing results tree over the mutants viable in
+  *all four* settings; `harness/run_mutation.py --split_crates` moves the tests out of the mutated
+  crate; and `harness/mutate_shared.py` applies each mutant once and runs all four suites against
+  that single build (`harness/run_mutation.py --split_crates --shared_mutants`), which is what
   actually makes the denominator shared *by construction*
   — the split alone leaves each setting rediscovering unviability for itself, and mutants
   that compile as a library but fail a dependent crate's const-eval slip through. Validated
@@ -73,19 +73,20 @@ model the **C tests to translate** (`src+test`) is clearly worst.
 
 ## Data files (CSVs)
 
-Per-model result tables live in the run output dirs; cross-model files at the top level
-of `mutation_testing/`.
+Per-model result tables live in the run output dirs (under `results/<model>/<run>/`);
+cross-model files in `mutation_testing/data/`. The code layout and the commands that
+produce all of this are in [`../README.md`](../README.md).
 
 | file | contents |
 |---|---|
-| `results_gpt55_4settings/gpt55_aggregate.csv` | gpt-5.5 per-setting avg score, avg tests kept, coverage, n |
-| `results_gpt55_4settings/gpt55_scores_wide.csv` | gpt-5.5 per-project score, one column per setting |
-| `results_gpt55_4settings/gpt55_results_long.csv` | gpt-5.5 per project × setting, all fields (killed/viable/mutants_total/sharded/tests/reason) |
-| `results_gpt55_4settings/mutation_table.csv` | gpt-5.5 display table (score + killed/viable per cell) |
-| `results_opus5_4settings/opus5_aggregate.csv` | Opus-5 per-setting aggregate (same schema as gpt55_aggregate) |
-| `gpt55_vs_opus5.csv` | model head-to-head over the 63 projects comparable in **both** models |
-| `differential_by_project.csv` | per project × model: src+test killed/missed, and mutants src+test missed but `c+rust` / `src/test` killed |
-| `<results_dir>/intersection_table.csv` | per project: intersection size + each setting's score over it (`intersection_scores.py`) |
+| `results/gpt/results_gpt55_4settings/gpt55_aggregate.csv` | gpt-5.5 per-setting avg score, avg tests kept, coverage, n |
+| `results/gpt/results_gpt55_4settings/gpt55_scores_wide.csv` | gpt-5.5 per-project score, one column per setting |
+| `results/gpt/results_gpt55_4settings/gpt55_results_long.csv` | gpt-5.5 per project × setting, all fields (killed/viable/mutants_total/sharded/tests/reason) |
+| `results/gpt/results_gpt55_4settings/mutation_table.csv` | gpt-5.5 display table (score + killed/viable per cell) |
+| `results/claude/results_opus5_4settings/opus5_aggregate.csv` | Opus-5 per-setting aggregate (same schema as gpt55_aggregate) |
+| `data/gpt55_vs_opus5.csv` | model head-to-head over the 63 projects comparable in **both** models |
+| `data/differential_by_project.csv` | per project × model: src+test killed/missed, and mutants src+test missed but `c+rust` / `src/test` killed |
+| `<results_dir>/intersection_table.csv` | per project: intersection size + each setting's score over it (`analysis/intersection_scores.py`) |
 | `<results_dir>/intersection_long.csv` | per project × setting: intersection score *and* the setting's own killed/viable/unviable counts |
 
 Column notes:
@@ -102,4 +103,5 @@ Raw per-mutant data is under each run at
 `<results_dir>/<setting_dir>/<project>/mutants.out/{caught,missed,unviable,timeout}.txt`
 and the generated tests at `<results_dir>/<setting_dir>/<project>/src/bin/`.
 `<setting_dir>` = `src`, `src+test`, `src_over_test` (`src/test`), `c_and_rust`
-(`c+rust`). The full pipeline is `mutation_testing/run_mutation.py`.
+(`c+rust`). The full pipeline is `mutation_testing/harness/run_mutation.py`; see
+[`../README.md`](../README.md) for the exact invocations.

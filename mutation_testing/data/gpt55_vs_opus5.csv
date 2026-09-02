@@ -1,0 +1,6 @@
+# head-to-head over projects comparable in BOTH models,n_common=63
+setting,gpt5.5_score,opus5_score,delta_opus_minus_gpt
+src,0.8948,0.9155,0.0207
+src+test,0.7919,0.8466,0.0547
+src/test,0.9253,0.9488,0.0234
+c+rust,0.9046,0.9534,0.0488

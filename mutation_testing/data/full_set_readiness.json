@@ -1,0 +1,2491 @@
+{
+  "leftpad": {
+    "project": "leftpad",
+    "n_mutants": 7,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.41,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.185,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.244,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.271,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 4.0
+  },
+  "vec": {
+    "project": "vec",
+    "n_mutants": 26,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.155,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.256,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.232,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.169,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 4.6
+  },
+  "CircularBuffer": {
+    "project": "CircularBuffer",
+    "n_mutants": 70,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.278,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.5,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.326,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.365,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 7.1
+  },
+  "FastHamming": {
+    "project": "FastHamming",
+    "n_mutants": 51,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.343,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.239,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.17,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.796,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 6.2
+  },
+  "Genetic_neural_network_for_simple_control": {
+    "project": "Genetic_neural_network_for_simple_control",
+    "n_mutants": 498,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 1.079,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.826,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 1.299,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 1.775,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 39.7
+  },
+  "Holdem_Odds": {
+    "project": "Holdem_Odds",
+    "n_mutants": 77,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": false,
+        "test_s": 0.0,
+        "output": "k::Three, Rank::Three, Rank::King]\n    |                                             ^^^^^ variant, associated function, or constant not found in `Holdem_Odds::cards::Rank`\n\nerror[E0599]: no variant, associated function, or constant named `Three` found for enum `Holdem_Odds::cards::Rank` in the current scope\n   --> tests-c_and_rust/tests/hands_tests.rs:182:55\n    |\n182 | [Rank::Ace, Rank::King, Rank::Nine, Rank::Five, Rank::Three]\n    |                                                       ^^^^^ variant, associated function, or constant not found in `Holdem_Odds::cards::Rank`\n\nerror[E0599]: no variant, associated function, or constant named `Three` found for enum `Holdem_Odds::cards::Rank` in the current scope\n   --> tests-c_and_rust/tests/hands_tests.rs:214:43\n    |\n214 | [Rank::Ace, Rank::Five, Rank::Four, Rank::Three, Rank::Deuce]\n    |                                           ^^^^^ variant, associated function, or constant not found in `Holdem_Odds::cards::Rank`\n\nFor more information about this error, try `rustc --explain E0599`.\nerror: could not compile `tests-c_and_rust` (test \"hands_tests\") due to 4 previous errors\nwarning: build failed, waiting for other jobs to finish...\n"
+      },
+      "src": {
+        "ok": true,
+        "test_s": 1.473,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.711,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 1.268,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 23.6
+  },
+  "LTRE": {
+    "project": "LTRE",
+    "n_mutants": 367,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.886,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.981,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 5.94,
+        "output": ""
+      },
+      "src/test": {
+        "ok": false,
+        "test_s": 0.669,
+        "output": "o snake case: `ltre`\n  = note: `#[warn(non_snake_case)]` (part of `#[warn(nonstandard_style)]`) on by default\n\nwarning: `LTRE` (lib) generated 1 warning\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.49s\n     Running unittests src/lib.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_4/debug/build/tests-src_over_test/f2624dab08ec8cdf/out/tests_src_over_test-f2624dab08ec8cdf)\n     Running tests/dfa_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_4/debug/build/tests-src_over_test/6bb841e22c4d8e73/out/dfa_tests-6bb841e22c4d8e73)\n     Running tests/nfa_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_4/debug/build/tests-src_over_test/9abc80db030e9487/out/nfa_tests-9abc80db030e9487)\n     Running tests/parse_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_4/debug/build/tests-src_over_test/36398b183270e2de/out/parse_tests-36398b183270e2de)\nerror: test failed, to rerun pass `-p tests-src_over_test --test parse_tests`\n"
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 24.7
+  },
+  "Linear_Algebra_C": {
+    "project": "Linear_Algebra_C",
+    "n_mutants": 671,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.25,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.388,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.352,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.505,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 18.2
+  },
+  "Math_Library_in_C": {
+    "project": "Math_Library_in_C",
+    "n_mutants": 80,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.82,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.208,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.989,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 1.267,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 11.6
+  },
+  "NandC": {
+    "project": "NandC",
+    "n_mutants": 53,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.157,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.159,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.683,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.331,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 10.9
+  },
+  "Phills_DHT": {
+    "project": "Phills_DHT",
+    "n_mutants": 44,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.165,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.685,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.18,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.426,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 8.7
+  },
+  "Remimu": {
+    "project": "Remimu",
+    "n_mutants": 540,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.623,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 1.405,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.258,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 1.682,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 19.4
+  },
+  "SimpleXML": {
+    "project": "SimpleXML",
+    "n_mutants": 32,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.341,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.191,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.334,
+        "output": ""
+      },
+      "src/test": {
+        "ok": false,
+        "test_s": 0.0,
+        "output": "und in `Result::<T, E>::unwrap_err`\n   --> /rustc/e457a7b0d326d67b4322ef0d11bd715cfaeda48f/library/core/src/result.rs:1323:4\n\nerror[E0277]: `XMLElement` doesn't implement `Debug`\n   --> tests-src_over_test/tests/simple_xml_tests.rs:260:19\n    |\n260 | assert_eq!(result.unwrap_err(), \"error while parsing\");\n    |                   ^^^^^^^^^^ the trait `Debug` is not implemented for `XMLElement`\n    |\nnote: required by a bound in `Result::<T, E>::unwrap_err`\n   --> /rustc/e457a7b0d326d67b4322ef0d11bd715cfaeda48f/library/core/src/result.rs:1323:4\n\nerror[E0277]: `XMLElement` doesn't implement `Debug`\n   --> tests-src_over_test/tests/simple_xml_tests.rs:267:19\n    |\n267 | assert_eq!(result.unwrap_err(), \"error while parsing\");\n    |                   ^^^^^^^^^^ the trait `Debug` is not implemented for `XMLElement`\n    |\nnote: required by a bound in `Result::<T, E>::unwrap_err`\n   --> /rustc/e457a7b0d326d67b4322ef0d11bd715cfaeda48f/library/core/src/result.rs:1323:4\n\nFor more information about this error, try `rustc --explain E0277`.\nerror: could not compile `tests-src_over_test` (test \"simple_xml_tests\") due to 11 previous errors\nwarning: build failed, waiting for other jobs to finish...\n"
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 8.8
+  },
+  "Simple_Config": {
+    "project": "Simple_Config",
+    "n_mutants": 160,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.702,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.804,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.73,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 1.207,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 15.4
+  },
+  "Simple_Sparsehash": {
+    "project": "Simple_Sparsehash",
+    "n_mutants": 229,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.589,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.507,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 1.116,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.523,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 12.8
+  },
+  "SlothLang": {
+    "project": "SlothLang",
+    "n_mutants": 79,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.49,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 1.059,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.195,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.561,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 13.1
+  },
+  "VaultSync": {
+    "project": "VaultSync",
+    "n_mutants": 248,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 1.649,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.248,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.259,
+        "output": ""
+      },
+      "src/test": {
+        "ok": false,
+        "test_s": 0.315,
+        "output": "ith `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    test_generate_hash_multi_block_message\n\ntest result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n\n    Blocking waiting for file lock on package cache\n    Blocking waiting for file lock on package cache\nwarning: crate `VaultSync` should have a snake case name\n  |\n  = help: convert the identifier to snake case: `vault_sync`\n  = note: `#[warn(non_snake_case)]` (part of `#[warn(nonstandard_style)]`) on by default\n\nwarning: `VaultSync` (lib) generated 1 warning\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.21s\n     Running unittests src/lib.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_5/debug/build/tests-src_over_test/68ce56530cd9ee03/out/tests_src_over_test-68ce56530cd9ee03)\n     Running tests/hashing_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_5/debug/build/tests-src_over_test/91fcb4845da2a0cc/out/hashing_tests-91fcb4845da2a0cc)\nerror: test failed, to rerun pass `-p tests-src_over_test --test hashing_tests`\n"
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 17.0
+  },
+  "XOpt": {
+    "project": "XOpt",
+    "n_mutants": 460,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.243,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.825,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.535,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.774,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 11.4
+  },
+  "aes128_SIMD": {
+    "project": "aes128_SIMD",
+    "n_mutants": 282,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 1.61,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 1.153,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 1.481,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.689,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 19.3
+  },
+  "amp": {
+    "project": "amp",
+    "n_mutants": 68,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.531,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.64,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.319,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 1.027,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 11.2
+  },
+  "approxidate": {
+    "project": "approxidate",
+    "n_mutants": 637,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.783,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.999,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.21,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 1.236,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 16.5
+  },
+  "avalanche": {
+    "project": "avalanche",
+    "n_mutants": 63,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.394,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.723,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.209,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.629,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 11.3
+  },
+  "bhshell": {
+    "project": "bhshell",
+    "n_mutants": 34,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": false,
+        "test_s": 0.429,
+        "output": "OLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_5/debug/build/tests-c_and_rust/57877dc54c4d0877/out/bhshell_cd_tests-57877dc54c4d0877)\n     Running tests/bhshell_launch_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_5/debug/build/tests-c_and_rust/e8c84d4eb9ba2975/out/bhshell_launch_tests-e8c84d4eb9ba2975)\n     Running tests/bhshell_redirect_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_5/debug/build/tests-c_and_rust/bad736532fb667be/out/bhshell_redirect_tests-bad736532fb667be)\n     Running tests/dynamicarr_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_5/debug/build/tests-c_and_rust/d0a988363eee2e2d/out/dynamicarr_tests-d0a988363eee2e2d)\n     Running tests/input_parse_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_5/debug/build/tests-c_and_rust/b24902a456aad5bd/out/input_parse_tests-b24902a456aad5bd)\nerror: test failed, to rerun pass `-p tests-c_and_rust --test input_parse_tests`\n"
+      },
+      "src": {
+        "ok": true,
+        "test_s": 1.439,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.377,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.698,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 16.3
+  },
+  "bigint": {
+    "project": "bigint",
+    "n_mutants": 165,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": false,
+        "test_s": 0.642,
+        "output": "gnored; 0 measured; 0 filtered out; finished in 0.00s\n\n\n    Blocking waiting for file lock on package cache\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.23s\n     Running unittests src/lib.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_0/debug/build/tests-c_and_rust/97e23d67eda56456/out/tests_c_and_rust-97e23d67eda56456)\n     Running tests/bigint_advanced_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_0/debug/build/tests-c_and_rust/47db826ffa814883/out/bigint_advanced_tests-47db826ffa814883)\n     Running tests/bigint_arith_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_0/debug/build/tests-c_and_rust/3194a8eade482556/out/bigint_arith_tests-3194a8eade482556)\n     Running tests/bigint_basic_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_0/debug/build/tests-c_and_rust/d4fcaff49959293f/out/bigint_basic_tests-d4fcaff49959293f)\nerror: test failed, to rerun pass `-p tests-c_and_rust --test bigint_basic_tests`\n"
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.5,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.601,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.211,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 12.7
+  },
+  "bitset": {
+    "project": "bitset",
+    "n_mutants": 49,
+    "api_offenders": [
+      [
+        "src",
+        "bitset_basic_tests.rs",
+        "line 1: #[path"
+      ]
+    ],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.474,
+        "output": ""
+      },
+      "src": {
+        "ok": false,
+        "test_s": 0.0,
+        "output": "\n   Compiling tests-src v0.1.0 (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_workspaces/bitset/tests-src)\nerror: couldn't find file `tests-src/tests/../bitset.rs`\n --> tests-src/tests/bitset_basic_tests.rs:3:1\n  |\n3 | mod bitset;\n  | ^^^^^^^^^^^\n\nerror: could not compile `tests-src` (test \"bitset_basic_tests\") due to 1 previous error\nwarning: build failed, waiting for other jobs to finish...\n"
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.354,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.579,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 10.0
+  },
+  "btree_map": {
+    "project": "btree_map",
+    "n_mutants": 71,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.973,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.462,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.377,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.298,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 10.7
+  },
+  "cJSON": {
+    "project": "cJSON",
+    "n_mutants": 81,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": false,
+        "test_s": 0.72,
+        "output": "s/cjson_parse_tests.rs:262:1:\nassertion `left == right` failed\n  left: Array([Number(1.0)])\n right: Number(1.0)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    tests::test_parse_nested_arrays\n\ntest result: FAILED. 32 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n\nwarning: crate `cJSON` should have a snake case name\n  |\n  = help: convert the identifier to snake case: `c_json`\n  = note: `#[warn(non_snake_case)]` (part of `#[warn(nonstandard_style)]`) on by default\n\nwarning: `cJSON` (lib) generated 1 warning\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.47s\n     Running unittests src/lib.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_1/debug/build/tests-c_and_rust/131da9c89e018ead/out/tests_c_and_rust-131da9c89e018ead)\n     Running tests/cjson_parse_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_1/debug/build/tests-c_and_rust/5f001d649b3a02a0/out/cjson_parse_tests-5f001d649b3a02a0)\nerror: test failed, to rerun pass `-p tests-c_and_rust --test cjson_parse_tests`\n"
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.274,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.206,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.701,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 11.5
+  },
+  "c_aces": {
+    "project": "c_aces",
+    "n_mutants": 612,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": false,
+        "test_s": 0.0,
+        "output": "mmon.rs:109:9\n    |\n109 | u = rng.gen::<f64>();\n    |         ^^^\n\nwarning: use of deprecated method `rand::Rng::gen`: Renamed to `random` to avoid conflict with the new `gen` keyword in Rust 2024.\n   --> core/src/common.rs:115:42\n    |\n115 | theta = 2.0 * std::f64::consts::PI * rng.gen::<f64>();\n    |                                          ^^^\n\n   Compiling tests-c_and_rust v0.1.0 (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_workspaces/c_aces/tests-c_and_rust)\nwarning: `c_aces` (lib) generated 5 warnings\nerror[E0502]: cannot borrow `a` as immutable because it is also borrowed as mutable\n   --> tests-c_and_rust/tests/matrix_tests.rs:191:38\n    |\n191 | assert!(scale_transform(&mut a, &mut a.clone(), 0).is_err());\n    |         --------------- ------       ^ immutable borrow occurs here\n    |         |               |\n    |         |               mutable borrow occurs here\n    |         mutable borrow later used by call\n\nFor more information about this error, try `rustc --explain E0502`.\nerror: could not compile `tests-c_and_rust` (test \"matrix_tests\") due to 1 previous error\nwarning: build failed, waiting for other jobs to finish...\n"
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.66,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 1.322,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.754,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 26.6
+  },
+  "carrays": {
+    "project": "carrays",
+    "n_mutants": 217,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.51,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 1.031,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.547,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.619,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 10.5
+  },
+  "cfsm": {
+    "project": "cfsm",
+    "n_mutants": 5,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.45,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.242,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.213,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.292,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 8.9
+  },
+  "chtrie": {
+    "project": "chtrie",
+    "n_mutants": 50,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.401,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.425,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.738,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.885,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 9.7
+  },
+  "cissy": {
+    "project": "cissy",
+    "n_mutants": 174,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.723,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.93,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.31,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 1.241,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 14.7
+  },
+  "clhash": {
+    "project": "clhash",
+    "n_mutants": 166,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.642,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.371,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 2.254,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 1.693,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 13.2
+  },
+  "clog": {
+    "project": "clog",
+    "n_mutants": 129,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.528,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.593,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 2.785,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.789,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 15.5
+  },
+  "coroutine": {
+    "project": "coroutine",
+    "n_mutants": 27,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 1.209,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.257,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.519,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.34,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 9.7
+  },
+  "cset": {
+    "project": "cset",
+    "n_mutants": 196,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.667,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.378,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.211,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.539,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 10.3
+  },
+  "csyncmers": {
+    "project": "csyncmers",
+    "n_mutants": 77,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.425,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.381,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 1.988,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.536,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 16.0
+  },
+  "dict": {
+    "project": "dict",
+    "n_mutants": 230,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.301,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.456,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.898,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.32,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 12.0
+  },
+  "emlang": {
+    "project": "emlang",
+    "n_mutants": 167,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.916,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.312,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.29,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.65,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 14.0
+  },
+  "expr": {
+    "project": "expr",
+    "n_mutants": 128,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 1.041,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.281,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.301,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.324,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 13.5
+  },
+  "fft": {
+    "project": "fft",
+    "n_mutants": 67,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.294,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.314,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.288,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.522,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 11.2
+  },
+  "file2str": {
+    "project": "file2str",
+    "n_mutants": 9,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.749,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.697,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.509,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.236,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 10.1
+  },
+  "fleur": {
+    "project": "fleur",
+    "n_mutants": 115,
+    "api_offenders": [
+      [
+        "src",
+        "fleur_tests.rs",
+        "line 1: #[path"
+      ]
+    ],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.618,
+        "output": ""
+      },
+      "src": {
+        "ok": false,
+        "test_s": 0.0,
+        "output": "\n   Compiling tests-src v0.1.0 (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_workspaces/fleur/tests-src)\nerror: couldn't find file `tests-src/tests/../fleur.rs`\n --> tests-src/tests/fleur_tests.rs:3:1\n  |\n3 | mod fleur;\n  | ^^^^^^^^^^\n\nerror: could not compile `tests-src` (test \"fleur_tests\") due to 1 previous error\nwarning: build failed, waiting for other jobs to finish...\n"
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.789,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.942,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 15.0
+  },
+  "fs_c": {
+    "project": "fs_c",
+    "n_mutants": 62,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.565,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.533,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.451,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.229,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 11.5
+  },
+  "geofence": {
+    "project": "geofence",
+    "n_mutants": 13,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.269,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.509,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.345,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.141,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 9.3
+  },
+  "gfc": {
+    "project": "gfc",
+    "n_mutants": 113,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.934,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.797,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 3.977,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.43,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 13.3
+  },
+  "gorilla_paper_encode": {
+    "project": "gorilla_paper_encode",
+    "n_mutants": 160,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.528,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.394,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.159,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.329,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 10.4
+  },
+  "hamta": {
+    "project": "hamta",
+    "n_mutants": 118,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.592,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.664,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.188,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.317,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 10.3
+  },
+  "hydra": {
+    "project": "hydra",
+    "n_mutants": 42,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.265,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.258,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.235,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 1.442,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 9.7
+  },
+  "inversion_list": {
+    "project": "inversion_list",
+    "n_mutants": 27,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.48,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.375,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 1.599,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.376,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 15.5
+  },
+  "jccc": {
+    "project": "jccc",
+    "n_mutants": 113,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 1.138,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.71,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 1.348,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 1.09,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 17.7
+  },
+  "kairoCompiler": {
+    "project": "kairoCompiler",
+    "n_mutants": 210,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": false,
+        "test_s": 0.956,
+        "output": "     Running tests/compiler_file_test.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_0/debug/build/tests-c_and_rust/56ab468f9553d4d8/out/compiler_file_test-56ab468f9553d4d8)\n     Running tests/compiler_test.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_0/debug/build/tests-c_and_rust/e4152b8206214606/out/compiler_test-e4152b8206214606)\n     Running tests/lex_process_test.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_0/debug/build/tests-c_and_rust/b2eaa7bc88dc0f41/out/lex_process_test-b2eaa7bc88dc0f41)\n     Running tests/lexer_test.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_0/debug/build/tests-c_and_rust/95978521275c0fc6/out/lexer_test-95978521275c0fc6)\n     Running tests/node_test.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_0/debug/build/tests-c_and_rust/db07cd9728b130d5/out/node_test-db07cd9728b130d5)\nerror: test failed, to rerun pass `-p tests-c_and_rust --test node_test`\n"
+      },
+      "src": {
+        "ok": true,
+        "test_s": 1.276,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.143,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.794,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 23.8
+  },
+  "kd3": {
+    "project": "kd3",
+    "n_mutants": 93,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.917,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 1.211,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.308,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.835,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 15.2
+  },
+  "lambda_calculus_eval": {
+    "project": "lambda_calculus_eval",
+    "n_mutants": 315,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 1.529,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.765,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.619,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.55,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 24.6
+  },
+  "lib2bit": {
+    "project": "lib2bit",
+    "n_mutants": 342,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 1.163,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 1.144,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.567,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.41,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 18.9
+  },
+  "libbase122": {
+    "project": "libbase122",
+    "n_mutants": 157,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.409,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 1.051,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.224,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.212,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 12.8
+  },
+  "libbeaufort": {
+    "project": "libbeaufort",
+    "n_mutants": 86,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.346,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.321,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.219,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.285,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 12.8
+  },
+  "libfor": {
+    "project": "libfor",
+    "n_mutants": 455,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.79,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 1.559,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 4.471,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.731,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 17.7
+  },
+  "libm17": {
+    "project": "libm17",
+    "n_mutants": 627,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": false,
+        "test_s": 0.63,
+        "output": "nv_encode_stream_frame_output_is_binary\n\ntest result: FAILED. 10 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.36s\n     Running unittests src/lib.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_0/debug/build/tests-c_and_rust/8713951b6a82c9a6/out/tests_c_and_rust-8713951b6a82c9a6)\n     Running tests/libm17_tests_0.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_0/debug/build/tests-c_and_rust/2e420053f7f7f355/out/libm17_tests_0-2e420053f7f7f355)\n     Running tests/libm17_tests_1.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_0/debug/build/tests-c_and_rust/a13958a46c5177a6/out/libm17_tests_1-a13958a46c5177a6)\n     Running tests/libm17_tests_2.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_0/debug/build/tests-c_and_rust/f868b2a7417cfda4/out/libm17_tests_2-f868b2a7417cfda4)\nerror: test failed, to rerun pass `-p tests-c_and_rust --test libm17_tests_2`\n"
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.28,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.368,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.263,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 20.6
+  },
+  "libpsbt": {
+    "project": "libpsbt",
+    "n_mutants": 338,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": false,
+        "test_s": 0.776,
+        "output": " |     ^^^^^^^^^^^^^^\n   |\n   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default\n\nwarning: `libpsbt` (lib) generated 1 warning\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.50s\n     Running unittests src/lib.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_3/debug/build/tests-c_and_rust/d268eb9b59927805/out/tests_c_and_rust-d268eb9b59927805)\n     Running tests/base64_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_3/debug/build/tests-c_and_rust/b6bf3eb260a13055/out/base64_tests-b6bf3eb260a13055)\n     Running tests/compactsize_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_3/debug/build/tests-c_and_rust/029e73b4251a5cc4/out/compactsize_tests-029e73b4251a5cc4)\n     Running tests/psbt_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_3/debug/build/tests-c_and_rust/edd8d06933bd07e1/out/psbt_tests-edd8d06933bd07e1)\nerror: test failed, to rerun pass `-p tests-c_and_rust --test psbt_tests`\n"
+      },
+      "src": {
+        "ok": true,
+        "test_s": 1.437,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.917,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.943,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 18.2
+  },
+  "libqueue": {
+    "project": "libqueue",
+    "n_mutants": 5,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": false,
+        "test_s": 0.0,
+        "output": "vate\n   --> tests-c_and_rust/tests/queue_tests.rs:140:9\n    |\n140 | assert!(q.head.is_some());\n    |         ^^^^^^^^^^^^^^^^ private type\n\nerror: type `queue::QueueNode<i32>` is private\n   --> tests-c_and_rust/tests/queue_tests.rs:143:9\n    |\n143 | assert!(q.tail.is_none());\n    |         ^^^^^^^^^^^^^^^^ private type\n\nerror: type `queue::QueueNode<i32>` is private\n   --> tests-c_and_rust/tests/queue_tests.rs:144:9\n    |\n144 | assert!(q.head.is_none());\n    |         ^^^^^^^^^^^^^^^^ private type\n\nerror: type `queue::QueueNode<i32>` is private\n   --> tests-c_and_rust/tests/queue_tests.rs:190:9\n    |\n190 | assert!(q.tail.is_none());\n    |         ^^^^^^^^^^^^^^^^ private type\n\nerror: type `queue::QueueNode<i32>` is private\n   --> tests-c_and_rust/tests/queue_tests.rs:205:9\n    |\n205 | assert!(q.head.is_none());\n    |         ^^^^^^^^^^^^^^^^ private type\n\nerror: type `queue::QueueNode<i32>` is private\n   --> tests-c_and_rust/tests/queue_tests.rs:206:9\n    |\n206 | assert!(q.tail.is_none());\n    |         ^^^^^^^^^^^^^^^^ private type\n\nerror: could not compile `tests-c_and_rust` (test \"queue_tests\") due to 14 previous errors\nwarning: build failed, waiting for other jobs to finish...\n"
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.571,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.272,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.586,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 7.5
+  },
+  "libtinyfseq": {
+    "project": "libtinyfseq",
+    "n_mutants": 52,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.394,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.581,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 1.417,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.222,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 14.6
+  },
+  "libutf": {
+    "project": "libutf",
+    "n_mutants": 489,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": false,
+        "test_s": 0.0,
+        "output": "tf8String) -> &[Utf8] {\n   |             -----------     ^ expected named lifetime parameter\n   |\n   = help: this function's return type contains a borrowed value, but the signature does not say which one of `s`'s 2 lifetimes it is borrowed from\nhelp: consider introducing a named lifetime parameter\n   |\n12 | fn bytes<'a>(s: &'a Utf8String<'a>) -> &'a [Utf8] {\n   |         ++++     ++           ++++      ++\n\nerror[E0106]: missing lifetime specifier\n  --> tests-c_and_rust/tests/utf_string_tests.rs:16:38\n   |\n16 | fn view_bytes(v: &Utf8StringView) -> &[Utf8] {\n   |                  ---------------     ^ expected named lifetime parameter\n   |\n   = help: this function's return type contains a borrowed value, but the signature does not say which one of `v`'s 2 lifetimes it is borrowed from\nhelp: consider introducing a named lifetime parameter\n   |\n16 | fn view_bytes<'a>(v: &'a Utf8StringView<'a>) -> &'a [Utf8] {\n   |              ++++     ++               ++++      ++\n\nFor more information about this error, try `rustc --explain E0106`.\nerror: could not compile `tests-c_and_rust` (test \"utf_string_tests\") due to 2 previous errors\nwarning: build failed, waiting for other jobs to finish...\n"
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.217,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 1.665,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.717,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 13.9
+  },
+  "libvcd": {
+    "project": "libvcd",
+    "n_mutants": 61,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 1.007,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.815,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.535,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.391,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 11.3
+  },
+  "libwecan": {
+    "project": "libwecan",
+    "n_mutants": 181,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.514,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.187,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.448,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.257,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 10.6
+  },
+  "ljmm": {
+    "project": "ljmm",
+    "n_mutants": 56,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.295,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.323,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.614,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 1.071,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 10.4
+  },
+  "matrix_multiplication": {
+    "project": "matrix_multiplication",
+    "n_mutants": 103,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.426,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.968,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.436,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.322,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 11.4
+  },
+  "mdb": {
+    "project": "mdb",
+    "n_mutants": 318,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.482,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.415,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 3.629,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 1.146,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 14.8
+  },
+  "merkle_tree_c": {
+    "project": "merkle_tree_c",
+    "n_mutants": 350,
+    "api_offenders": [
+      [
+        "src",
+        "blake2b_tests.rs",
+        "line 3: #[path"
+      ]
+    ],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.662,
+        "output": ""
+      },
+      "src": {
+        "ok": false,
+        "test_s": 0.0,
+        "output": "\n   Compiling tests-src v0.1.0 (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_workspaces/merkle_tree_c/tests-src)\nerror: couldn't find file `tests-src/tests/../blake2b.rs`\n --> tests-src/tests/blake2b_tests.rs:4:1\n  |\n4 | mod blake2b;\n  | ^^^^^^^^^^^^\n\nerror: could not compile `tests-src` (test \"blake2b_tests\") due to 1 previous error\nwarning: build failed, waiting for other jobs to finish...\n"
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.201,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.702,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 9.9
+  },
+  "morton": {
+    "project": "morton",
+    "n_mutants": 26,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.453,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.438,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.543,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.161,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 9.2
+  },
+  "murmurhash_c": {
+    "project": "murmurhash_c",
+    "n_mutants": 81,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.382,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.565,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.202,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.253,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 9.3
+  },
+  "mvptree": {
+    "project": "mvptree",
+    "n_mutants": 569,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": false,
+        "test_s": 0.0,
+        "output": "ror[E0277]: `mvptree::mvptree::MVPTree` doesn't implement `Debug`\n   --> tests-c_and_rust/tests/mvptree_io_tests.rs:276:38\n    |\n276 | assert_eq!(mvptree_read(&f, hamming).unwrap_err(), MVPError::Unrecognized);\n    |                                      ^^^^^^^^^^ the trait `Debug` is not implemented for `mvptree::mvptree::MVPTree`\n    |\nnote: required by a bound in `Result::<T, E>::unwrap_err`\n   --> /rustc/e457a7b0d326d67b4322ef0d11bd715cfaeda48f/library/core/src/result.rs:1323:4\n\nerror[E0277]: `mvptree::mvptree::MVPTree` doesn't implement `Debug`\n   --> tests-c_and_rust/tests/mvptree_io_tests.rs:285:38\n    |\n285 | assert_eq!(mvptree_read(&f, hamming).unwrap_err(), MVPError::Unrecognized);\n    |                                      ^^^^^^^^^^ the trait `Debug` is not implemented for `mvptree::mvptree::MVPTree`\n    |\nnote: required by a bound in `Result::<T, E>::unwrap_err`\n   --> /rustc/e457a7b0d326d67b4322ef0d11bd715cfaeda48f/library/core/src/result.rs:1323:4\n\nFor more information about this error, try `rustc --explain E0277`.\nerror: could not compile `tests-c_and_rust` (test \"mvptree_io_tests\") due to 7 previous errors\nwarning: build failed, waiting for other jobs to finish...\n"
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.952,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.311,
+        "output": ""
+      },
+      "src/test": {
+        "ok": false,
+        "test_s": 0.0,
+        "output": " +\n\nerror[E0597]: `root` does not live long enough\n  --> tests-src_over_test/tests/mvptree_add_retrieve_tests.rs:85:9\n   |\n84 | let root = tree.node.clone().unwrap();\n   |     ---- binding `root` declared here\n85 | match &*root.borrow() {\n   |         ^^^^---------\n   |         |\n   |         borrowed value does not live long enough\n   |         a temporary with access to the borrow is created here ...\n...\n95 | }\n   | -\n   | |\n   | `root` dropped here while still borrowed\n   | ... and the borrow might be used here, when that temporary is dropped and runs the destructor for type `Ref<'_, mvptree::mvptree::Node>`\n   |\nhelp: consider adding semicolon after the expression so its temporaries are dropped sooner, before the local variables declared by the block are dropped\n   |\n94 | };\n   |  +\n\nFor more information about this error, try `rustc --explain E0597`.\nFor more information about this error, try `rustc --explain E0277`.\nerror: could not compile `tests-src_over_test` (test \"mvptree_add_retrieve_tests\") due to 3 previous errors\nwarning: build failed, waiting for other jobs to finish...\nerror: could not compile `tests-src_over_test` (test \"mvptree_io_tests\") due to 7 previous errors\n"
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 18.1
+  },
+  "proj_42_Kocaeli_Printf": {
+    "project": "proj_42_Kocaeli_Printf",
+    "n_mutants": 98,
+    "api_offenders": [
+      [
+        "src",
+        "printf_format_tests.rs",
+        "line 4: crate::"
+      ]
+    ],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.208,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.265,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.268,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.244,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 7.8
+  },
+  "razz_simulation": {
+    "project": "razz_simulation",
+    "n_mutants": 253,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.626,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.593,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.92,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.241,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 11.0
+  },
+  "rbtree_lab": {
+    "project": "rbtree_lab",
+    "n_mutants": 30,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": false,
+        "test_s": 0.0,
+        "output": "                        ^^^ not found in this scope\n    |\nhelp: consider importing this type alias\n    |\n  5 + use rbtree_lab::rbtree::Key;\n    |\n\nerror[E0433]: cannot find type `RBTree` in this scope\n   --> tests-c_and_rust/tests/rbtree_basic_tests.rs:368:13\n    |\n368 | let mut t = RBTree::new();\n    |             ^^^^^^ use of undeclared type `RBTree`\n    |\nhelp: consider importing this struct\n    |\n  5 + use rbtree_lab::rbtree::RBTree;\n    |\n\nerror[E0425]: cannot find type `Key` in this scope\n   --> tests-c_and_rust/tests/rbtree_basic_tests.rs:373:45\n    |\n373 | assert_eq!(keys(&t), (1..=64).collect::<Vec<Key>>());\n    |                                             ^^^ not found in this scope\n    |\nhelp: consider importing this type alias\n    |\n  5 + use rbtree_lab::rbtree::Key;\n    |\n\nerror[E0433]: cannot find type `RBTree` in this scope\n   --> tests-c_and_rust/tests/rbtree_basic_tests.rs:378:13\n    |\n378 | let mut t = RBTree::new();\n    |             ^^^^^^ use of undeclared type `RBTree`\n    |\nhelp: consider importing this struct\n    |\n  5 + use rbtree_lab::rbtree::RBTree;\n    |\n\nerror: could not compile `tests-c_and_rust` (test \"rbtree_basic_tests\") due to 66 previous errors\n"
+      },
+      "src": {
+        "ok": false,
+        "test_s": 0.0,
+        "output": "|\n237 | assert_eq!(t.to_array(0), Vec::<Key>::new());\n    |                                 ^^^ not found in this scope\n    |\nhelp: consider importing this type alias\n    |\n  4 + use rbtree_lab::rbtree::Key;\n    |\n\nerror[E0433]: cannot find type `RBTree` in this scope\n   --> tests-src/tests/rbtree_insert_tests.rs:247:13\n    |\n247 | let mut t = RBTree::new();\n    |             ^^^^^^ use of undeclared type `RBTree`\n    |\nhelp: consider importing this struct\n    |\n  4 + use rbtree_lab::rbtree::RBTree;\n    |\n\nerror[E0433]: cannot find type `RBTree` in this scope\n   --> tests-src/tests/rbtree_insert_tests.rs:257:14\n    |\n257 | let mut t2 = RBTree::new();\n    |              ^^^^^^ use of undeclared type `RBTree`\n    |\nhelp: consider importing this struct\n    |\n  4 + use rbtree_lab::rbtree::RBTree;\n    |\n\nerror[E0433]: cannot find type `RBTree` in this scope\n   --> tests-src/tests/rbtree_insert_tests.rs:267:13\n    |\n267 | let mut t = RBTree::new();\n    |             ^^^^^^ use of undeclared type `RBTree`\n    |\nhelp: consider importing this struct\n    |\n  4 + use rbtree_lab::rbtree::RBTree;\n    |\n\nerror: could not compile `tests-src` (test \"rbtree_insert_tests\") due to 49 previous errors\n"
+      },
+      "src+test": {
+        "ok": false,
+        "test_s": 0.0,
+        "output": "4, 36, 990, 25];\n    |                   ^^^ not found in this scope\n    |\nhelp: consider importing this type alias\n    |\n  4 + use rbtree_lab::rbtree::Key;\n    |\n\nerror[E0425]: cannot find type `Key` in this scope\n   --> tests-src_and_test/tests/final_test_rbtree.rs:292:19\n    |\n292 | let mut arr2: Vec<Key> = vec![4, 8, 10, 5, 3];\n    |                   ^^^ not found in this scope\n    |\nhelp: consider importing this type alias\n    |\n  4 + use rbtree_lab::rbtree::Key;\n    |\n\nerror[E0425]: cannot find type `Key` in this scope\n   --> tests-src_and_test/tests/final_test_rbtree.rs:315:18\n    |\n315 | let mut arr: Vec<Key> = Vec::with_capacity(n);\n    |                  ^^^ not found in this scope\n    |\nhelp: consider importing this type alias\n    |\n  4 + use rbtree_lab::rbtree::Key;\n    |\n\nerror[E0433]: cannot find type `RBTree` in this scope\n   --> tests-src_and_test/tests/final_test_rbtree.rs:320:13\n    |\n320 | let mut t = RBTree::new();\n    |             ^^^^^^ use of undeclared type `RBTree`\n    |\nhelp: consider importing this struct\n    |\n  4 + use rbtree_lab::rbtree::RBTree;\n    |\n\nerror: could not compile `tests-src_and_test` (test \"final_test_rbtree\") due to 45 previous errors\n"
+      },
+      "src/test": {
+        "ok": false,
+        "test_s": 0.0,
+        "output": "ee::Color;\n    |\n\nerror[E0433]: cannot find type `RBTree` in this scope\n   --> tests-src_over_test/tests/rbtree_structure_test.rs:337:13\n    |\n337 | let mut t = RBTree::new();\n    |             ^^^^^^ use of undeclared type `RBTree`\n    |\nhelp: consider importing this struct\n    |\n  2 + use rbtree_lab::rbtree::RBTree;\n    |\n\nerror[E0433]: cannot find type `Color` in this scope\n   --> tests-src_over_test/tests/rbtree_structure_test.rs:338:15\n    |\n338 | let r = mk(7, Color::Red);\n    |               ^^^^^ use of undeclared type `Color`\n    |\nhelp: consider importing this enum\n    |\n  2 + use rbtree_lab::rbtree::Color;\n    |\n\nerror[E0433]: cannot find type `Color` in this scope\n   --> tests-src_over_test/tests/rbtree_structure_test.rs:341:30\n    |\n341 | assert_eq!(r.borrow().color, Color::Black);\n    |                              ^^^^^ use of undeclared type `Color`\n    |\nhelp: consider importing this enum\n    |\n  2 + use rbtree_lab::rbtree::Color;\n    |\n\nSome errors have detailed explanations: E0422, E0425, E0433.\nFor more information about an error, try `rustc --explain E0422`.\nerror: could not compile `tests-src_over_test` (test \"rbtree_structure_test\") due to 70 previous errors\n"
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 20.7
+  },
+  "rect_pack_h": {
+    "project": "rect_pack_h",
+    "n_mutants": 57,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.74,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.422,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.353,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.184,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 9.0
+  },
+  "rhbloom": {
+    "project": "rhbloom",
+    "n_mutants": 73,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.382,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.349,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.503,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 1.027,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 8.9
+  },
+  "roaring_bitmap": {
+    "project": "roaring_bitmap",
+    "n_mutants": 190,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.167,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.37,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.779,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.172,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 9.6
+  },
+  "rubiksolver": {
+    "project": "rubiksolver",
+    "n_mutants": 162,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": false,
+        "test_s": 0.167,
+        "output": "nction `main` is never used\n  --> core/src/solve_rubik.rs:32:4\n   |\n32 | fn main() {\n   |    ^^^^\n\nwarning: `rubiksolver` (lib) generated 6 warnings\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s\n     Running unittests src/lib.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_2/debug/build/tests-c_and_rust/17fa77d1d2652edf/out/tests_c_and_rust-17fa77d1d2652edf)\n     Running tests/hash_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_2/debug/build/tests-c_and_rust/23ea65fd78b34a81/out/hash_tests-23ea65fd78b34a81)\n     Running tests/heap_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_2/debug/build/tests-c_and_rust/d621890d6d78f8e2/out/heap_tests-d621890d6d78f8e2)\n     Running tests/rubik_model_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_2/debug/build/tests-c_and_rust/7fecf74750f4f6e4/out/rubik_model_tests-7fecf74750f4f6e4)\nerror: test failed, to rerun pass `-p tests-c_and_rust --test rubik_model_tests`\n"
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.424,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.207,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.834,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 11.5
+  },
+  "satc": {
+    "project": "satc",
+    "n_mutants": 182,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": false,
+        "test_s": 0.452,
+        "output": " passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\n\n\nwarning: use of deprecated constant `std::f64::MAX`: replaced by the `MAX` associated constant on `f64`\n --> core/src/satc.rs:2:15\n  |\n2 | use std::f64::MAX;\n  |               ^^^\n  |\n  = note: `#[warn(deprecated)]` on by default\n\nwarning: `satc` (lib) generated 1 warning\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s\n     Running unittests src/lib.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_4/debug/build/tests-c_and_rust/8e722d97a0fcae39/out/tests_c_and_rust-8e722d97a0fcae39)\n     Running tests/satc_collision_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_4/debug/build/tests-c_and_rust/ef32378af1b95e1b/out/satc_collision_tests-ef32378af1b95e1b)\n     Running tests/satc_point_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_4/debug/build/tests-c_and_rust/46a8f3e5cd99aa65/out/satc_point_tests-46a8f3e5cd99aa65)\nerror: test failed, to rerun pass `-p tests-c_and_rust --test satc_point_tests`\n"
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.956,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.427,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.547,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 10.5
+  },
+  "simple_lang": {
+    "project": "simple_lang",
+    "n_mutants": 140,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.86,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.711,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.284,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.388,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 17.3
+  },
+  "totp": {
+    "project": "totp",
+    "n_mutants": 206,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": false,
+        "test_s": 0.594,
+        "output": "ilures:\n    totp_constant_within_time_step\n\ntest result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.16s\n     Running unittests src/lib.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_1/debug/build/tests-c_and_rust/a39fe3eaae56824e/out/tests_c_and_rust-a39fe3eaae56824e)\n     Running tests/base32_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_1/debug/build/tests-c_and_rust/4f82b012f15d563b/out/base32_tests-4f82b012f15d563b)\n     Running tests/helpers_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_1/debug/build/tests-c_and_rust/bdec7350ba97bcdd/out/helpers_tests-bdec7350ba97bcdd)\n     Running tests/hmac_hotp_tests.rs (/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_probe_target_1/debug/build/tests-c_and_rust/0334104c8a11a102/out/hmac_hotp_tests-0334104c8a11a102)\nerror: test failed, to rerun pass `-p tests-c_and_rust --test hmac_hotp_tests`\n"
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.507,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.221,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.797,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 14.7
+  },
+  "ulidgen": {
+    "project": "ulidgen",
+    "n_mutants": 64,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.409,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.418,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.384,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 1.2,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 11.7
+  },
+  "utf8": {
+    "project": "utf8",
+    "n_mutants": 54,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.366,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.273,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.149,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.144,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 10.4
+  },
+  "worsp": {
+    "project": "worsp",
+    "n_mutants": 432,
+    "api_offenders": [],
+    "settings": {
+      "c+rust": {
+        "ok": true,
+        "test_s": 0.315,
+        "output": ""
+      },
+      "src": {
+        "ok": true,
+        "test_s": 0.911,
+        "output": ""
+      },
+      "src+test": {
+        "ok": true,
+        "test_s": 0.196,
+        "output": ""
+      },
+      "src/test": {
+        "ok": true,
+        "test_s": 0.189,
+        "output": ""
+      }
+    },
+    "missing_settings": [],
+    "wall_s": 11.3
+  }
+}

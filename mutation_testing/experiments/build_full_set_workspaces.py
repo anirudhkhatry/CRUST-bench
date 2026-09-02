@@ -43,14 +43,18 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
-from mutate_shared import baseline
-from split_crates import TEST_CRATE_NAMES, build_workspace
-from list_transpile_mutants import list_transpile_mutants
+# Scripts live one level down; put the study root on sys.path so ``harness`` imports
+# work when this file is run directly as well as with ``python -m``.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-HERE = Path(__file__).resolve().parent
-ROOT = HERE / "results/claude/results_opus5_4settings"
+from harness.paths import RESULTS, DATA
+from harness.mutate_shared import baseline
+from harness.split_crates import TEST_CRATE_NAMES, build_workspace
+from harness.list_transpile_mutants import list_transpile_mutants
+
+ROOT = RESULTS / "claude/results_opus5_4settings"
 WS = ROOT / "_workspaces"
-READINESS = HERE / "full_set_readiness.json"
+READINESS = DATA / "full_set_readiness.json"
 
 SETTING_DIRS = {"src": "src", "src+test": "src+test",
                 "src/test": "src_over_test", "c+rust": "c_and_rust"}
@@ -104,7 +108,7 @@ def main():
     args = ap.parse_args()
 
     sel = args.projects or json.loads(
-        (HERE / "full_set_projects.json").read_text())["all4"]
+        (DATA / "full_set_projects.json").read_text())["all4"]
     done = json.loads(READINESS.read_text()) if (args.resume and READINESS.exists()) else {}
     todo = [p for p in sel if p not in done]
 
@@ -171,7 +175,7 @@ def summarise(done):
     print(f"4 green baselines : {len(all4):3}  ({n_mut} transpilation mutants)")
     print(f"1-3 green         : {len(partial):3}  {partial}")
     print(f"unusable          : {len(dead):3}  {dead}")
-    out = HERE / "full_set_corpus.json"
+    out = DATA / "full_set_corpus.json"
     out.write_text(json.dumps({"all4": sorted(all4), "partial": sorted(partial),
                                "dead": sorted(dead), "n_mutants": n_mut}, indent=2))
     print("wrote", out)

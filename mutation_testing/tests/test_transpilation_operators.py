@@ -7,8 +7,8 @@ file runs in well under a second and can be run on every edit.
 import unittest
 from unittest.mock import patch
 
-import transpilation_operators as tops
-from mutate_shared import splice
+import harness.transpilation_operators as tops
+from harness.mutate_shared import splice
 
 
 def gen(text, operators=None):
@@ -415,14 +415,14 @@ class TestListerContract(unittest.TestCase):
 
     def test_signature_matches_list_mutants(self):
         import inspect
-        from list_transpile_mutants import list_transpile_mutants
-        from mutate_shared import list_mutants
+        from harness.list_transpile_mutants import list_transpile_mutants
+        from harness.mutate_shared import list_mutants
         self.assertEqual(list(inspect.signature(list_transpile_mutants).parameters),
                          list(inspect.signature(list_mutants).parameters))
 
     def test_run_fast_mutation_accepts_a_lister(self):
         import inspect
-        from mutate_fast import run_fast_mutation
+        from harness.mutate_fast import run_fast_mutation
         self.assertIn("mutant_lister",
                       inspect.signature(run_fast_mutation).parameters)
 

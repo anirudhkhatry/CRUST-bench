@@ -36,7 +36,7 @@ from typing import Callable, Optional
 import tree_sitter as ts
 import tree_sitter_rust as tsr
 
-from mutate_shared import splice
+from harness.mutate_shared import splice
 
 _LANG = ts.Language(tsr.language())
 _PARSER = ts.Parser(_LANG)

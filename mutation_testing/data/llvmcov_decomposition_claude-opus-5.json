@@ -1,0 +1,152 @@
+{
+  "model": "claude-opus-5",
+  "coverage_gap": 98,
+  "oracle_weak": 150,
+  "errors": 0,
+  "per_project": {
+    "CircularBuffer": [
+      1,
+      0
+    ],
+    "LTRE": [
+      0,
+      1
+    ],
+    "Linear_Algebra_C": [
+      0,
+      2
+    ],
+    "Remimu": [
+      19,
+      2
+    ],
+    "SlothLang": [
+      4,
+      2
+    ],
+    "aes128_SIMD": [
+      0,
+      1
+    ],
+    "approxidate": [
+      0,
+      3
+    ],
+    "avalanche": [
+      1,
+      0
+    ],
+    "btree_map": [
+      0,
+      1
+    ],
+    "carrays": [
+      0,
+      1
+    ],
+    "chtrie": [
+      1,
+      1
+    ],
+    "clhash": [
+      3,
+      21
+    ],
+    "clog": [
+      10,
+      35
+    ],
+    "cset": [
+      4,
+      0
+    ],
+    "emlang": [
+      1,
+      12
+    ],
+    "geofence": [
+      0,
+      6
+    ],
+    "gfc": [
+      0,
+      1
+    ],
+    "hamta": [
+      0,
+      4
+    ],
+    "hydra": [
+      5,
+      0
+    ],
+    "kairoCompiler": [
+      7,
+      1
+    ],
+    "kd3": [
+      1,
+      4
+    ],
+    "lib2bit": [
+      2,
+      0
+    ],
+    "libbase122": [
+      0,
+      6
+    ],
+    "libbeaufort": [
+      2,
+      5
+    ],
+    "libfor": [
+      6,
+      0
+    ],
+    "libvcd": [
+      0,
+      2
+    ],
+    "libwecan": [
+      0,
+      3
+    ],
+    "matrix_multiplication": [
+      1,
+      1
+    ],
+    "mdb": [
+      2,
+      5
+    ],
+    "merkle_tree_c": [
+      5,
+      4
+    ],
+    "murmurhash_c": [
+      3,
+      0
+    ],
+    "proj_42_Kocaeli_Printf": [
+      6,
+      8
+    ],
+    "rect_pack_h": [
+      0,
+      4
+    ],
+    "roaring_bitmap": [
+      0,
+      1
+    ],
+    "ulidgen": [
+      14,
+      12
+    ],
+    "worsp": [
+      0,
+      1
+    ]
+  }
+}

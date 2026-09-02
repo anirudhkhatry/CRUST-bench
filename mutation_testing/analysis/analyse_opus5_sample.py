@@ -30,7 +30,13 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-_HERE = Path(__file__).resolve().parent
+# Scripts live one level down; put the study root on sys.path so ``harness`` imports
+# work when this file is run directly as well as with ``python -m``.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from harness.paths import RESULTS
+
+
 # Which run to score. Every run writes the same outcomes.json shape, so two positional
 # arguments -- the output directory and, optionally, the results root it sits in --
 # switch the whole analysis over:
@@ -38,7 +44,7 @@ _HERE = Path(__file__).resolve().parent
 #     python analyse_opus5_sample.py _transpile_out                    # transpile, sample
 #     python analyse_opus5_sample.py _transpile_out results_opus5_4settings   # full set
 _ARGS = [a for a in sys.argv[1:] if not a.startswith("-")]
-ROOT = _HERE / "results/claude" / (_ARGS[1] if len(_ARGS) > 1 else "opus5_sample")
+ROOT = RESULTS / "claude" / (_ARGS[1] if len(_ARGS) > 1 else "opus5_sample")
 OUT = ROOT / (_ARGS[0] if _ARGS else "_mutants_out")
 WS = ROOT / "_workspaces"
 

@@ -18,7 +18,14 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent / "results/claude/results_opus5_4settings"
+# Scripts live one level down; put the study root on sys.path so ``harness`` imports
+# work when this file is run directly as well as with ``python -m``.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from harness.paths import RESULTS, DATA
+
+
+ROOT = RESULTS / "claude/results_opus5_4settings"
 SETTINGS = [("src", "src"), ("src+test", "src+test"),
             ("src/test", "src_over_test"), ("c+rust", "c_and_rust")]
 
@@ -91,7 +98,7 @@ def main():
     print()
     print("ALL4 =", json.dumps(all4))
     if "--write" in sys.argv:
-        out = Path(__file__).resolve().parent / "full_set_projects.json"
+        out = DATA / "full_set_projects.json"
         out.write_text(json.dumps({"all4": all4, "partial": some, "unusable": none},
                                   indent=2))
         print("wrote", out)

@@ -31,6 +31,7 @@ import shutil
 import time
 import traceback
 from datetime import datetime
+import sys
 from pathlib import Path
 
 # ``mutate_fast`` reaches into ``run_mutation`` for the setting -> directory map, and
@@ -40,19 +41,23 @@ from pathlib import Path
 # putting a live credential in the process. A real key already in the environment wins.
 os.environ.setdefault("OPENAI_API_KEY", "unused-by-mutation-runs")
 
-from mutate_fast import run_fast_mutation  # noqa: E402
-from list_transpile_mutants import list_transpile_mutants  # noqa: E402
-from split_crates import TEST_CRATE_NAMES  # noqa: E402
-from run_mutation import SETTING_DIRS  # noqa: E402
+# Scripts live one level down; put the study root on sys.path so ``harness`` imports
+# work when this file is run directly as well as with ``python -m``.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-HERE = Path(__file__).resolve().parent
-ROOT = HERE / "results/claude/results_opus5_4settings"
+from harness.paths import RESULTS, DATA  # noqa: E402
+from harness.mutate_fast import run_fast_mutation  # noqa: E402
+from harness.list_transpile_mutants import list_transpile_mutants  # noqa: E402
+from harness.split_crates import TEST_CRATE_NAMES  # noqa: E402
+from harness.run_mutation import SETTING_DIRS  # noqa: E402
+
+ROOT = RESULTS / "claude/results_opus5_4settings"
 WS = ROOT / "_workspaces"
 OUT = ROOT / "_transpile_out"
 TARGET = ROOT / "_transpile_target"
 FROZEN = ROOT / "_frozen_source"
 REPORT = ROOT / "transpile_report.json"
-CORPUS = HERE / "full_set_corpus.json"
+CORPUS = DATA / "full_set_corpus.json"
 
 MIN_TIMEOUT = 120.0
 TIMEOUT_MULT = 2.0
@@ -115,7 +120,7 @@ def corpus(include_partial=False):
     """
     c = json.loads(CORPUS.read_text())
     sel = list(c["all4"]) + (list(c["partial"]) if include_partial else [])
-    counts = json.loads((HERE / "full_set_readiness.json").read_text())
+    counts = json.loads((DATA / "full_set_readiness.json").read_text())
     return sorted(sel, key=lambda p: counts[p]["n_mutants"])
 
 

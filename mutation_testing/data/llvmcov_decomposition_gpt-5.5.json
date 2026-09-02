@@ -1,0 +1,200 @@
+{
+  "model": "gpt-5.5",
+  "coverage_gap": 140,
+  "oracle_weak": 159,
+  "errors": 0,
+  "per_project": {
+    "LTRE": [
+      1,
+      8
+    ],
+    "Linear_Algebra_C": [
+      0,
+      6
+    ],
+    "Remimu": [
+      1,
+      1
+    ],
+    "SimpleXML": [
+      0,
+      5
+    ],
+    "SlothLang": [
+      10,
+      3
+    ],
+    "approxidate": [
+      0,
+      18
+    ],
+    "bigint": [
+      1,
+      3
+    ],
+    "cJSON": [
+      16,
+      11
+    ],
+    "c_aces": [
+      0,
+      1
+    ],
+    "c_blind_rsa_signatures": [
+      0,
+      3
+    ],
+    "carrays": [
+      0,
+      6
+    ],
+    "chtrie": [
+      0,
+      2
+    ],
+    "clhash": [
+      1,
+      2
+    ],
+    "clog": [
+      5,
+      7
+    ],
+    "coroutine": [
+      0,
+      4
+    ],
+    "cset": [
+      2,
+      1
+    ],
+    "csyncmers": [
+      1,
+      0
+    ],
+    "dict": [
+      3,
+      1
+    ],
+    "emlang": [
+      12,
+      8
+    ],
+    "expr": [
+      0,
+      4
+    ],
+    "fft": [
+      0,
+      4
+    ],
+    "fleur": [
+      0,
+      1
+    ],
+    "gorilla_paper_encode": [
+      1,
+      3
+    ],
+    "hamta": [
+      5,
+      2
+    ],
+    "hydra": [
+      2,
+      0
+    ],
+    "lambda_calculus_eval": [
+      1,
+      0
+    ],
+    "lib2bit": [
+      1,
+      7
+    ],
+    "libbase122": [
+      0,
+      4
+    ],
+    "libm17": [
+      17,
+      0
+    ],
+    "libpsbt": [
+      2,
+      9
+    ],
+    "libvcd": [
+      1,
+      0
+    ],
+    "matrix_multiplication": [
+      0,
+      1
+    ],
+    "merkle_tree_c": [
+      7,
+      0
+    ],
+    "murmurhash_c": [
+      0,
+      2
+    ],
+    "mvptree": [
+      0,
+      16
+    ],
+    "proj_2DPartInt": [
+      22,
+      1
+    ],
+    "quadtree": [
+      0,
+      1
+    ],
+    "razz_simulation": [
+      0,
+      1
+    ],
+    "rbtree_lab": [
+      1,
+      0
+    ],
+    "rhbloom": [
+      0,
+      1
+    ],
+    "roaring_bitmap": [
+      0,
+      1
+    ],
+    "rubiksolver": [
+      2,
+      0
+    ],
+    "satc": [
+      2,
+      1
+    ],
+    "simple_lang": [
+      1,
+      0
+    ],
+    "ted": [
+      4,
+      0
+    ],
+    "tisp": [
+      9,
+      0
+    ],
+    "ulidgen": [
+      1,
+      0
+    ],
+    "worsp": [
+      8,
+      10
+    ]
+  }
+}

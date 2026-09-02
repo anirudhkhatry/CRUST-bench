@@ -65,7 +65,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from mutate_shared import (
+from harness.mutate_shared import (
     CAUGHT, MISSED, TIMEOUT, UNVIABLE,
     _compile_error, _run, _write_outcomes, baseline, list_mutants, shard_mutants, splice,
 )
@@ -175,7 +175,7 @@ def run_fast_mutation(ws, package, test_crates, out_base, project_name=None,
     and ``runner``. Verdicts are intended to be identical; ``validate_against_shared``
     checks that they are.
     """
-    from run_mutation import SETTING_DIRS  # local: run_mutation imports the whole pipeline
+    from harness.run_mutation import SETTING_DIRS  # local: run_mutation imports the whole pipeline
 
     ws = Path(ws).resolve()
     project_name = project_name or ws.name
@@ -370,7 +370,7 @@ def run_fast_mutation(ws, package, test_crates, out_base, project_name=None,
 
 def validate_against_shared(a_dir, b_dir, project):
     """Compare two output trees mutant-for-mutant. Returns (n_compared, [mismatches])."""
-    from run_mutation import SETTING_DIRS
+    from harness.run_mutation import SETTING_DIRS
 
     mismatches, n = [], 0
     for setting, sd in SETTING_DIRS.items():
@@ -391,7 +391,7 @@ def validate_against_shared(a_dir, b_dir, project):
 
 def main():
     import argparse
-    from split_crates import TEST_CRATE_NAMES
+    from harness.split_crates import TEST_CRATE_NAMES
 
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     p.add_argument("workspace")
@@ -414,7 +414,7 @@ def main():
                         "validated path)")
     a = p.parse_args()
 
-    from list_transpile_mutants import list_transpile_mutants
+    from harness.list_transpile_mutants import list_transpile_mutants
     listers = {
         "cargo": None,
         "transpile": list_transpile_mutants,

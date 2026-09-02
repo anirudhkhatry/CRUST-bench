@@ -10,7 +10,7 @@ import json
 import unittest
 from pathlib import Path
 
-import transpilation_operators as tops
+import harness.transpilation_operators as tops
 
 ROOT = Path(__file__).resolve().parent.parent / "results/claude/opus5_sample"
 OUT = ROOT / "_mutants_out"

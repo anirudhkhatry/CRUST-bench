@@ -28,12 +28,17 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-from mutate_fast import run_fast_mutation
-from list_transpile_mutants import list_transpile_mutants
-from split_crates import TEST_CRATE_NAMES
-from run_mutation import SETTING_DIRS
+# Scripts live one level down; put the study root on sys.path so ``harness`` imports
+# work when this file is run directly as well as with ``python -m``.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-ROOT = Path(__file__).resolve().parent / "results/claude/opus5_sample"
+from harness.paths import RESULTS
+from harness.mutate_fast import run_fast_mutation
+from harness.list_transpile_mutants import list_transpile_mutants
+from harness.split_crates import TEST_CRATE_NAMES
+from harness.run_mutation import SETTING_DIRS
+
+ROOT = RESULTS / "claude/opus5_sample"
 WS = ROOT / "_workspaces"
 OUT = ROOT / "_transpile_out"
 TARGET = ROOT / "_shared_target"

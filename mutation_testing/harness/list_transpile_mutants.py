@@ -7,7 +7,7 @@ does not.
 
 from pathlib import Path
 
-from transpilation_operators import OPERATORS, generate
+from harness.transpilation_operators import OPERATORS, generate
 
 
 def list_transpile_mutants(ws, package, env=None, timeout=900):
