@@ -165,10 +165,10 @@ Counterpart construction, in order of preference:
 1. **LLM-applied**: give the model the C mutant diff and the corresponding Rust function,
    ask it to inject the analogous fault. Gate: compiles, differs textually.
 2. **Fallback** where (1) fails: match by *fault class* against the operator-generated
-   Rust mutants from `mutation_testing/transpilation_operators.py` / `mutate_shared.py`.
+   Rust mutants from `mutation_testing/harness/transpilation_operators.py` / `mutate_shared.py`.
 
 Mechanics (applying a mutant and running suites against one build) reuse
-`mutation_testing/mutate_shared.py`.
+`mutation_testing/harness/mutate_shared.py`.
 
 ### Stage 5 — Comparison arm
 
@@ -327,8 +327,8 @@ results/<run>/<project>/mutants/<id>/
 **Reuse, do not reimplement:** `src/endpoints/call_endpoint.py` +
 `src/endpoint_config.py` (model dispatch and caching), `src/benchmark.py` (project
 loading), `src/utils/parse_c.py` (tree-sitter-c), `src/utils/compile_c_utils.py`,
-`src/utils/rust_project_builder.py`, `mutation_testing/mutate_shared.py` (mutant
-application + suite execution), `mutation_testing/split_manifests.py` (standalone crate
+`src/utils/rust_project_builder.py`, `mutation_testing/harness/mutate_shared.py` (mutant
+application + suite execution), `mutation_testing/harness/split_manifests.py` (standalone crate
 manifests).
 
 Default model: `claude-opus-5` via the existing endpoint config; configurable, and the

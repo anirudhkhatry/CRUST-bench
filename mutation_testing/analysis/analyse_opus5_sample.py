@@ -145,7 +145,7 @@ def main():
         print()
 
     print("-" * 92)
-    print("POOLED ACROSS ALL 5 PROJECTS")
+    print(f"POOLED ACROSS ALL {len(PROJECTS)} PROJECTS")
     for setting, _ in SETTINGS:
         a = agg[setting]
         strict = a["c"] / (a["c"] + a["m"]) if a["c"] + a["m"] else 0.0
