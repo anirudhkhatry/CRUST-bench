@@ -30,16 +30,39 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent / "results/claude/opus5_sample"
-# Which run to score. The transpilation-operator run writes the same outcomes.json shape
-# to a different directory, so one argument switches the whole analysis over to it:
-#     python analyse_opus5_sample.py _transpile_out
-OUT = ROOT / (sys.argv[1] if len(sys.argv) > 1 else "_mutants_out")
+_HERE = Path(__file__).resolve().parent
+# Which run to score. Every run writes the same outcomes.json shape, so two positional
+# arguments -- the output directory and, optionally, the results root it sits in --
+# switch the whole analysis over:
+#     python analyse_opus5_sample.py                                   # cargo-mutants, sample
+#     python analyse_opus5_sample.py _transpile_out                    # transpile, sample
+#     python analyse_opus5_sample.py _transpile_out results_opus5_4settings   # full set
+_ARGS = [a for a in sys.argv[1:] if not a.startswith("-")]
+ROOT = _HERE / "results/claude" / (_ARGS[1] if len(_ARGS) > 1 else "opus5_sample")
+OUT = ROOT / (_ARGS[0] if _ARGS else "_mutants_out")
 WS = ROOT / "_workspaces"
 
 SETTINGS = [("src", "src"), ("src+test", "src+test"),
             ("src/test", "src_over_test"), ("c+rust", "c_and_rust")]
-PROJECTS = ["ulidgen", "clog", "emlang", "clhash", "cset"]
+
+# The 5-project sample, in the order its README ranks them. Kept as the display order
+# when the run holds exactly those projects; any other run is listed alphabetically.
+_SAMPLE = ["ulidgen", "clog", "emlang", "clhash", "cset"]
+
+
+def _discover():
+    found = set()
+    for _, sdir in SETTINGS:
+        d = OUT / sdir
+        if d.is_dir():
+            found |= {p.name for p in d.iterdir()
+                      if (p / "mutants.out" / "outcomes.json").is_file()}
+    if not found:
+        return _SAMPLE
+    return _SAMPLE if found == set(_SAMPLE) else sorted(found)
+
+
+PROJECTS = _discover()
 
 CAUGHT, MISSED, TIMEOUT, UNVIABLE = "CaughtMutant", "MissedMutant", "Timeout", "Unviable"
 
