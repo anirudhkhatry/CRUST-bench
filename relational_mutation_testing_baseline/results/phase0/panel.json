@@ -1,0 +1,2481 @@
+{
+  "CircularBuffer": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/CircularBuffer"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/CircularBuffer"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/CircularBuffer"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/CircularBuffer"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests",
+      "o4mini": "build_error"
+    }
+  },
+  "FastHamming": {
+    "n_panel": 5,
+    "n_families": 5,
+    "members": [
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/FastHamming"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/FastHamming"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/FastHamming"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/FastHamming"
+      },
+      {
+        "source": "o4mini",
+        "family": "o4mini",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_o4mini/_frozen_source/FastHamming"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "Genetic_neural_network_for_simple_control": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/Genetic_neural_network_for_simple_control"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/Genetic_neural_network_for_simple_control"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests",
+      "o4mini": "build_error",
+      "codex": "timeout",
+      "claude": "timeout"
+    }
+  },
+  "Graph_recogniser": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/Graph_recogniser"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/Graph_recogniser"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/Graph_recogniser"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/Graph_recogniser"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "Holdem_Odds": {
+    "n_panel": 3,
+    "n_families": 3,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/Holdem_Odds"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/Holdem_Odds"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/Holdem_Odds"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests",
+      "opus5": "test_failed"
+    }
+  },
+  "LTRE": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/LTRE"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/LTRE"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/LTRE"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/LTRE"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "Linear_Algebra_C": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/Linear_Algebra_C"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/Linear_Algebra_C"
+      }
+    ],
+    "rejected": {
+      "gpt55": "test_failed",
+      "gpt55_full": "no_tests",
+      "opus5": "test_failed"
+    }
+  },
+  "Math_Library_in_C": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/Math_Library_in_C"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/Math_Library_in_C"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests",
+      "gpt55": "test_failed",
+      "opus5": "test_failed"
+    }
+  },
+  "Megalania": {
+    "n_panel": 1,
+    "n_families": 1,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/Megalania"
+      }
+    ],
+    "rejected": {
+      "gpt55": "build_error",
+      "opus5": "build_error",
+      "gpt55_full": "no_tests",
+      "claude": "build_error"
+    }
+  },
+  "NandC": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/NandC"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/NandC"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/NandC"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/NandC"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "Phills_DHT": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/Phills_DHT"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/Phills_DHT"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/Phills_DHT"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/Phills_DHT"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "Remimu": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/Remimu"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/Remimu"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/Remimu"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/Remimu"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "SimpleXML": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/SimpleXML"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/SimpleXML"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/SimpleXML"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/SimpleXML"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "Simple_Config": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/Simple_Config"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/Simple_Config"
+      }
+    ],
+    "rejected": {
+      "gpt55": "build_error",
+      "gpt55_full": "no_tests",
+      "opus5": "test_failed"
+    }
+  },
+  "Simple_Sparsehash": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/Simple_Sparsehash"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/Simple_Sparsehash"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/Simple_Sparsehash"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/Simple_Sparsehash"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "SlothLang": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/SlothLang"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/SlothLang"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/SlothLang"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/SlothLang"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "VaultSync": {
+    "n_panel": 3,
+    "n_families": 3,
+    "members": [
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/VaultSync"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/VaultSync"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/VaultSync"
+      }
+    ],
+    "rejected": {
+      "gpt55": "build_error",
+      "gpt55_full": "no_tests"
+    }
+  },
+  "XOpt": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/XOpt"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/XOpt"
+      }
+    ],
+    "rejected": {
+      "gpt55": "build_error",
+      "gpt55_full": "no_tests",
+      "opus5": "test_failed"
+    }
+  },
+  "aes128_SIMD": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/aes128_SIMD"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/aes128_SIMD"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/aes128_SIMD"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/aes128_SIMD"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "amp": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/amp"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/amp"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/amp"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/amp"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "approxidate": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/approxidate"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/approxidate"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests",
+      "claude": "build_error",
+      "opus5": "test_failed"
+    }
+  },
+  "avalanche": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/avalanche"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/avalanche"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/avalanche"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/avalanche"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "bhshell": {
+    "n_panel": 3,
+    "n_families": 3,
+    "members": [
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/bhshell"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/bhshell"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/bhshell"
+      }
+    ],
+    "rejected": {
+      "gpt55": "build_error",
+      "gpt55_full": "no_tests"
+    }
+  },
+  "bigint": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/bigint"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/bigint"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/bigint"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/bigint"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "bitset": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/bitset"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/bitset"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/bitset"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/bitset"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "blt": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/blt"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/blt"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests",
+      "opus5": "build_error",
+      "claude": "build_error"
+    }
+  },
+  "bostree": {
+    "n_panel": 0,
+    "n_families": 0,
+    "members": [],
+    "rejected": {
+      "gpt55_full": "no_tests",
+      "gpt55": "build_error",
+      "opus5": "build_error",
+      "codex": "timeout",
+      "claude": "timeout"
+    }
+  },
+  "btree_map": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/btree_map"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/btree_map"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/btree_map"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/btree_map"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "cJSON": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/cJSON"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/cJSON"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/cJSON"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/cJSON"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "c_aces": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/c_aces"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/c_aces"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/c_aces"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/c_aces"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "c_blind_rsa_signatures": {
+    "n_panel": 1,
+    "n_families": 1,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/c_blind_rsa_signatures"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests",
+      "opus5": "build_error",
+      "claude": "build_error",
+      "gpt55": "test_failed"
+    }
+  },
+  "c_string": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/c_string"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/c_string"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/c_string"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/c_string"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "carrays": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/carrays"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/carrays"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/carrays"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/carrays"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "cfsm": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/cfsm"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/cfsm"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/cfsm"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/cfsm"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "chtrie": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/chtrie"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/chtrie"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/chtrie"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/chtrie"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "cissy": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/cissy"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/cissy"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/cissy"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/cissy"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "clhash": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/clhash"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/clhash"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/clhash"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/clhash"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "clog": {
+    "n_panel": 1,
+    "n_families": 1,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/clog"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests",
+      "claude": "test_failed",
+      "gpt55": "test_failed",
+      "opus5": "test_failed"
+    }
+  },
+  "coroutine": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/coroutine"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/coroutine"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/coroutine"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/coroutine"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "cset": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/cset"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/cset"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/cset"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/cset"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "csyncmers": {
+    "n_panel": 3,
+    "n_families": 3,
+    "members": [
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/csyncmers"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/csyncmers"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/csyncmers"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests",
+      "opus5": "test_failed"
+    }
+  },
+  "dict": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/dict"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/dict"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/dict"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/dict"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "emlang": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/emlang"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/emlang"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests",
+      "opus5": "test_failed",
+      "gpt55": "test_failed"
+    }
+  },
+  "expr": {
+    "n_panel": 3,
+    "n_families": 3,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/expr"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/expr"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/expr"
+      }
+    ],
+    "rejected": {
+      "claude": "build_error",
+      "gpt55_full": "no_tests"
+    }
+  },
+  "fft": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/fft"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/fft"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/fft"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/fft"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "file2str": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/file2str"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/file2str"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/file2str"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/file2str"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "fleur": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/fleur"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/fleur"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/fleur"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/fleur"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "fs_c": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/fs_c"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/fs_c"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/fs_c"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/fs_c"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "fslib": {
+    "n_panel": 1,
+    "n_families": 1,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/fslib"
+      }
+    ],
+    "rejected": {
+      "claude": "build_error",
+      "gpt55": "build_error",
+      "opus5": "build_error",
+      "gpt55_full": "no_tests"
+    }
+  },
+  "geofence": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/geofence"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/geofence"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/geofence"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/geofence"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "gfc": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/gfc"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/gfc"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/gfc"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/gfc"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "gorilla_paper_encode": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/gorilla_paper_encode"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/gorilla_paper_encode"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/gorilla_paper_encode"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/gorilla_paper_encode"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "hamta": {
+    "n_panel": 0,
+    "n_families": 0,
+    "members": [],
+    "rejected": {
+      "claude": "build_error",
+      "codex": "test_failed",
+      "gpt55": "build_error",
+      "gpt55_full": "no_tests",
+      "opus5": "test_failed"
+    }
+  },
+  "hydra": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/hydra"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/hydra"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/hydra"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/hydra"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests"
+    }
+  },
+  "impcheck": {
+    "n_panel": 0,
+    "n_families": 0,
+    "members": [],
+    "rejected": {
+      "codex": "timeout",
+      "claude": "timeout"
+    }
+  },
+  "inversion_list": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/inversion_list"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/inversion_list"
+      }
+    ],
+    "rejected": {
+      "gpt55": "test_failed",
+      "opus5": "test_failed"
+    }
+  },
+  "jccc": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/jccc"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/jccc"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/jccc"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/jccc"
+      }
+    ],
+    "rejected": {}
+  },
+  "kairoCompiler": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/kairoCompiler"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/kairoCompiler"
+      }
+    ],
+    "rejected": {
+      "claude": "build_error",
+      "gpt55": "build_error"
+    }
+  },
+  "kd3": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/kd3"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/kd3"
+      }
+    ],
+    "rejected": {
+      "gpt55": "test_failed",
+      "opus5": "test_failed"
+    }
+  },
+  "lambda_calculus_eval": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/lambda_calculus_eval"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/lambda_calculus_eval"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/lambda_calculus_eval"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/lambda_calculus_eval"
+      }
+    ],
+    "rejected": {}
+  },
+  "leftpad": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/leftpad"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/leftpad"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/leftpad"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/leftpad"
+      }
+    ],
+    "rejected": {}
+  },
+  "lib2bit": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/lib2bit"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/lib2bit"
+      }
+    ],
+    "rejected": {
+      "gpt55": "test_failed",
+      "opus5": "test_failed"
+    }
+  },
+  "libbase122": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/libbase122"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/libbase122"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/libbase122"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/libbase122"
+      }
+    ],
+    "rejected": {}
+  },
+  "libbeaufort": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/libbeaufort"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/libbeaufort"
+      }
+    ],
+    "rejected": {
+      "gpt55": "build_error",
+      "opus5": "build_error"
+    }
+  },
+  "libfor": {
+    "n_panel": 0,
+    "n_families": 0,
+    "members": [],
+    "rejected": {
+      "codex": "no_tests",
+      "claude": "no_tests",
+      "gpt55": "no_tests",
+      "opus5": "no_tests"
+    }
+  },
+  "libm17": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/libm17"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/libm17"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/libm17"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/libm17"
+      }
+    ],
+    "rejected": {}
+  },
+  "libpgn": {
+    "n_panel": 1,
+    "n_families": 1,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/libpgn"
+      }
+    ],
+    "rejected": {
+      "claude": "test_failed",
+      "opus5": "build_error",
+      "gpt55": "build_error"
+    }
+  },
+  "libpsbt": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/libpsbt"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/libpsbt"
+      }
+    ],
+    "rejected": {
+      "gpt55": "test_failed",
+      "opus5": "test_failed"
+    }
+  },
+  "libqueue": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/libqueue"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/libqueue"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/libqueue"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/libqueue"
+      }
+    ],
+    "rejected": {}
+  },
+  "libtinyfseq": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/libtinyfseq"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/libtinyfseq"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/libtinyfseq"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/libtinyfseq"
+      }
+    ],
+    "rejected": {}
+  },
+  "libutf": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/libutf"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/libutf"
+      }
+    ],
+    "rejected": {
+      "opus5": "test_failed",
+      "gpt55": "test_failed"
+    }
+  },
+  "libvcd": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/libvcd"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/libvcd"
+      }
+    ],
+    "rejected": {
+      "opus5": "test_failed",
+      "gpt55": "test_failed"
+    }
+  },
+  "libwecan": {
+    "n_panel": 0,
+    "n_families": 0,
+    "members": [],
+    "rejected": {
+      "codex": "test_failed",
+      "claude": "test_failed",
+      "gpt55": "test_failed",
+      "opus5": "test_failed"
+    }
+  },
+  "ljmm": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/ljmm"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/ljmm"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/ljmm"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/ljmm"
+      }
+    ],
+    "rejected": {}
+  },
+  "matrix_multiplication": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/matrix_multiplication"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/matrix_multiplication"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/matrix_multiplication"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/matrix_multiplication"
+      }
+    ],
+    "rejected": {}
+  },
+  "mdb": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/mdb"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/mdb"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/mdb"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/mdb"
+      }
+    ],
+    "rejected": {}
+  },
+  "merkle_tree_c": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/merkle_tree_c"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/merkle_tree_c"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/merkle_tree_c"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/merkle_tree_c"
+      }
+    ],
+    "rejected": {}
+  },
+  "morton": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/morton"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/morton"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/morton"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/morton"
+      }
+    ],
+    "rejected": {}
+  },
+  "murmurhash_c": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/murmurhash_c"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/murmurhash_c"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/murmurhash_c"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/murmurhash_c"
+      }
+    ],
+    "rejected": {}
+  },
+  "mvptree": {
+    "n_panel": 3,
+    "n_families": 3,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/mvptree"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/mvptree"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/mvptree"
+      }
+    ],
+    "rejected": {
+      "claude": "build_error"
+    }
+  },
+  "proj_2DPartInt": {
+    "n_panel": 3,
+    "n_families": 3,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/proj_2DPartInt"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/proj_2DPartInt"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/proj_2DPartInt"
+      }
+    ],
+    "rejected": {
+      "opus5": "build_error",
+      "gpt55_full": "no_tests",
+      "o4mini": "build_error"
+    }
+  },
+  "proj_42_Kocaeli_Printf": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/proj_42_Kocaeli_Printf"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/proj_42_Kocaeli_Printf"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/proj_42_Kocaeli_Printf"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/proj_42_Kocaeli_Printf"
+      }
+    ],
+    "rejected": {
+      "gpt55_full": "no_tests",
+      "o4mini": "build_error"
+    }
+  },
+  "quadtree": {
+    "n_panel": 3,
+    "n_families": 3,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/quadtree"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/quadtree"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/quadtree"
+      }
+    ],
+    "rejected": {
+      "opus5": "build_error"
+    }
+  },
+  "razz_simulation": {
+    "n_panel": 1,
+    "n_families": 1,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/razz_simulation"
+      }
+    ],
+    "rejected": {
+      "claude": "test_failed",
+      "gpt55": "test_failed",
+      "opus5": "test_failed"
+    }
+  },
+  "rbtree_lab": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/rbtree_lab"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/rbtree_lab"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/rbtree_lab"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/rbtree_lab"
+      }
+    ],
+    "rejected": {}
+  },
+  "recordManager": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/recordManager"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/recordManager"
+      }
+    ],
+    "rejected": {
+      "claude": "build_error",
+      "opus5": "build_error"
+    }
+  },
+  "rect_pack_h": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/rect_pack_h"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/rect_pack_h"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/rect_pack_h"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/rect_pack_h"
+      }
+    ],
+    "rejected": {}
+  },
+  "rhbloom": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/rhbloom"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/rhbloom"
+      }
+    ],
+    "rejected": {
+      "gpt55": "test_failed",
+      "opus5": "test_failed"
+    }
+  },
+  "roaring_bitmap": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/roaring_bitmap"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/roaring_bitmap"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/roaring_bitmap"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/roaring_bitmap"
+      }
+    ],
+    "rejected": {}
+  },
+  "rubiksolver": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/rubiksolver"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/rubiksolver"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/rubiksolver"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/rubiksolver"
+      }
+    ],
+    "rejected": {}
+  },
+  "satc": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/satc"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/satc"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/satc"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/satc"
+      }
+    ],
+    "rejected": {}
+  },
+  "simple_lang": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/simple_lang"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/simple_lang"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/simple_lang"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/simple_lang"
+      }
+    ],
+    "rejected": {}
+  },
+  "skp": {
+    "n_panel": 2,
+    "n_families": 2,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/skp"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/skp"
+      }
+    ],
+    "rejected": {
+      "gpt55": "build_error",
+      "opus5": "build_error"
+    }
+  },
+  "ted": {
+    "n_panel": 3,
+    "n_families": 3,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/ted"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/ted"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/ted"
+      }
+    ],
+    "rejected": {
+      "opus5": "build_error"
+    }
+  },
+  "tisp": {
+    "n_panel": 1,
+    "n_families": 1,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/tisp"
+      }
+    ],
+    "rejected": {
+      "claude": "build_error",
+      "opus5": "build_error",
+      "gpt55": "test_failed"
+    }
+  },
+  "totp": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/totp"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/totp"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/totp"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/totp"
+      }
+    ],
+    "rejected": {}
+  },
+  "ulidgen": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/ulidgen"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/ulidgen"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/ulidgen"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/ulidgen"
+      }
+    ],
+    "rejected": {}
+  },
+  "utf8": {
+    "n_panel": 3,
+    "n_families": 3,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/utf8"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/utf8"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/utf8"
+      }
+    ],
+    "rejected": {
+      "gpt55": "test_failed"
+    }
+  },
+  "vec": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/vec"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/vec"
+      },
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/vec"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/vec"
+      }
+    ],
+    "rejected": {}
+  },
+  "worsp": {
+    "n_panel": 4,
+    "n_families": 4,
+    "members": [
+      {
+        "source": "gpt55",
+        "family": "gpt5.5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source/worsp"
+      },
+      {
+        "source": "claude",
+        "family": "claude",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/claude_expts/all/initial_claude_output/worsp"
+      },
+      {
+        "source": "codex",
+        "family": "codex",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/datasets/codex_expts/all/initial_codex_output/worsp"
+      },
+      {
+        "source": "opus5",
+        "family": "opus5",
+        "path": "/nas/CRUST-bench-COLM/CRUST-bench/mutation_testing/results/claude/results_opus5_4settings/_frozen_source/worsp"
+      }
+    ],
+    "rejected": {}
+  }
+}

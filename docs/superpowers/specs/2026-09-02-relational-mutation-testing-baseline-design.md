@@ -1,7 +1,7 @@
 # Relational mutation testing between C and Rust — baseline design
 
 **Date:** 2026-09-02
-**Status:** design, approved for implementation
+**Status:** design approved · Phase 0 complete (2026-09-02) · Phase 1 ready
 **Working dir:** `relational_mutation_testing_baseline/`
 
 ---
@@ -64,13 +64,17 @@ exists. Soundness must be established **empirically**. Section 6 is how.
 What we do have: multiple independent LLM transpilations of every project that **pass the
 RBench ground-truth tests** —
 
-| set | projects |
-|---|---|
-| `datasets/codex_expts/all/initial_codex_output` | 111 |
-| `datasets/claude_expts/all/initial_claude_output` | 109 |
-| `datasets/codex_expts/all/initial` | 100 |
-| `datasets/claude_expts/all/initial` | 100 |
-| `mutation_testing/results/*/results_*_4settings/_frozen_source` | varies |
+| set | model family | projects | GT-green |
+|---|---|---|---|
+| `datasets/codex_expts/all/initial_codex_output` | codex | 100 | 94 |
+| `datasets/claude_expts/all/initial_claude_output` | claude | 100 | 81 |
+| `mutation_testing/results/gpt/results_gpt55_4settings/_frozen_source` | gpt-5.5 | 99 | 70 |
+| `mutation_testing/results/claude/results_opus5_4settings/_frozen_source` | opus-5 | 99 | 66 |
+
+Measured in Phase 0. The `datasets/*/all/initial` directories are **run scaffolding, not
+separate transpilations** — byte-identical to the corresponding `*_output` trees (codex
+98/100, claude 100/100) — so they are excluded. Cross-model implementations are distinct
+in 100/100 cases, so the panel is counted by **model family**, not by directory.
 
 Independently produced, GT-green implementations of the same interface are the closest
 available stand-in for a reference, and their **agreement** is the basis of our soundness
@@ -84,14 +88,18 @@ A project is admitted when it has (a) a CBench C source that builds, (b) an RBen
 interface + ground-truth test suite, and (c) at least *n* independent Rust
 implementations that **pass the RBench GT tests** (the panel — see §6.1).
 
-Phase 0 of implementation measures the achievable panel size per project. Target
-**n ≥ 3**; `n = 2` materially weakens the agreement oracle (it cannot distinguish
-"unsound" from "one candidate is buggy") and such projects are reported separately.
+Phase 0 measured this. **69 projects reach n ≥ 3; 60 of those also have a working C
+harness** and form the eligible set. `n = 2` materially weakens the agreement oracle (it
+cannot distinguish "unsound" from "one candidate is buggy"), so n=2 projects (18 more) are
+held back and reported separately rather than mixed in. See
+`relational_mutation_testing_baseline/results/phase0/REPORT.md`.
 
 ### Stage 1 — LLM-generated C mutants
 
-For each selected target function in `src/*.c`, prompt the model for *N* **single-point,
-semantically meaningful** mutants, returned as structured records:
+For each selected target function in `src/*.c` — **or `src/*.h`**, since Phase 0 found 7
+header-only projects (`bigint`, `c-string`, `clog`, `cset`, `csyncmers`, `libtinyfseq`,
+`rect_pack_h`) whose implementation lives in headers — prompt the model for *N*
+**single-point, semantically meaningful** mutants, returned as structured records:
 
 ```json
 {"file": "...", "function": "...", "original_snippet": "...",
@@ -183,18 +191,31 @@ exist. Recommended as the first follow-up.)*
 
 ## 5. The C build harness
 
-CBench projects ship heterogeneous Makefiles, most of which build applications rather than
-test targets. Strategy: **project Makefile first, uniform gcc fallback.**
+**Revised by Phase 0: gcc-uniform, not Makefile-first.** The original plan was Makefile
+first with a gcc fallback. Measurement showed that is the wrong order — the Makefile path
+builds the *project's own* artifacts and provides no way to link a **generated test main**
+against the library objects, which is what Stages 1/2 require. A `make` success does not
+imply the project is drivable, and the 71 Makefile successes add no project the gcc path
+does not already cover.
 
-1. Try the project's own build via `src/utils/compile_c_utils.py`.
-2. Fall back to compiling `src/**/*.c` plus the generated test into one binary with
-   `gcc -I src/include`.
+The single build path is therefore:
 
-Which path was used is **recorded per project**, so every result can be split on it and we
-can check the fallback is not silently changing semantics (e.g. by dropping a
-`-D` flag or an optimisation level the project depends on).
+1. Collect library sources: `src/` when present, else the project root, **minus**
+   `bin/ app/ demo/ example/ benchmark/ fuzz/ tools/ vendor/ unity/ test(s)/`. These hold
+   demos, CLI front-ends and vendored test frameworks that the Rust interfaces do not
+   correspond to; including them was the single largest cause of spurious failures.
+2. Header-only projects: synthesize one translation unit including the library headers.
+3. Compile each to an object with include paths covering every header directory **and its
+   ancestors** (sources commonly `#include "pkg/pkg.h"`).
+4. Link the objects, minus the project's own `main()`, against the generated test main,
+   with `-lm -lpthread` and `-lcrypto -lssl` if needed. The library set is recorded.
 
-Projects that build under neither path are dropped and reported as such.
+The project Makefile is retained only as an optional **cross-check** that our object set
+matches the project's own expectations (a missing `-D`, a required optimisation level).
+
+Phase 0 result: **89/100 projects usable.** The 11 failures are per-project flag work
+(SIMD arch flags, include roots, `--wrap` linking) and are documented in the Phase 0
+report; they are not on the Phase 1 path.
 
 ## 6. Establishing that correct Rust would pass RT
 
@@ -287,10 +308,11 @@ The deliverable if the pipeline does not work end-to-end. Every artifact is labe
 
 ## 9. Phasing
 
-**Phase 0 — feasibility (no LLM calls).** Measure panel size per project; verify the C
-build harness (Makefile + fallback) across CBench; confirm which panel members are
-GT-green. Output: the project list and *n* per project. Kills the project cheaply if the
-panel is too thin.
+**Phase 0 — feasibility (no LLM calls). ✅ DONE 2026-09-02.** Measured panel size per
+project, verified the C build harness across CBench, confirmed which panel members are
+GT-green. **Result: 60 eligible projects** (C harness usable ∧ n ≥ 3); 89/100 C harness
+usable; 69/100 at n ≥ 3. Full results and the resulting spec deltas:
+`relational_mutation_testing_baseline/results/phase0/REPORT.md`.
 
 **Phase 1 — pilot.** ~10 projects × ~10 mutants. **Every** failure hand-inspected; the
 §8 taxonomy is populated and refined against real artifacts rather than guessed. Includes
@@ -339,7 +361,7 @@ rather than the model — this is what made the four-settings result credible.
 
 | risk | mitigation |
 |---|---|
-| Panel too thin (*n* < 3 for most projects) — agreement oracle weak | Phase 0 measures this before any spend; `initial` and `_frozen_source` variants add members; report `n=2` projects separately |
+| ~~Panel too thin (*n* < 3) — agreement oracle weak~~ | **Retired by Phase 0**: 69 projects reach n ≥ 3 across 4 distinct model families |
 | F3 dominates — idiomatic Rust interfaces make CT→RT mechanical translation infeasible | Expected; it is a *result*, not a blocker. Quantify per API-shape category to say precisely which C idioms fail to cross |
 | Candidates are GT-green and genuinely bug-free → M5b ≈ 0 | Exactly why the Rust-mutant arm (4b) is in Phase 1 |
 | LLM mutants are not single-point, or are semantically null | Validity gate + structured records; equivalent mutants surface as F1 and are reported |
@@ -350,9 +372,9 @@ rather than the model — this is what made the four-settings result credible.
 
 1. Target-function selection — all functions, or sampled by complexity/coverage? Sampling
    policy affects comparability with the four-settings numbers.
-2. Are the `initial` and `initial_*_output` sets independent enough to count as separate
-   panel members, or are they the same run at different repair depths? If the latter, the
-   effective panel is 2, not 4.
+2. ~~Are the `initial` and `initial_*_output` sets independent?~~ **Resolved by Phase 0:**
+   they are not — `initial` is run scaffolding, byte-identical to `*_output`. The panel is
+   counted by model family instead, giving 4 independent families, not 2.
 3. Retry budget *k* for Stages 2 and 3 — pick from pilot data, then freeze.
 
 ## 12. Out of scope
