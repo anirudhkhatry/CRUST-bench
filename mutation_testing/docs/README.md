@@ -46,7 +46,10 @@ model the **C tests to translate** (`src+test`) is clearly worst.
 
 - [`mutation_operator_taxonomy.md`](./mutation_operator_taxonomy.md) — the operator
   taxonomy. Three orthogonal axes (edit shape, fault class, status); cargo-mutants'
-  five language-generic genres; and the eleven **transpilation-aware** operators written
+  five language-generic genres **and what they showed** (61.7% unviable corpus-wide,
+  `Option` the one type-level blind spot, no class-level blind spots at all, and bitwise
+  substitutions at 100% in exactly the two settings that see C source without the C
+  tests); and the eleven **transpilation-aware** operators written
   for this study, in three fault families (F1 integer discipline, F2 representation,
   F3 ownership), with the design rulings behind each and the arms deliberately left out.
   Also the two results that decide how the numbers read: `cast-width`/`cast-sign` are

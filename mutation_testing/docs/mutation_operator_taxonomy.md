@@ -51,6 +51,98 @@ Roughly the standard AOR/ROR/LOR set plus statement deletion. Counts are the Opu
 Nothing in this set knows the code was translated from C. That is not a defect — it is the
 baseline the second population is defined against.
 
+### 2.1 What the classical operators showed
+
+Two analyses of this population are already written up in full —
+[`mutant_distribution_and_memory_types.md`](./mutant_distribution_and_memory_types.md) for
+the distribution and type view, and
+[`why_c_tests_hurt_mutation.md`](./why_c_tests_hurt_mutation.md) for the `src+test`
+deficit. The results that bear on operator design are these.
+
+**Rust's type system rejects most of the corpus.** Across both models' full runs (12,208
+mutants):
+
+| outcome | count | share |
+|---|---|---|
+| unviable (does not compile) | 7,536 | **61.7%** |
+| caught | 2,939 | 24.1% |
+| timeout | 1,196 | 9.8% |
+| missed | 537 | 4.4% |
+
+So the *scored* population is a sixth of what is generated, and the classical operators'
+unviability is itself type-driven: return-value mutants 68.1% unviable, binary-operator
+60.3%, delete-branch 55.4%.
+
+**Unviability concentrates on exactly the types that matter.** Grouping return-value
+mutants by return type: custom structs and enums are **80.3% unviable**, versus 63.0% for
+primitives. The type system is most aggressive precisely where the abstraction is richest,
+so the mutants that survive to be scored are disproportionately about primitive arithmetic.
+The one clear blind spot on this axis is `Option<T>` — 435 mutants, and of the viable ones
+only **68.0% killed**, the lowest of any type bucket.
+
+**On the 5-project sample the classical set is close to saturated.** Common mutant set
+(viable and non-timeout in every setting):
+
+| config | classical (n=1101) | transpilation (n=356) |
+|---|---|---|
+| `src` | 72.3% | 41.6% |
+| `src+test` | 37.3% | 13.8% |
+| `src/test` | 74.5% | 26.7% |
+| `c+rust` | **86.0%** | 39.6% |
+
+One caveat on that `src+test` cell: `clog` produced no `src+test` result in the classical
+run, so its 37.3% is pooled over the four projects that did (n=882), while the other three
+columns cover all five (n=1101). The transpilation run has all four settings on all five
+projects.
+
+Per genre, on the same set:
+
+| genre | n | src | src+test | src/test | c+rust |
+|---|---|---|---|---|---|
+| `BinaryOperator` | 796 | 69.0 | 34.1 | 69.1 | 83.3 |
+| `FnValue` | 247 | 82.2 | 46.6 | 87.9 | 92.3 |
+| `MatchArm` | 33 | 81.8 | 26.9 | 97.0 | 100.0 |
+| `UnaryOperator` | 23 | 65.2 | 57.1 | 82.6 | 91.3 |
+| `MatchArmGuard` | 2 | 100.0 | 0.0 | 100.0 | 100.0 |
+
+**There are no blind-spot classes at all.** Every substitution with n ≥ 3 is killed by at
+least one configuration. Contrast the transpilation set, which has five substitution
+classes surviving in *every* configuration. This is the empirical case for the second
+operator population: at 86% with no class-level gaps, the classical operators have very
+little discriminating power left between the stronger settings, and `src/test` vs `c+rust`
+(74.5% vs 86.0%) is carried mostly by volume rather than by any identifiable fault class.
+
+**The one striking class-level pattern is bitwise.** On the common set:
+
+| substitution | n | src | src+test | src/test | c+rust |
+|---|---|---|---|---|---|
+| `^= -> \|=` | 27 | **100.0** | 3.7 | 40.7 | **100.0** |
+| `^ -> &` | 23 | **100.0** | 26.1 | 39.1 | **100.0** |
+| `^ -> \|` | 23 | **100.0** | 26.1 | 26.1 | **100.0** |
+| `>> -> <<` | 11 | **100.0** | 9.1 | 54.5 | **100.0** |
+| `& -> \|` | 10 | **100.0** | 30.0 | 90.0 | **100.0** |
+| `<< -> >>` | 9 | **100.0** | 22.2 | 66.7 | **100.0** |
+
+The two configurations that reach 100% are the two that see the C source without also
+being handed the C tests. `src/test`, which never sees C at all, collapses to a quarter or
+half on the same mutants. The natural reading is that bit-manipulation intent is legible in
+the C source and largely unrecoverable from the Rust implementation alone — a translated
+`^=` looks like any other compound assignment once the C is gone. `src+test` also has the
+C source and still scores 3.7–30%, which is the translated-C-test mechanism documented
+separately, not a counterexample.
+
+**The `src+test` deficit is broad, not narrow.** Mutants killed by `src/test` but surviving
+`src+test`, led by `body -> Default::default()` (18 of 20, **90%**) and
+`body -> Ok(Default::default())` (6 of 6, **100%**) — i.e. the return-value class where a
+test has to actually assert on the returned value rather than merely call the function.
+
+**Timeouts are a real interpretive problem here, unlike for the transpilation set.**
+Corpus-wide, timeouts are 9.8% of all classical mutants (1,196), and 32–38 per config on
+the sample — large enough that the `strict`/`folded` gap changes conclusions for individual
+projects (emlang moves 0.477 → 0.893, clog 0.578 → 0.789). The transpilation run's sample
+had 4 timeouts in total, so its two readings are within 0.6 points of each other
+everywhere.
+
 ---
 
 ## 3. Level B — transpilation operators
