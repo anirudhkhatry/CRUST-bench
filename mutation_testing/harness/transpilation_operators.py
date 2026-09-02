@@ -476,25 +476,21 @@ def _rewrite_overflow(node, src):
                 return
         return
 
-    # Direction 2: a bare arithmetic operator that could have needed wrapping.
-    parts = _binary_parts(node, src)
-    if parts is None:
-        return
-    left, op, right = parts
-    for stem, symbol in _WRAP_FAMILIES.items():
-        if op == symbol:
-            # `_operand` on the left is what keeps `365 * yoe + yoe / 4` from becoming
-            # `365 * yoe.wrapping_add(yoe / 4)`. The right operand sits inside the call's
-            # own parentheses and so cannot reassociate.
-            yield node, f"{_operand(left, src)}.wrapping_{stem}({_text(right, src)})", \
-                f"replace {op} with wrapping_{stem}"
-            return
+    # The reverse direction -- a bare `+` rewritten to `wrapping_add` -- is deliberately
+    # not generated. It is unkillable by construction, for the same reason `wrapping_div`
+    # is: on a debug build bare `+` panics on overflow, so a *green baseline* is already a
+    # proof that no test input overflows this site; and off the overflow domain `+` and
+    # `wrapping_add` agree for every input. No suite that the unmutated crate passes can
+    # ever distinguish them. It is also the wrong direction for the fault model -- adding
+    # wrapping where C did not wrap is the harmless mistake; dropping it where C did wrap
+    # is the bug, and that is Direction 1's `wrapping_X -> bare X`, which kills at ~20-60%.
+    return
 
 
 OVERFLOW_DISCIPLINE = Operator(
     name="overflow-discipline",
     family="F1-integer",
-    query=_METHOD_OR_PATH + "\n(binary_expression) @b",
+    query=_METHOD_OR_PATH,
     rewrite=_rewrite_overflow,
 )
 
@@ -514,6 +510,14 @@ def _rewrite_shift(node, src):
 
 SHIFT_DISCIPLINE = Operator(name="shift-discipline", family="F1-integer",
                             query="(binary_expression) @b", rewrite=_rewrite_shift)
+
+# Not in OPERATORS: unkillable by construction, by the same argument that retires the bare
+# `+` -> `wrapping_add` arm above. `a << b` panics on a debug build when `b` exceeds the
+# width, so a green baseline proves no test overshifts this site; `wrapping_shl` only
+# differs from `<<` by masking the shift amount, i.e. only on the overshift domain the
+# baseline has just ruled out. Measured over 64 projects: 170 mutants, killed 0 times by
+# any of the four suites -- exactly what the proof predicts. Kept defined (and unit-tested)
+# because the operator itself is correct; it is the fault model that is empty.
 
 
 # --------------------------------------------------------------------------------------
@@ -603,6 +607,25 @@ ARG_TRANSPOSITION = Operator(name="arg-transposition", family="F3-ownership",
 
 OPERATORS = [
     ENDIANNESS, TEXT_UNIT, FLOAT_WIDTH,
-    CAST_WIDTH, CAST_SIGN, OVERFLOW_DISCIPLINE, SHIFT_DISCIPLINE,
+    CAST_WIDTH, CAST_SIGN, OVERFLOW_DISCIPLINE,
     LOST_IN_PLACE_UPDATE, ERROR_PATH_ERASURE, RANGE_BOUND, ARG_TRANSPOSITION,
 ]
+
+
+# The substitutions retired above, as they appear in a mutant label. Current runs no longer
+# generate them; runs recorded *before* they were retired still contain them, and scoring
+# such a run honestly means excluding them from the denominator. `analyse_opus5_sample.py
+# --valid-only` does that, from this list, so the generator and the scorer cannot drift.
+# Match with ``startswith``: `_disambiguate_names` may have appended a ``#2`` suffix.
+RETIRED_LABELS = (
+    "replace + with wrapping_add",
+    "replace - with wrapping_sub",
+    "replace * with wrapping_mul",
+    "replace << with wrapping_shl",
+    "replace >> with wrapping_shr",
+)
+
+
+def is_retired_label(label):
+    """True if ``label`` names a substitution no suite passing a green baseline can kill."""
+    return any(label.startswith(r) for r in RETIRED_LABELS)

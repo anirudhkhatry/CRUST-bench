@@ -9,8 +9,10 @@ Two mutant populations are used, over the same frozen source:
 
 - **classical** — cargo-mutants' language-generic edits (operator substitution, return-value
   replacement);
-- **transpilation-aware** — eleven operators written for this study that simulate faults a
-  C→Rust translator actually commits (integer discipline, representation, ownership).
+- **transpilation-aware** — ten operators written for this study that simulate faults a
+  C→Rust translator actually commits (integer discipline, representation, ownership). An
+  eleventh, `shift-discipline`, is defined and tested but not enabled: a green baseline
+  proves its mutants unkillable, so generating them only dilutes the denominator.
 
 The analysis of both, the four settings, and the results so far are in
 [`docs/README.md`](docs/README.md); start there for *what the numbers mean*. This file is
@@ -43,7 +45,7 @@ map; nothing in `docs/` was rewritten for the move.
 | `mutate_fast.py` | the parallel driver over `mutate_shared`: N worker clones of the workspace, per-mutant timeouts, `outcomes.json` in cargo-mutants' own shape. |
 | `split_crates.py` | rebuilds a project as a workspace: `core/` (the frozen translation, the only crate mutated) + `tests-<setting>/` per suite. |
 | `split_manifests.py` | manifest surgery for that split — de-workspacing, dependency version resolution. |
-| `transpilation_operators.py` | the eleven transpilation-aware operators (tree-sitter based), in three fault families. |
+| `transpilation_operators.py` | the transpilation-aware operators (tree-sitter based), in three fault families. `OPERATORS` is the enabled set; `RETIRED_LABELS` names the substitutions withdrawn as provably unkillable, and is what `--valid-only` scores older runs against. |
 | `list_transpile_mutants.py` | those operators packaged as a drop-in replacement for `mutate_shared.list_mutants`, which is what lets one harness run either mutant population. |
 | `paths.py` | `ROOT` / `RESULTS` / `DATA`. The one definition of the three directories. |
 
@@ -135,10 +137,15 @@ second is the run root:
 $PY analysis/analyse_opus5_sample.py                                    # classical, sample
 $PY analysis/analyse_opus5_sample.py _transpile_out                     # transpile, sample
 $PY analysis/analyse_opus5_sample.py _transpile_out results_opus5_4settings   # transpile, full set
+$PY analysis/analyse_opus5_sample.py _transpile_out results_opus5_4settings --valid-only
 $PY analysis/intersection_scores.py results/gpt/results_gpt55_4settings
 ```
 
-**Tests** (69 of them; run from this directory):
+`--valid-only` excludes `transpilation_operators.RETIRED_LABELS` from the denominator. Runs
+recorded before those arms were retired still contain them, so it is the flag that makes an
+old run comparable with a new one; a run generated after the retirement is unaffected by it.
+
+**Tests** (73 of them; run from this directory):
 
 ```bash
 $PY -m unittest discover -s tests -t . -q

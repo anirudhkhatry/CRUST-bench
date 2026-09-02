@@ -44,6 +44,13 @@ from harness.paths import RESULTS
 #     python analyse_opus5_sample.py _transpile_out                    # transpile, sample
 #     python analyse_opus5_sample.py _transpile_out results_opus5_4settings   # full set
 _ARGS = [a for a in sys.argv[1:] if not a.startswith("-")]
+
+# --valid-only drops the substitutions listed in transpilation_operators.RETIRED_LABELS:
+# mutants that no suite passing a green baseline can kill, so their presence in the
+# denominator only dilutes the score. The generator no longer emits them; this flag is how
+# a run recorded before that change is scored on the same population as one recorded after.
+VALID_ONLY = "--valid-only" in sys.argv[1:]
+
 ROOT = RESULTS / "claude" / (_ARGS[1] if len(_ARGS) > 1 else "opus5_sample")
 OUT = ROOT / (_ARGS[0] if _ARGS else "_mutants_out")
 WS = ROOT / "_workspaces"
@@ -118,6 +125,20 @@ def main():
                 continue
             data[p][setting] = {
                 o["mutant_key"]: (o["summary"], o["scenario"]["Mutant"]) for o in outs}
+
+    if VALID_ONLY:
+        # Imported here rather than at module scope so the scorer still runs on an
+        # interpreter without tree-sitter when the flag is not used.
+        from harness.transpilation_operators import is_retired_label
+        dropped = 0
+        for p in data:
+            for setting, d in data[p].items():
+                for key, (_, mut) in list(d.items()):
+                    if is_retired_label(mutation_type(p, mut)[1]):
+                        del d[key]
+                        dropped += 1
+        print(f"--valid-only: dropped {dropped} retired mutant-outcomes "
+              f"(summed over settings) before scoring\n")
 
     # ---------------- 1. per-setting scores, as run ----------------
     print("=" * 92)

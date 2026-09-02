@@ -266,22 +266,31 @@ roughly half the corpus.
 
 Two results make this axis the one that decides how the numbers should be read.
 
-**Rust's type system deletes an entire fault class for free.** On the 5-project sample,
-`cast-width` and `cast-sign` generated 182 mutants and **all 182 were unviable** — a 100%
-rejection rate. The C integer-conversion bug class is genuine and common, and at these
-sites it is statically unreachable in Rust. That is a finding about the language, not about
-the test suites.
+**Rust's type system prunes most of one fault class.** `cast-width` and `cast-sign`
+generate heavily and survive rustc rarely: over the full 64-project corpus, 94.1% and 91.2%
+of them are unviable. (On the 5-project sample the rate was 100% of 182, and this document
+previously read that as *all* — at corpus scale the class is thinned, not deleted, and the
+survivors are scored: 102 `cast-width` and 51 `cast-sign` mutants in the common set.) The
+C integer-conversion bug class is genuine, and Rust makes most of its sites unrepresentable.
+That is a finding about the language, not about the test suites.
 
 **Equivalence is concentrated, not diffuse.** The bare-operator → `wrapping_*` direction of
-F1 sat at a uniform 0.0% kill rate across four independent suites — 113 mutants, 32% of the
-scored denominator. In release mode `a + b` *is* `a.wrapping_add(b)` unless something
-actually overflows, so no test can kill these without an overflowing input.
+F1 sat at a uniform 0.0% kill rate across four independent suites, and so did the whole of
+`shift-discipline` — 1,297 mutants at corpus scale, 32% of the scored denominator. Both are
+now **retired at generation time** rather than reported. The argument is a proof, not an
+observation: on a debug build bare `+` panics on overflow and bare `<<` panics on overshift,
+so a *green baseline is itself a certificate* that no test input reaches the mutated domain;
+off that domain the mutant and the original agree for every input. No suite that the
+unmutated crate passes can distinguish them. They were also the wrong direction for the
+fault model — adding wrapping where C did not wrap is the harmless mistake, and dropping it
+where C did wrap is the bug. That converse arm, `wrapping_X` → bare `X`, is retained and
+kills at 20–60%.
 
 The standing ruling, applied throughout: **statically-decidable equivalence is fixed at
 generation time; input-dependent equivalence is deferred to the quarantine.** `div`/`rem`,
-identical swapped arguments, and `*_ne_*` targets are all the first kind. The bare-operator
-F1 direction is the second, and must be labelled an equivalence artifact rather than
-reported as a test-suite blind spot.
+identical swapped arguments, `*_ne_*` targets, and now the two arms above are all the first
+kind. `cast-width` survivors and the harmless `lost-in-place-update` clone are the second:
+neither is decidable here, and both wait on a differential witness against the C reference.
 
 ---
 

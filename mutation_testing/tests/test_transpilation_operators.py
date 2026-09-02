@@ -183,15 +183,14 @@ class TestOverflowDiscipline(unittest.TestCase):
                    [tops.OVERFLOW_DISCIPLINE])
         self.assertIn("(a + b)", replacements(recs))
 
-    def test_adds_wrapping_to_a_bare_operator(self):
-        recs = gen("fn f(a: u32, b: u32) -> u32 { a + b }", [tops.OVERFLOW_DISCIPLINE])
-        self.assertEqual(replacements(recs), ["a.wrapping_add(b)"])
+    def test_does_not_add_wrapping_to_a_bare_operator(self):
+        """The operator is one-directional: see TestRetiredSubstitutions for why.
 
-    def test_parenthesises_a_non_atomic_left_operand(self):
-        """`365 * yoe + yoe / 4` must not become `365 * yoe.wrapping_add(yoe / 4)`."""
-        recs = gen("fn f(a: u32, b: u32) -> u32 { a * b + b / 4 }",
-                   [tops.OVERFLOW_DISCIPLINE])
-        self.assertIn("(a * b).wrapping_add(b / 4)", replacements(recs))
+        Left-operand parenthesisation, which the retired arm used to exercise, is still
+        covered below -- Direction 1's bare-operator replacement shares `_operand`.
+        """
+        self.assertEqual(gen("fn f(a: u32, b: u32) -> u32 { a + b }",
+                             [tops.OVERFLOW_DISCIPLINE]), [])
 
     def test_bare_operator_replacement_cannot_escape_its_context(self):
         """`acc.wrapping_mul(P).wrapping_add(z)` must not become `acc * P.wrapping_add(z)`."""
@@ -226,6 +225,51 @@ class TestOverflowDiscipline(unittest.TestCase):
     def test_ignores_non_arithmetic_operators(self):
         self.assertEqual(gen("fn f(a: u32, b: u32) -> bool { a == b }",
                              [tops.OVERFLOW_DISCIPLINE]), [])
+
+
+class TestRetiredSubstitutions(unittest.TestCase):
+    """Two arms are unkillable given a green baseline, and so are not in ``OPERATORS``.
+
+    Bare `+` panics on overflow in debug, and bare `<<` panics on overshift, so a baseline
+    the suite already passes proves the mutated domain is never reached; off that domain
+    the mutant and the original agree for every input. Both are still *defined* -- the
+    rewrites are correct, the fault model is empty -- so these assert absence from the
+    default operator set, not absence of the code.
+    """
+
+    def test_bare_arithmetic_is_not_wrapped(self):
+        for src in ("fn f(a: u32, b: u32) -> u32 { a + b }",
+                    "fn f(a: u32, b: u32) -> u32 { a - b }",
+                    "fn f(a: u32, b: u32) -> u32 { a * b }"):
+            with self.subTest(src=src):
+                self.assertEqual(gen(src), [])
+
+    def test_bare_shifts_are_not_wrapped(self):
+        for src in ("fn f(a: u32) -> u32 { a << 2 }", "fn f(a: u32) -> u32 { a >> 2 }"):
+            with self.subTest(src=src):
+                self.assertEqual(gen(src), [])
+
+    def test_the_killable_direction_survives(self):
+        """The retirement is one-directional: dropping wrapping where C wrapped is the bug
+        the operator exists to model, and it is still generated."""
+        repls = replacements(gen("fn f(a: u32, b: u32) -> u32 { a.wrapping_add(b) }"))
+        self.assertIn("(a + b)", repls)
+        self.assertIn("saturating_add", " ".join(repls))
+
+    def test_retired_labels_match_what_the_rewrites_emit(self):
+        """The scorer excludes historical runs by label, so the strings must agree with
+        the labels the (still-defined) rewrites actually produce."""
+        labels = [r["name"].split(": ", 1)[-1]
+                  for r in gen("fn f(a: u32, b: u32) -> u32 { (a + b) << 1 }",
+                               [tops.SHIFT_DISCIPLINE])]
+        labels += ["replace + with wrapping_add"]
+        self.assertTrue(labels)
+        for label in labels:
+            self.assertTrue(tops.is_retired_label(label), label)
+
+    def test_live_labels_are_not_retired(self):
+        self.assertFalse(tops.is_retired_label("replace wrapping_add with bare +"))
+        self.assertFalse(tops.is_retired_label("replace wrapping_add with saturating_add"))
 
 
 class TestShiftDiscipline(unittest.TestCase):
@@ -268,17 +312,17 @@ class TestCfgTestExclusion(unittest.TestCase):
     """
 
     def test_skips_a_cfg_test_module(self):
-        text = ("fn real(a: u32, b: u32) -> u32 { a + b }\n"
+        text = ("fn real(a: u32, b: u32) -> u32 { a.wrapping_add(b) }\n"
                 "#[cfg(test)]\nmod tests {\n"
-                "    fn t(c: u32, d: u32) -> u32 { c + d }\n}\n")
+                "    fn t(c: u32, d: u32) -> u32 { c.wrapping_add(d) }\n}\n")
         recs = gen(text, [tops.OVERFLOW_DISCIPLINE])
-        self.assertEqual(replacements(recs), ["a.wrapping_add(b)"])
+        self.assertEqual(replacements(recs), ["(a + b)", "saturating_add"])
 
     def test_skips_a_cfg_test_function(self):
-        text = ("fn real(a: u32, b: u32) -> u32 { a + b }\n"
-                "#[cfg(test)]\nfn helper(c: u32, d: u32) -> u32 { c + d }\n")
+        text = ("fn real(a: u32, b: u32) -> u32 { a.wrapping_add(b) }\n"
+                "#[cfg(test)]\nfn helper(c: u32, d: u32) -> u32 { c.wrapping_add(d) }\n")
         self.assertEqual(replacements(gen(text, [tops.OVERFLOW_DISCIPLINE])),
-                         ["a.wrapping_add(b)"])
+                         ["(a + b)", "saturating_add"])
 
     def test_a_comment_does_not_break_the_pairing(self):
         """A comment between the attribute and the item is a sibling of both.
@@ -287,35 +331,35 @@ class TestCfgTestExclusion(unittest.TestCase):
         whole test module mutable, and silently -- no error, just scored mutants inside
         code that is not scored code.
         """
-        text = ("fn real(a: u32, b: u32) -> u32 { a + b }\n"
+        text = ("fn real(a: u32, b: u32) -> u32 { a.wrapping_add(b) }\n"
                 "#[cfg(test)]\n// the crate's own unit tests\nmod tests {\n"
-                "    fn t(c: u32, d: u32) -> u32 { c + d }\n}\n")
+                "    fn t(c: u32, d: u32) -> u32 { c.wrapping_add(d) }\n}\n")
         self.assertEqual(replacements(gen(text, [tops.OVERFLOW_DISCIPLINE])),
-                         ["a.wrapping_add(b)"])
+                         ["(a + b)", "saturating_add"])
 
     def test_a_doc_comment_does_not_break_the_pairing(self):
-        text = ("fn real(a: u32, b: u32) -> u32 { a + b }\n"
+        text = ("fn real(a: u32, b: u32) -> u32 { a.wrapping_add(b) }\n"
                 "#[cfg(test)]\n/* block */\nmod tests {\n"
-                "    fn t(c: u32, d: u32) -> u32 { c + d }\n}\n")
+                "    fn t(c: u32, d: u32) -> u32 { c.wrapping_add(d) }\n}\n")
         self.assertEqual(replacements(gen(text, [tops.OVERFLOW_DISCIPLINE])),
-                         ["a.wrapping_add(b)"])
+                         ["(a + b)", "saturating_add"])
 
     def test_skips_a_compound_cfg_predicate(self):
         text = ("#[cfg(all(test, feature = \"x\"))]\n"
-                "mod tests { fn t(c: u32, d: u32) -> u32 { c + d } }\n")
+                "mod tests { fn t(c: u32, d: u32) -> u32 { c.wrapping_add(d) } }\n")
         self.assertEqual(gen(text, [tops.OVERFLOW_DISCIPLINE]), [])
 
     def test_keeps_a_module_gated_on_something_else(self):
         text = ("#[cfg(feature = \"x\")]\n"
-                "mod extra { fn t(c: u32, d: u32) -> u32 { c + d } }\n")
+                "mod extra { fn t(c: u32, d: u32) -> u32 { c.wrapping_add(d) } }\n")
         self.assertEqual(replacements(gen(text, [tops.OVERFLOW_DISCIPLINE])),
-                         ["c.wrapping_add(d)"])
+                         ["(c + d)", "saturating_add"])
 
     def test_keeps_a_plain_module_named_tests(self):
         """The skip is structural, not a name match on `mod tests`."""
-        text = "mod tests { fn t(c: u32, d: u32) -> u32 { c + d } }\n"
+        text = "mod tests { fn t(c: u32, d: u32) -> u32 { c.wrapping_add(d) } }\n"
         self.assertEqual(replacements(gen(text, [tops.OVERFLOW_DISCIPLINE])),
-                         ["c.wrapping_add(d)"])
+                         ["(c + d)", "saturating_add"])
 
 
 class TestTextUnit(unittest.TestCase):

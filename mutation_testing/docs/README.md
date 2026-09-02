@@ -53,9 +53,10 @@ model the **C tests to translate** (`src+test`) is clearly worst.
   for this study, in three fault families (F1 integer discipline, F2 representation,
   F3 ownership), with the design rulings behind each and the arms deliberately left out.
   Also the two results that decide how the numbers read: `cast-width`/`cast-sign` are
-  **100% unviable** (Rust deletes that fault class for free), and the bare-operator →
-  `wrapping_*` direction of F1 is **equivalent, not missed** (113 mutants at a uniform
-  0.0% across four suites). Closes with the state of the full-set run.
+  **~92% unviable** (Rust makes most of that fault class unrepresentable), and the
+  bare-operator → `wrapping_*` arm of F1 together with all of `shift-discipline` are
+  **equivalent, not missed** — 1,297 mutants at a uniform 0.0% across four suites, now
+  retired at generation time. Closes with the state of the full-set run.
 
 - [`plan_shared_mutant_set.md`](./plan_shared_mutant_set.md) — the denominator problem and
   its fix. The scores above are `killed / viable` where `viable` is measured **per
