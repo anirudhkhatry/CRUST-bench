@@ -1,19 +1,33 @@
 # Phase 0 — feasibility results
 
-**Date:** 2026-09-02 · no LLM calls · scripts: `phase0_panel.py`, `phase0_charness.py`
+**Date:** 2026-09-02, harness §2 revised 2026-09-03 · no LLM calls · scripts:
+`phase0/panel.py`, `phase0/charness.py`, `phase0/recheck.py`
 
 Phase 0 asked two go/no-go questions from the design spec: **is the soundness panel big
 enough**, and **can we drive the C build harness**. Both pass.
 
 ## Headline
 
-**60 projects are fully eligible** (C harness works *and* panel size n ≥ 3).
-78 projects at n ≥ 2. The pilot needs 10.
+**The C harness drives 100/100 projects**, so eligibility is decided by the panel alone:
+**69 projects at n ≥ 3**, 88 at n ≥ 2. The pilot needs 10.
 
 | | n=0 | n=1 | n=2 | n≥3 | total |
 |---|---|---|---|---|---|
-| C harness usable | 3 | 6 | 18 | **60** | 87 |
-| C harness unusable | 2 | 1 | 1 | 9 | 13 |
+| C harness usable | 5 | 7 | 19 | **69** | 100 |
+| C harness unusable | 0 | 0 | 0 | 0 | 0 |
+
+The 87/13 split this table carried until 2026-09-03 was two separate problems, both now
+fixed: 11 projects the harness could not build (§2.3), and 2 lost to a name mismatch
+between the CBench directory and the RBench project (`proj_2DPartInt`,
+`proj_42_Kocaeli_Printf`). `charness.csv` is now keyed on the **RBench** name with the
+resolved directory in a `cbench` column, so it joins `eligible.csv` unambiguously — the
+earlier "89 here vs 87 there" was that join, not two build failures.
+
+**Panel note.** Phase 1 does not use the agreement oracle this section sizes. The codex
+transpilation is taken as the reference implementation wherever it is GT-green (§1.2, 94
+projects), and the study asks whether a C-derived test discriminates it from its mutated
+counterpart. The panel numbers stand as measured and remain the fallback if that
+assumption has to be revisited.
 
 ## 1. The panel (`panel.json`, `panel_raw.csv`)
 
@@ -71,15 +85,20 @@ This is well above the spec's `n ≥ 3` target and comfortably resolves the risk
 
 ## 2. The C harness (`charness.csv`, `charness.json`)
 
-89/100 CBench projects compile all library sources **and** link them against a generated
-test main (the stub link probe — which is what Stages 1/2 actually need).
+**100/100** projects compile all library sources, link them against a generated test main,
+and run it — which is exactly what Stages 1/2 need.
 
-| gcc fallback | count | | project Makefile | count |
+| harness | count | | project Makefile | count |
 |---|---|---|---|---|
-| ok | **89** | | ok | 71 |
-| compile_failed | 7 | | failed | 16 |
-| link_failed | 4 | | no_makefile | 11 |
+| ok | **100** | | ok | 71 |
+| | | | failed | 16 |
+| | | | no_makefile | 11 |
 | | | | timeout | 2 |
+
+`charness.py` drives the live harness (`rmt.cbench.Project.run`). It used to re-implement
+the build, and that copy drifted: it reported 89 where the harness itself managed 90, by
+compiling `main()`-bearing sources the harness excludes. The Makefile column is recorded
+for information only (§2.1).
 
 ### 2.1 Design change: gcc-uniform, not Makefile-first
 
@@ -95,11 +114,15 @@ expectations (e.g. missing `-D` flags). Recorded per project either way.
 
 ### 2.2 Two findings that change Stage 1
 
-**Header-only libraries (7 projects).** `bigint`, `c-string`, `clog`, `cset`, `csyncmers`,
-`libtinyfseq`, `rect_pack_h` have their implementation in `src/*.h`, not `src/*.c`. The
-first sweep reported them as "no sources". Stage 1 must therefore be able to **mutate
-headers**, and the harness synthesizes a translation unit including them. All 7 build; 6
-of them reach n ≥ 4 panel members, so they are not a corner case we can drop.
+**Header libraries (11 projects).** `bigint`, `c_string`, `clog`, `cset`, `csyncmers`,
+`libtinyfseq`, `rect_pack_h`, `merkle_tree_c`, `satc`, `Remimu` and `skp` have their
+implementation in `*.h`, not `*.c`. The first sweep reported the first seven as "no
+sources"; the last three hide it behind a `.c` that is only a driver `main()` (`Remimu`)
+or a `#define IMPLEMENTATION` shim (`skp`, 11 lines of `.c` in front of 2153 lines of
+header). Stage 1 must therefore be able to **mutate headers**, so `mutable_files` picks
+whichever of the sources or headers actually carries code, rather than trusting the file
+extension; `charness.csv` records the choice in `mode`. All 11 build, and most reach
+n ≥ 4 panel members, so they are not a corner case we can drop.
 
 **Library code only.** The first sweep failed 22 projects by greedily compiling demo,
 benchmark, CLI and vendored-test-framework sources (`bin/`, `app/`, `benchmark/`,
@@ -107,7 +130,7 @@ benchmark, CLI and vendored-test-framework sources (`bin/`, `app/`, `benchmark/`
 `src/` (or the project root) minus those directories, widening include paths to header
 *ancestors*, and linking `-lm -lpthread [-lcrypto -lssl]` took usable from 78 → **89**.
 
-### 2.3 The remaining 11
+### 2.3 The 11 stragglers — all recovered
 
 | project | failure | cause |
 |---|---|---|
@@ -117,29 +140,37 @@ benchmark, CLI and vendored-test-framework sources (`bin/`, `app/`, `benchmark/`
 | `roaring-bitmap` | compile | SIMD `always_inline` needs `-mpopcnt`/`-march` |
 | `clhash`, `matrix_multiplication` | compile | (SIMD/arch flags, same shape) |
 | `jccc`, `impcheck` | link | library code calls its own test framework |
-| `lambda-calculus-eval` | link | undefined `search` — genuinely incomplete |
+| `lambda-calculus-eval` | link | undefined `search` — helper package outside `src/` |
 | `ljmm` | link | needs `--wrap=mmap64` linker flag |
 
-Most are per-project flag work (arch flags, include roots). Not worth doing now: 60
-eligible projects far exceeds the pilot's needs. Revisit only if Phase 2 wants the full
-set.
+Every one fell to a **generic** harness rule — amalgamation `#include "*.c"` sources are
+not translation units, a compile-flag fallback chain, `-fcommon`, forwarding include
+shims, `--wrap` autodetection, and a second-chance link that pulls in only sources
+defining a reported missing symbol. The per-project override table exists but is empty,
+and the regression probe (`phase0/recheck.py`) shows 0 regressions among the 90 that
+already worked. Full write-up: [`CHARNESS_FIXES.md`](CHARNESS_FIXES.md).
+
+**Caveat.** `-march=native` makes the three SIMD projects' objects host-specific; a
+mutation run has to stay on one machine class.
 
 ## 3. Recommended pilot set
 
-59 projects have n ≥ 4 and a working C harness. Take the first 10 by panel size and
-source-size diversity, including at least one header-only project (`bigint`) and one
-parser-heavy project — parsers were where the earlier four-settings study found the
-largest differentials.
+Selection now runs off the panel and project shape alone (`rmt/pilot.py`): codex-GT-green
+∧ ≥ 5 interface functions ∧ ≥ 60 mutable lines leaves **86** projects, stratified over
+mutable size with one header library and one parser-heavy project forced in — parsers were
+where the earlier four-settings study found the largest differentials.
 
 ## 4. Spec deltas
 
 1. **§5 harness: Makefile-first → gcc-uniform** (§2.1 above).
-2. **§4 Stage 1 must handle header-only projects** — mutation targets include `src/*.h`.
+2. **§4 Stage 1 must handle header libraries** — the mutation target is chosen by where
+   the code is, not by file extension (§2.2).
 3. **§11 open question 2 resolved** — `initial` ≡ `*_output`; panel counted by model
    family; effective panel is 4 families, not 2.
 4. **§3 candidate-set table corrected** — all sets cover exactly 100 projects (the earlier
    111/109 counts included stray non-project files).
 5. **§11 risk "panel too thin" retired** — 69 projects at n ≥ 3.
+6. **§5 risk "C harness too narrow" retired** — 100/100 (§2.3).
 
 ## Files
 
@@ -147,5 +178,7 @@ largest differentials.
 |---|---|
 | `panel.json` | per project: panel members (source, family, path) + rejection reasons |
 | `panel_raw.csv` | all 459 candidate × GT-test verdicts with pass/fail counts |
-| `charness.csv` | per project: make status, gcc status, mode, link libs, mains, usable |
+| `charness.csv` | per project (RBench name + `cbench` dir): make status, harness status, mutation target, link libs, cflags, usable |
 | `eligible.csv` | per project: C usability × panel size — the Phase 1 selection input |
+| `recheck_before/after.{csv,json}` | the harness regression probe, before and after §2.3 |
+| `CHARNESS_FIXES.md` | how the 11 stragglers were recovered |

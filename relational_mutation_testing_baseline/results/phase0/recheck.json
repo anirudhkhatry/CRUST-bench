@@ -1,0 +1,13 @@
+[
+  {
+    "project": "impcheck",
+    "usable": true,
+    "stage": "ok",
+    "returncode": 0,
+    "n_lib_sources": 11,
+    "n_mains": 3,
+    "header_only": false,
+    "link_libs": "-lm",
+    "detail": ""
+  }
+]

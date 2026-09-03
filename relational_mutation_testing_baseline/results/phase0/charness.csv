@@ -1,8 +1,5 @@
-project,make,gcc,mode,link_libs,n_sources,n_compiled,n_mains,mains,usable,build_path,detail,make_detail
-2DPartInt,failed,ok,sources,-lm,2,2,0,,True,gcc,,"make: *** No rule to make target '/config.cpp', needed by 'build/config.o'.  Stop.
-"
-42-Kocaeli-Printf,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-CircularBuffer,failed,ok,sources,-lm,1,1,0,,True,gcc,,"     ^~
+project,cbench,make,gcc,usable,mode,n_lib_sources,n_mutable,n_mains,link_libs,cflags,detail,build_path,make_detail
+CircularBuffer,CircularBuffer,failed,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,"     ^~
 src/circular_buffer.c: In function ‘inter_circularBuffer_read’:
 src/circular_buffer.c:145:42: warning: pointer of type ‘void *’ used in arithmetic [-Wpointer-arith]
   145 |             memcpy(dataOut, &cBuf->buffer[cBuf->headOffset], rdLen);
@@ -11,7 +8,7 @@ src/circular_buffer.c:145:42: warning: dereferencing ‘void *’ pointer
 src/circular_buffer.c:162:46: warning: pointer of type ‘void *’ used in arithmetic [-Wpointer-arith]
   162 |                 memcpy(dataOut, &cBuf->buffer[cBuf->headOffset], rdLen);
       |                                        "
-FastHamming,failed,ok,sources,-lm,1,1,0,,True,gcc,,"cc  -MMD -o src/fast_hamming.o -c src/fast_hamming.c
+FastHamming,FastHamming,failed,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,"cc  -MMD -o src/fast_hamming.o -c src/fast_hamming.c
 ar rc libfasthamming.a src/fast_hamming.o && ranlib libfasthamming.a
 cc -I.  -o test_coding test/coding.c libfasthamming.a 
 cc -I.  -o test_dummy test/dummy.c libfasthamming.a 
@@ -19,45 +16,41 @@ test/coding.c:19:10: fatal error: fast_hamming.h: No such file or directory
    19 | #include ""fast_hamming.h""
       |          ^~~~~~~~~~~~~~~~
 compilation terminated.
-make: *** [Makefile:33: test_coding] Error 1
-make: *** Waiting for unfinished jobs....
 test/dummy.c:6:10: fatal error: fast_hamming.h: No such file or directory
     6 | #include ""fast_hamming.h""
-      |"
-Genetic-neural-network-for-simple-control,failed,ok,sources,-lm,14,14,1,src/main.c,True,gcc,," = arraysEqualNN(deDormalizationMin,   neuralNetwork->denormalizationMatrix[1],   1);
-      |                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~
-      |                                                                                       |
-      |                                                                                       float *
-test/tests/neural/test_neural_network.c:20:42: note: expected ‘int *’ but argument is of type ‘float *’
-   20 | static int arraysEqualNN(int *arr1, int *arr2, int size) {
-      |                                     ~~~"
-Graph-recogniser,ok,ok,sources,-lm,3,3,0,,True,gcc,,
-Holdem-Odds,failed,ok,sources,-lm,5,5,1,src/holdemodds.c,True,gcc,,"clang -Wall -Wextra -pedantic -O2 -std=c99 -g   -c -o src/cards.o src/cards.c
+      |          ^~~~~~~~~~~~~~~~
+compilation terminated.
+make: *** [Makefile:33: test_coding]"
+Genetic_neural_network_for_simple_control,Genetic-neural-network-for-simple-control,failed,ok,True,sources,13,13,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,"ls);
+      |                                               ^~~~~~~~~
+      |                                               |
+      |                                               float *
+test/tests/genetic/test_genetic_operations.c:15:40: note: expected ‘int *’ but argument is of type ‘float *’
+   15 | static int arraysEqual(int *arr1, int *arr2, int size) {
+      |                                   ~~~~~^~~~
+test/tests/general/test_system_builder.c: In function ‘testSelectSystem’:
+test/tests/general/test_system_builder.c:21:16: warning: passing argument 1 of ‘selectSystem’ from incompatible p"
+Graph_recogniser,Graph-recogniser,ok,ok,True,sources,3,3,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+Holdem_Odds,Holdem-Odds,failed,ok,True,sources,4,4,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,"clang -Wall -Wextra -pedantic -O2 -std=c99 -g   -c -o src/cards.o src/cards.c
 make: clang: No such file or directory
 make: *** [<builtin>: src/cards.o] Error 127
 "
-LTRE,ok,ok,sources,-lm,4,4,3,compl.c;ltrep.c;test.c,True,gcc,,
-Linear-Algebra-C,ok,ok,sources,-lm,4,4,1,test.c,True,gcc,,
-Math-Library-in-C,failed,ok,sources,-lm,1,1,0,,True,gcc,,"cmake -S . -B ./build
+LTRE,LTRE,ok,ok,True,sources,1,1,3,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+Linear_Algebra_C,Linear-Algebra-C,ok,ok,True,sources,3,3,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+Math_Library_in_C,Math-Library-in-C,failed,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,"cmake -S . -B ./build
 make: cmake: No such file or directory
 make: *** [Makefile:8: install] Error 127
 "
-Megalania,ok,ok,sources,-lm,17,17,1,src/main.c,True,gcc,,
-NandC,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-Phills_DHT,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-Remimu,no_makefile,ok,sources,-lm,1,1,1,my_regex_test.c,True,gcc,,
-Simple-Config,ok,ok,sources,-lm,2,2,1,example.c,True,gcc,,
-Simple-Sparsehash,ok,ok,sources,-lm,2,2,1,src/test.c,True,gcc,,
-SimpleXML,ok,ok,sources,-lm,3,3,1,test.c,True,gcc,,
-SlothLang,ok,ok,sources,-lm,6,6,2,sloth.c;tests.c,True,gcc,,
-VaultSync,no_makefile,ok,sources,-lm -lpthread -lcrypto -lssl,10,10,1,src/main.c,True,gcc,,
-XOpt,failed,compile_failed,sources,,2,1,1,snprintf.c,False,none," rpl_snprintf(va_alist) va_dcl
-      |                        ^~~~~~
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/XOpt/snprintf.c:1536:24: error: expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘va_dcl’
- 1536 | rpl_asprintf(va_alist) va_dcl
-      |                        ^~~~~~
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/XOpt/snprintf.c:2099: error: expected ‘{’ at end of input
-","cc -ansi -pedantic -Wall -Wextra -Werror   -c xopt.c -o xopt.o
+Megalania,Megalania,ok,ok,True,sources,16,16,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+NandC,NandC,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+Phills_DHT,Phills_DHT,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+Remimu,Remimu,no_makefile,ok,True,headers,0,1,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+SimpleXML,SimpleXML,ok,ok,True,sources,2,2,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+Simple_Config,Simple-Config,ok,ok,True,sources,1,1,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+Simple_Sparsehash,Simple-Sparsehash,ok,ok,True,sources,1,1,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+SlothLang,SlothLang,ok,ok,True,sources,4,4,2,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+VaultSync,VaultSync,no_makefile,ok,True,sources,9,9,1,-lm -lpthread -lcrypto -lssl,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+XOpt,XOpt,failed,ok,True,sources,1,1,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,"cc -ansi -pedantic -Wall -Wextra -Werror   -c xopt.c -o xopt.o
 xopt.c: In function ‘_xopt_default_callback’:
 xopt.c:493:20: error: ISO C90 does not support boolean types [-Werror=pedantic]
   493 |                 *((_Bool*) target) = true;
@@ -69,42 +62,38 @@ In file included from xopt.c:42:
       |                                       ^
 ./snprintf.c:779:25: note: here
   779 |           "
-aes128-SIMD,ok,ok,sources,-lm,7,7,0,,True,gcc,,
-amp,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-approxidate,ok,ok,sources,-lm,2,2,1,approxidate-test.c,True,gcc,,
-avalanche,failed,ok,sources,-lm,1,1,0,,True,gcc,,"make: *** No rule to make target 'src/matrix_test.c', needed by 'matrix_test.o'.  Stop.
+aes128_SIMD,aes128-SIMD,ok,ok,True,sources,7,7,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+amp,amp,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+approxidate,approxidate,ok,ok,True,sources,1,1,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+avalanche,avalanche,failed,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,"make: *** No rule to make target 'src/matrix_test.c', needed by 'matrix_test.o'.  Stop.
 "
-bhshell,ok,ok,sources,-lm,5,5,1,src/main.c,True,gcc,,
-bigint,ok,ok,header_only,-lm,1,1,0,,True,gcc,,
-bitset,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-blt,ok,ok,sources,-lm,3,3,0,,True,gcc,,
-bostree,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-btree-map,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-c-aces,ok,ok,sources,-lm,6,6,0,,True,gcc,,
-c-blind-rsa-signatures,ok,ok,sources,-lm -lpthread -lcrypto -lssl,2,2,1,src/test_blind_rsa.c,True,gcc,,
-c-string,ok,ok,header_only,-lm,1,1,0,,True,gcc,,
-cJSON,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-carrays,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-cfsm,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-chtrie,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-cissy,ok,ok,sources,-lm,4,4,1,src/cissy.c,True,gcc,,
-clhash,ok,compile_failed,sources,,1,0,0,,False,make_only,"65, (char)216, (char)195, (char)238, (char)245, (char)180, (char)175, (char)130, (char)153),
-      |                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   94 |                                   _mm_srli_si128(Q2,8));
-      |                                   ~~~~~~~~~~~~~~~~~~~~~
-",
-clog,ok,ok,header_only,-lm,1,1,0,,True,gcc,,
-coroutine,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-cset,ok,ok,header_only,-lm,1,1,0,,True,gcc,,
-csyncmers,ok,ok,header_only,-lm,1,1,0,,True,gcc,,
-dict,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-emlang,ok,ok,sources,-lm,7,7,1,src/main.c,True,gcc,,
-expr,ok,ok,sources,-lm,2,2,1,test.c,True,gcc,,
-fft,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-file2str,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-fleur,no_makefile,ok,sources,-lm,3,3,0,,True,gcc,,
-fs_c,ok,ok,sources,-lm,2,2,1,test.c,True,gcc,,
-fslib,failed,ok,sources,-lm,16,16,0,,True,gcc,,"c99 -Isrc -c src/compile.c -o obj/compile.o
+bhshell,bhshell,ok,ok,True,sources,4,4,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+bigint,bigint,ok,ok,True,headers,0,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+bitset,bitset,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+blt,blt,ok,ok,True,sources,3,3,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+bostree,bostree,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+btree_map,btree-map,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+cJSON,cJSON,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+c_aces,c-aces,ok,ok,True,sources,6,6,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+c_blind_rsa_signatures,c-blind-rsa-signatures,ok,ok,True,sources,1,1,1,-lm -lpthread -lcrypto -lssl,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+c_string,c-string,ok,ok,True,headers,0,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+carrays,carrays,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+cfsm,cfsm,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+chtrie,chtrie,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+cissy,cissy,ok,ok,True,sources,3,3,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+clhash,clhash,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon -march=native,,gcc,
+clog,clog,ok,ok,True,headers,0,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+coroutine,coroutine,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+cset,cset,ok,ok,True,headers,0,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+csyncmers,csyncmers,ok,ok,True,headers,0,2,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+dict,dict,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+emlang,emlang,ok,ok,True,sources,6,6,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+expr,expr,ok,ok,True,sources,1,1,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+fft,fft,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+file2str,file2str,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+fleur,fleur,no_makefile,ok,True,sources,3,3,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+fs_c,fs_c,ok,ok,True,sources,1,1,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+fslib,fslib,failed,ok,True,sources,16,16,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,"c99 -Isrc -c src/compile.c -o obj/compile.o
 c99 -Isrc -c src/hash.c -o obj/hash.o
 c99 -Isrc -c src/sr.c -o obj/sr.o
 c99 -Isrc -c src/fst.c -o obj/fst.o
@@ -120,100 +109,45 @@ c99 -Isrc -c src/match.c -o obj/match.o
 c99 -Isrc -c src/heap.c -o obj/heap.o
 c99 -Isrc -c src/iter.c -o obj/iter.o
 make: "
-geofence,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-gfc,no_makefile,compile_failed,sources,,1,0,0,,False,none,"/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/gfc/src/gfc.c:1:10: fatal error: gfc/gfc.h: No such file or directory
-    1 | #include <gfc/gfc.h>
-      |          ^~~~~~~~~~~
-compilation terminated.
-",
-gorilla-paper-encode,ok,ok,sources,-lm,3,3,2,custom_tests/test.c;test.c,True,gcc,,
-hamta,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-hydra,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-impcheck,timeout,link_failed,sources,,15,15,3,src/trusted/main_check.c;src/trusted/main_confirm.c;src/trusted/main_parse.c,False,none,"ted/vec.c:15: first defined here
-/usr/bin/ld: /tmp/rmt_c_mbyxijz9/obj/impcheck/src_trusted_vectors.c.o: in function `int_vec_reserve':
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/impcheck/src/trusted/vec.c:21: multiple definition of `int_vec_reserve'; /tmp/rmt_c_mbyxijz9/obj/impcheck/src_trusted_vec.c.o:/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/impcheck/src/trusted/vec.c:21: first defined here
-/usr/bin/ld: /tmp/rmt_c_mbyxijz9/obj/impcheck/src_trusted_vectors.c.o: in function `int_vec_push':
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/impcheck/src/trusted/vec.c:29: multiple definition of `int_vec_push'; /tmp/rmt_c_mbyxijz9/obj/impcheck/src_trusted_vec.c.o:/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/impcheck/src/trusted/vec.c:29: first defined here
-/usr/bin/ld: /tmp/rmt_c_mbyxijz9/obj/impcheck/src_trusted_vectors.c.o: in function `int_vec_clear':
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/impcheck/src/trusted/vec.c:38: multiple definition of `int_vec_clear'; /tmp/rmt_c_mbyxijz9/obj/impcheck/src_trusted_vec.c.o:/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/impcheck/src/trusted/vec.c:38: first defined here
-collect2: error: ld returned 1 exit status
-",
-inversion_list,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-jccc,ok,link_failed,sources,,11,11,1,src/driver/main.c,False,make_only,"/src_util_hashmap.c.o: in function `test_hash_set_and_get':
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/jccc/src/util/hashmap.c:143: undefined reference to `testing_single_test_internal'
-/usr/bin/ld: /tmp/rmt_c_0d2enlgl/obj/jccc/src_util_hashmap.c.o: in function `test_hash_set_and_double_get':
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/jccc/src/util/hashmap.c:159: undefined reference to `testing_single_test_internal'
-/usr/bin/ld: /tmp/rmt_c_0d2enlgl/obj/jccc/src_util_test_list.c.o: in function `test_list':
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/jccc/src/util/test_list.c:26: undefined reference to `testing_setup_internal'
-/usr/bin/ld: /nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/jccc/src/util/test_list.c:30: undefined reference to `testing_cleanup_internal'
-/usr/bin/ld: /tmp/rmt_c_0d2enlgl/obj/jccc/src_util_test_util.c.o: in function `test_util':
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/jccc/src/util/test_util.c:5: undefined reference to `testing_setup_internal'
-/usr/bin/ld: /nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/jccc/src/util/test_util.c:12: undefined reference to `testing_cleanup_internal'
-collect2: error: ld returned 1 exit status
-",
-kairoCompiler,ok,ok,sources,-lm,9,9,0,,True,gcc,,
-kd3,ok,ok,sources,-lm,2,2,1,run_test.c,True,gcc,,
-lambda-calculus-eval,failed,link_failed,sources,,6,6,0,,False,none,"M/CRUST-bench/datasets/CBench/lambda-calculus-eval/src/parser.c:371: undefined reference to `search'
-/usr/bin/ld: /tmp/rmt_c_ky2zeswn/obj/lambda-calculus-eval/src_parser.c.o: in function `parse_definition':
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/lambda-calculus-eval/src/parser.c:458: undefined reference to `insert'
-/usr/bin/ld: /tmp/rmt_c_ky2zeswn/obj/lambda-calculus-eval/src_parser.c.o: in function `parse_type_definition':
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/lambda-calculus-eval/src/parser.c:484: undefined reference to `table_exists'
-/usr/bin/ld: /nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/lambda-calculus-eval/src/parser.c:488: undefined reference to `insert'
-/usr/bin/ld: /tmp/rmt_c_ky2zeswn/obj/lambda-calculus-eval/src_parser.c.o: in function `parse_type':
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/lambda-calculus-eval/src/parser.c:509: undefined reference to `table_exists'
-/usr/bin/ld: /tmp/rmt_c_ky2zeswn/obj/lambda-calculus-eval/src_reducer.c.o: in function `expand_definitions':
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/lambda-calculus-eval/src/reducer.c:47: undefined reference to `search'
-collect2: error: ld returned 1 exit status
-","gcc -Wall -g -fprofile-arcs -ftest-coverage -fPIC src/common.o src/config.o src/parser.o src/reducer.o src/typechecker.o src/io.o hash-table/hash_table.o -lm -o lc
+geofence,geofence,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+gfc,gfc,no_makefile,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+gorilla_paper_encode,gorilla-paper-encode,ok,ok,True,sources,1,1,2,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+hamta,hamta,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+hydra,hydra,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+impcheck,impcheck,timeout,ok,True,sources,11,11,3,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+inversion_list,inversion_list,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+jccc,jccc,ok,ok,True,sources,10,10,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+kairoCompiler,kairoCompiler,ok,ok,True,sources,9,9,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+kd3,kd3,ok,ok,True,sources,1,1,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+lambda_calculus_eval,lambda-calculus-eval,failed,ok,True,sources,6,6,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,"gcc -Wall -g -fprofile-arcs -ftest-coverage -fPIC src/common.o src/config.o src/parser.o src/reducer.o src/typechecker.o src/io.o hash-table/hash_table.o -lm -o lc
 /usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o: in function `_start':
 (.text+0x1b): undefined reference to `main'
 collect2: error: ld returned 1 exit status
 make: *** [Makefile:17: lc] Error 1
 "
-leftpad,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-lib2bit,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-libbase122,no_makefile,ok,sources,-lm,1,1,0,,True,gcc,,
-libbeaufort,ok,ok,sources,-lm,4,4,1,src/main.c,True,gcc,,
-libfor,ok,compile_failed,sources,,4,3,2,benchmark.c;test.c,False,make_only,"for/for-gen.c:28237:24: error: ‘linsearch31_x’ undeclared here (not in a function)
-28237 |                        linsearch31_x,
-      |                        ^~~~~~~~~~~~~
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/libfor/for-gen.c:28238:24: error: ‘linsearch32_x’ undeclared here (not in a function)
-28238 |                        linsearch32_x
-      |                        ^~~~~~~~~~~~~
-",
-libm17,ok,ok,sources,-lm,6,6,0,,True,gcc,,
-libpgn,ok,ok,sources,-lm,12,12,0,,True,gcc,,
-libpsbt,ok,ok,sources,-lm,6,6,2,cli.c;test.c,True,gcc,,
-libqueue,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-libtinyfseq,no_makefile,ok,header_only,-lm,1,1,0,,True,gcc,,
-libutf,no_makefile,ok,sources,-lm,30,30,0,,True,gcc,,
-libvcd,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-libwecan,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-ljmm,ok,link_failed,sources,,1,1,0,,False,make_only,"/usr/bin/ld: /tmp/rmt_c_yqqckxfc/obj/ljmm/ljmm.c.o: in function `ljmm_init':
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/ljmm/ljmm.c:73: undefined reference to `__real_mmap64'
-/usr/bin/ld: /nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/ljmm/ljmm.c:83: undefined reference to `__real_mmap64'
-/usr/bin/ld: /tmp/rmt_c_yqqckxfc/obj/ljmm/ljmm.c.o: in function `__wrap_mmap64':
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/ljmm/ljmm.c:289: undefined reference to `__real_mmap64'
-/usr/bin/ld: /nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/ljmm/ljmm.c:293: undefined reference to `__real_mmap64'
-/usr/bin/ld: /nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/ljmm/ljmm.c:301: undefined reference to `__real_mmap64'
-/usr/bin/ld: /tmp/rmt_c_yqqckxfc/obj/ljmm/ljmm.c.o:/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/ljmm/ljmm.c:308: more undefined references to `__real_mmap64' follow
-collect2: error: ld returned 1 exit status
-",
-matrix_multiplication,no_makefile,compile_failed,sources,,3,2,1,main.c,False,none,"lining failed in call to ‘always_inline’ ‘_mm256_loadu_ps’: target specific option mismatch
-  903 | _mm256_loadu_ps (float const *__P)
-      | ^~~~~~~~~~~~~~~
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/matrix_multiplication/matrix.c:405:31: note: called from here
-  405 |                 __m256 m_b =  _mm256_loadu_ps(b[k] + j);
-      |                               ^~~~~~~~~~~~~~~~~~~~~~~~~
-",
-mdb,no_makefile,ok,sources,-lm,3,3,2,testmdb.c;testmdb_int.c,True,gcc,,
-merkle-tree-c,failed,ok,sources,-lm,1,1,1,test_merkle_tree.c,True,gcc,,"clang -g test_merkle_tree.c -I./dev-deps && ./a.out
+leftpad,leftpad,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+lib2bit,lib2bit,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+libbase122,libbase122,no_makefile,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+libbeaufort,libbeaufort,ok,ok,True,sources,3,3,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+libfor,libfor,ok,ok,True,sources,1,1,2,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+libm17,libm17,ok,ok,True,sources,6,6,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+libpgn,libpgn,ok,ok,True,sources,12,12,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+libpsbt,libpsbt,ok,ok,True,sources,4,4,2,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+libqueue,libqueue,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+libtinyfseq,libtinyfseq,no_makefile,ok,True,headers,0,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+libutf,libutf,no_makefile,ok,True,sources,30,30,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+libvcd,libvcd,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+libwecan,libwecan,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+ljmm,ljmm,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+matrix_multiplication,matrix_multiplication,no_makefile,ok,True,sources,2,2,1,-lm,-w -std=gnu11 -g -O0 -fcommon -march=native,,gcc,
+mdb,mdb,no_makefile,ok,True,sources,1,1,2,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+merkle_tree_c,merkle-tree-c,failed,ok,True,headers,0,2,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,"clang -g test_merkle_tree.c -I./dev-deps && ./a.out
 /bin/sh: 1: clang: not found
 make: *** [Makefile:5: test] Error 127
 "
-morton,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-murmurhash_c,ok,ok,sources,-lm,4,4,3,example.c;main.c;test.c,True,gcc,,
-mvptree,failed,ok,sources,-lm,3,3,2,testmvp.c;testmvp2.c,True,gcc,,"rm -f mvptree.o
+morton,morton,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+murmurhash_c,murmurhash_c,ok,ok,True,sources,1,1,3,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+mvptree,mvptree,failed,ok,True,sources,1,1,2,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,"rm -f mvptree.o
 rm -f testmvp.o
 cc -g -O3 -I. -Wall  -c mvptree.c -o mvptree.o
 cc -g -O3 -I. -Wall  -c testmvp.c -o testmvp.o
@@ -225,13 +159,16 @@ rm -f testmvp
 rm -f testmvp2
 cc -g -O3 -I. -Wall   testmvp.o libmvptree.a -lm
 cc -g -O3 -I. -Wall   testmvp2.o libmvptree.a -lm
-mv a.out testmvp2
 mv a.out testmvp
+mv a.out testmvp2
 mv: cannot stat 'a.out': No such file or directory
-make: *** [Makefile:55: testmvp] Error 1
+make: *** [Makefile:60: testmvp2] Error 1
 "
-quadtree,ok,ok,sources,-lm,4,4,0,,True,gcc,,
-razz_simulation,failed,ok,sources,-lm,4,4,2,card_test.c;razz.c,True,gcc,,"3 -Werror  -fprofile-arcs -ftest-coverage -lm   -c -o razz_simulation.o razz_simulation.c
+proj_2DPartInt,2DPartInt,failed,ok,True,sources,2,2,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,"make: *** No rule to make target '/config.cpp', needed by 'build/config.o'.  Stop.
+"
+proj_42_Kocaeli_Printf,42-Kocaeli-Printf,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+quadtree,quadtree,ok,ok,True,sources,4,4,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+razz_simulation,razz_simulation,failed,ok,True,sources,2,2,2,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,"3 -Werror  -fprofile-arcs -ftest-coverage -lm   -c -o razz_simulation.o razz_simulation.c
 cc   razz.o card.o razz_simulation.o   -o razz
 /usr/bin/ld: razz.o: in function `_sub_I_00100_0':
 razz.c:(.text.startup+0x29c): undefined reference to `__gcov_init'
@@ -241,46 +178,22 @@ razz.c:(.text.exit+0x5): undefined reference to `__gcov_exit'
 /usr/bin/ld: card.o: in function `_sub_I_00100_0':
 card.c:(.text.startup+0xc): undefined reference to `__gcov_init'
 /usr/bin/ld: card.o: in function `_s"
-rbtree-lab,failed,ok,sources,-lm,2,2,1,src/driver.c,True,gcc,,"make -C src
-make[1]: Entering directory '/tmp/rmt_c_ipsuv4a2/mk/rbtree-lab/src'
-make[1]: Leaving directory '/tmp/rmt_c_ipsuv4a2/mk/rbtree-lab/src'
+rbtree_lab,rbtree-lab,failed,ok,True,sources,1,1,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,"make -C src
+make[1]: Entering directory '/tmp/rmt_mk_qrt0xplu/rbtree-lab/src'
+make[1]: Leaving directory '/tmp/rmt_mk_qrt0xplu/rbtree-lab/src'
 Makefile:6: *** missing separator.  Stop.
 make: *** [Makefile:8: build] Error 2
 "
-recordManager,ok,ok,sources,-lm,9,9,2,test_assign3_1.c;test_expr.c,True,gcc,,
-rect_pack_h,no_makefile,ok,header_only,-lm,1,1,0,,True,gcc,,
-rhbloom,ok,ok,sources,-lm,2,2,1,test.c,True,gcc,,
-roaring-bitmap,ok,compile_failed,sources,,2,1,1,tests.c,False,make_only,"64-linux-gnu/11/include/popcntintrin.h:35:1: error: inlining failed in call to ‘always_inline’ ‘_mm_popcnt_u32’: target specific option mismatch
-   35 | _mm_popcnt_u32 (unsigned int __X)
-      | ^~~~~~~~~~~~~~
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/roaring-bitmap/rset.c:412:18: note: called from here
-  412 |         count += _mm_popcnt_u32(r);
-      |                  ^~~~~~~~~~~~~~~~~
-",
-rubiksolver,ok,ok,sources,-lm,7,7,4,hash/hash_tests.c;heap/heap_tests.c;rubik_model_tests.c;solve_rubik.c,True,gcc,,
-satc,ok,ok,sources,-lm,1,1,1,satc-test.c,True,gcc,,
-simple_lang,no_makefile,ok,sources,-lm,11,11,4,LangKernel/main.c;Tests/test_compiler.c;Tests/test_lexer.c;Tests/test_parser.c,True,gcc,,
-skp,timeout,ok,sources,-lm,1,1,0,,True,gcc,,
-ted,ok,ok,sources,-lm,2,2,0,,True,gcc,,
-tisp,failed,compile_failed,sources,,8,1,2,main.c;test.c,False,none,"/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/tisp/main.c:11:12: fatal error: tibs.tsp.h: No such file or directory
-   11 | #  include ""tibs.tsp.h""
-      |            ^~~~~~~~~~~~
-compilation terminated.
-
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/tisp/test.c:10:10: fatal error: tibs.tsp.h: No such file or directory
-   10 | #include ""tibs.tsp.h""
-      |          ^~~~~~~~~~~~
-compilation terminated.
-
-Val args)
-      |                       ^~~
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/tisp/tib/core.c:247:32: error: unknown type name ‘Val’
-  247 | form_definedp(Tsp st, Rec env, Val args)
-      |                                ^~~
-/nas/CRUST-bench-COLM/CRUST-bench/datasets/CBench/tisp/tib/core.c:262:14: error: unknown type name ‘Tsp’
-  262 | tib_env_core(Tsp st)
-      |              ^~~
-","tisp build options:
+recordManager,recordManager,ok,ok,True,sources,7,7,2,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+rect_pack_h,rect_pack_h,no_makefile,ok,True,headers,0,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+rhbloom,rhbloom,ok,ok,True,sources,1,1,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+roaring_bitmap,roaring-bitmap,ok,ok,True,sources,1,1,1,-lm,-w -std=gnu11 -g -O0 -fcommon -march=native,,gcc,
+rubiksolver,rubiksolver,ok,ok,True,sources,3,3,4,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+satc,satc,ok,ok,True,headers,0,1,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+simple_lang,simple_lang,no_makefile,ok,True,sources,7,7,4,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+skp,skp,timeout,ok,True,headers,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+ted,ted,ok,ok,True,sources,2,2,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+tisp,tisp,failed,ok,True,sources,1,1,2,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,"tisp build options:
 cc tisp.c
 CFLAGS  = -std=c99 -O3 -pedantic -Wall -fPIC -Iinclude -DVERSION=""0.1"" -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=600
 LDFLAGS = -O3 -Wl,-rpath=/usr/local/lib/tisp -lm -ldl
@@ -294,11 +207,11 @@ make: *** Waiting for unfinished jobs....
 In file included from tisp.c:951:
 tib/io.c: In function ‘prim_load’:
 tib/io.c:189:16: warning: ISO C forbids ass"
-totp,ok,ok,sources,-lm,4,4,2,main.c;test.c,True,gcc,,
-ulidgen,ok,ok,sources,-lm,2,2,1,src/ulidgen.c,True,gcc,,
-utf8,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-vec,ok,ok,sources,-lm,1,1,0,,True,gcc,,
-worsp,failed,ok,sources,-lm,1,1,0,,True,gcc,,"~~~~~~~~~~~
+totp,totp,ok,ok,True,sources,2,2,2,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+ulidgen,ulidgen,ok,ok,True,sources,1,1,1,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+utf8,utf8,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+vec,vec,ok,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,
+worsp,worsp,failed,ok,True,sources,1,1,0,-lm,-w -std=gnu11 -g -O0 -fcommon,,gcc,"~~~~~~~~~~~
 src/worsp.c:493:25: note: destination object of size 1 allocated by ‘malloc’
   493 |     char *str = (char *)malloc(1 * sizeof(char));
       |                         ^~~~~~~~~~~~~~~~~~~~~~~~

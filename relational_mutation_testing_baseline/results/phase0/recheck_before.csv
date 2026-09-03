@@ -1,0 +1,261 @@
+project,usable,stage,returncode,n_lib_sources,n_mains,header_only,link_libs,detail
+2DPartInt,True,ok,0,2,0,False,-lm,
+42-Kocaeli-Printf,True,ok,0,1,0,False,-lm,
+CircularBuffer,True,ok,0,1,0,False,-lm,
+FastHamming,True,ok,0,1,0,False,-lm,
+Genetic-neural-network-for-simple-control,True,ok,0,13,1,False,-lm,
+Graph-recogniser,True,ok,0,3,0,False,-lm,
+Holdem-Odds,True,ok,0,4,1,False,-lm,
+LTRE,True,ok,0,1,3,False,-lm,
+Linear-Algebra-C,True,ok,0,3,1,False,-lm,
+Math-Library-in-C,True,ok,0,1,0,False,-lm,
+Megalania,True,ok,0,16,1,False,-lm,
+NandC,True,ok,0,1,0,False,-lm,
+Phills_DHT,True,ok,0,1,0,False,-lm,
+Remimu,True,ok,0,0,1,True,-lm,
+Simple-Config,True,ok,0,1,1,False,-lm,
+Simple-Sparsehash,True,ok,0,1,1,False,-lm,
+SimpleXML,True,ok,0,2,1,False,-lm,
+SlothLang,True,ok,0,4,2,False,-lm,
+VaultSync,True,ok,0,9,1,False,-lm -lpthread -lcrypto -lssl,
+XOpt,True,ok,0,1,1,False,-lm,
+aes128-SIMD,True,ok,0,7,0,False,-lm,
+amp,True,ok,0,1,0,False,-lm,
+approxidate,True,ok,0,1,1,False,-lm,
+avalanche,True,ok,0,1,0,False,-lm,
+bhshell,True,ok,0,4,1,False,-lm,
+bigint,True,ok,0,0,0,True,-lm,
+bitset,True,ok,0,1,0,False,-lm,
+blt,True,ok,0,3,0,False,-lm,
+bostree,True,ok,0,1,0,False,-lm,
+btree-map,True,ok,0,1,0,False,-lm,
+c-aces,True,ok,0,6,0,False,-lm,
+c-blind-rsa-signatures,True,ok,0,1,1,False,-lm -lpthread -lcrypto -lssl,
+c-string,True,ok,0,0,0,True,-lm,
+cJSON,True,ok,0,1,0,False,-lm,
+carrays,True,ok,0,1,0,False,-lm,
+cfsm,True,ok,0,1,0,False,-lm,
+chtrie,True,ok,0,1,0,False,-lm,
+cissy,True,ok,0,3,1,False,-lm,
+clhash,False,compile,0,1,0,False,,"[clhash.c]
+In file included from /usr/lib/gcc/x86_64-linux-gnu/11/include/immintrin.h:37,
+                 from /usr/lib/gcc/x86_64-linux-gnu/11/include/x86intrin.h:32,
+                 from /tmp/rmt_clhash_1xaedrrs/b0/proj/src/clhash.c:5:
+/tmp/rmt_clhash_1xaedrrs/b0/proj/src/clhash.c: In function ‘precompReduction64_si128’:
+/usr/lib/gcc/x86_64-linux-gnu/11/include/tmmintrin.h:136:1: error: inlining failed in call to ‘always_inline’ ‘_mm_shuffle_epi8’: target specific option mismatch
+  136 | _mm_shuffle_epi8 (__m128i __X, __m128i __Y)
+      | ^~~~~~~~~~~~~~~~
+/tmp/rmt_clhash_1xaedrrs/b0/proj/src/clhash.c:93:18: note: called from here
+   93 |     __m128i Q3 = _mm_shuffle_epi8(_mm_setr_epi8(0, 27, 54, 45, 108, 119, 90, 65, (char)216, (char)195, (char)238, (char)245, (char)180, (char)175, (char)130, (char)153),
+      |                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   94 |                                   _mm_srli_si128(Q2,8));
+      |                                   ~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/lib/gcc/x86_64-linux-gnu/11/include/immintrin.h:37,
+                 from /usr/lib/gcc/x86_64-linux-gnu/11/include/x86intrin.h:32,
+                 from /tmp/rmt_clhash_1xaedrrs/b0/proj/src/clhash.c:5:
+/usr/lib/gcc/x86_64-linux-gnu/11/include/tmmintrin.h:136:1: error: inlining failed in call to ‘always_inline’ ‘_mm_shuffle_epi8’: target specifi"
+clog,True,ok,0,0,0,True,-lm,
+coroutine,True,ok,0,1,0,False,-lm,
+cset,True,ok,0,0,0,True,-lm,
+csyncmers,True,ok,0,0,0,True,-lm,
+dict,True,ok,0,1,0,False,-lm,
+emlang,True,ok,0,6,1,False,-lm,
+expr,True,ok,0,1,1,False,-lm,
+fft,True,ok,0,1,0,False,-lm,
+file2str,True,ok,0,1,0,False,-lm,
+fleur,True,ok,0,3,0,False,-lm,
+fs_c,True,ok,0,1,1,False,-lm,
+fslib,True,ok,0,16,0,False,-lm,
+geofence,True,ok,0,1,0,False,-lm,
+gfc,False,compile,0,1,0,False,,"[gfc.c]
+/tmp/rmt_gfc_x3lexvzg/b0/proj/src/gfc.c:1:10: fatal error: gfc/gfc.h: No such file or directory
+    1 | #include <gfc/gfc.h>
+      |          ^~~~~~~~~~~
+compilation terminated.
+"
+gorilla-paper-encode,True,ok,0,1,2,False,-lm,
+hamta,True,ok,0,1,0,False,-lm,
+hydra,True,ok,0,1,0,False,-lm,
+impcheck,False,link,0,12,3,False,,"/usr/bin/ld: /tmp/rmt_impcheck_lcq085ic/b0/trusted_parser.c.7.o:/tmp/rmt_impcheck_lcq085ic/b0/proj/src/trusted/trusted_parser.c:31: multiple definition of `nb_vars'; /tmp/rmt_impcheck_lcq085ic/b0/trusted_checker.c.6.o:/tmp/rmt_impcheck_lcq085ic/b0/proj/src/trusted/trusted_checker.c:26: first defined here
+/usr/bin/ld: /tmp/rmt_impcheck_lcq085ic/b0/vectors.c.10.o: in function `int_vec_init':
+/tmp/rmt_impcheck_lcq085ic/b0/proj/src/trusted/vec.c:7: multiple definition of `int_vec_init'; /tmp/rmt_impcheck_lcq085ic/b0/vec.c.9.o:/tmp/rmt_impcheck_lcq085ic/b0/proj/src/trusted/vec.c:7: first defined here
+/usr/bin/ld: /tmp/rmt_impcheck_lcq085ic/b0/vectors.c.10.o: in function `int_vec_free':
+/tmp/rmt_impcheck_lcq085ic/b0/proj/src/trusted/vec.c:15: multiple definition of `int_vec_free'; /tmp/rmt_impcheck_lcq085ic/b0/vec.c.9.o:/tmp/rmt_impcheck_lcq085ic/b0/proj/src/trusted/vec.c:15: first defined here
+/usr/bin/ld: /tmp/rmt_impcheck_lcq085ic/b0/vectors.c.10.o: in function `int_vec_reserve':
+/tmp/rmt_impcheck_lcq085ic/b0/proj/src/trusted/vec.c:21: multiple definition of `int_vec_reserve'; /tmp/rmt_impcheck_lcq085ic/b0/vec.c.9.o:/tmp/rmt_impcheck_lcq085ic/b0/proj/src/trusted/vec.c:21: first defined here
+/usr/bin/ld: /tmp/rmt_impcheck_lcq085ic/b0/vectors.c.10.o: in function `int_vec_push':
+/tmp/rmt_impcheck_lcq085ic/b0/proj/src/trusted/vec.c:29: multiple definition of `int_vec_push'; /tmp/rmt_impcheck_lcq085ic/b0/vec.c.9.o:/tmp/rmt_impcheck_lcq085ic/b0/proj/src/trusted/vec.c:29: first defined"
+inversion_list,True,ok,0,1,0,False,-lm,
+jccc,False,link,0,10,1,False,,"1.o: in function `test_op_on_rax_with_rdi':
+/tmp/rmt_jccc_xoalcucu/b0/proj/src/codegen/x86/codegen.c:116: undefined reference to `testing_single_test_internal'
+/usr/bin/ld: /tmp/rmt_jccc_xoalcucu/b0/test_x86.c.2.o: in function `test_x86':
+/tmp/rmt_jccc_xoalcucu/b0/proj/src/codegen/x86/test_x86.c:9: undefined reference to `testing_setup_internal'
+/usr/bin/ld: /tmp/rmt_jccc_xoalcucu/b0/proj/src/codegen/x86/test_x86.c:14: undefined reference to `testing_cleanup_internal'
+/usr/bin/ld: /tmp/rmt_jccc_xoalcucu/b0/lex.c.3.o: in function `test_ttype_many_chars':
+/tmp/rmt_jccc_xoalcucu/b0/proj/src/lexer/lex.c:662: undefined reference to `testing_single_test_internal'
+/usr/bin/ld: /tmp/rmt_jccc_xoalcucu/b0/lex.c.3.o: in function `test_ttype_one_char':
+/tmp/rmt_jccc_xoalcucu/b0/proj/src/lexer/lex.c:672: undefined reference to `testing_single_test_internal'
+/usr/bin/ld: /tmp/rmt_jccc_xoalcucu/b0/lex.c.3.o: in function `test_ttype_name':
+/tmp/rmt_jccc_xoalcucu/b0/proj/src/lexer/lex.c:687: undefined reference to `testing_single_test_internal'
+/usr/bin/ld: /tmp/rmt_jccc_xoalcucu/b0/lex.c.3.o: in function `test_ttype_from_string':
+/tmp/rmt_jccc_xoalcucu/b0/proj/src/lexer/lex.c:698: undefined reference to `testing_single_test_internal'
+/usr/bin/ld: /tmp/rmt_jccc_xoalcucu/b0/test_lexer.c.4.o: in function `test_lexer':
+/tmp/rmt_jccc_xoalcucu/b0/proj/src/lexer/test_lexer.c:9: undefined reference to `testing_setup_internal'
+/usr/bin/ld: /tmp/rmt_jccc_xoalcucu/b0/proj/src/lexer/test_lexer.c:16: und"
+kairoCompiler,True,ok,0,9,0,False,-lm,
+kd3,True,ok,0,1,1,False,-lm,
+lambda-calculus-eval,False,link,0,6,0,False,,"/usr/bin/ld: /tmp/rmt_lambda-calculus-eval_0u_ehs03/b0/parser.c.3.o: in function `is_used':
+/tmp/rmt_lambda-calculus-eval_0u_ehs03/b0/proj/src/parser.c:234: undefined reference to `table_exists'
+/usr/bin/ld: /tmp/rmt_lambda-calculus-eval_0u_ehs03/b0/parser.c.3.o: in function `parse_lambda':
+/tmp/rmt_lambda-calculus-eval_0u_ehs03/b0/proj/src/parser.c:257: undefined reference to `search'
+/usr/bin/ld: /tmp/rmt_lambda-calculus-eval_0u_ehs03/b0/proj/src/parser.c:262: undefined reference to `insert'
+/usr/bin/ld: /tmp/rmt_lambda-calculus-eval_0u_ehs03/b0/proj/src/parser.c:264: undefined reference to `insert'
+/usr/bin/ld: /tmp/rmt_lambda-calculus-eval_0u_ehs03/b0/parser.c.3.o: in function `parse_expression':
+/tmp/rmt_lambda-calculus-eval_0u_ehs03/b0/proj/src/parser.c:360: undefined reference to `table_exists'
+/usr/bin/ld: /tmp/rmt_lambda-calculus-eval_0u_ehs03/b0/proj/src/parser.c:371: undefined reference to `search'
+/usr/bin/ld: /tmp/rmt_lambda-calculus-eval_0u_ehs03/b0/parser.c.3.o: in function `parse_definition':
+/tmp/rmt_lambda-calculus-eval_0u_ehs03/b0/proj/src/parser.c:458: undefined reference to `insert'
+/usr/bin/ld: /tmp/rmt_lambda-calculus-eval_0u_ehs03/b0/parser.c.3.o: in function `parse_type_definition':
+/tmp/rmt_lambda-calculus-eval_0u_ehs03/b0/proj/src/parser.c:484: undefined reference to `table_exists'
+/usr/bin/ld: /tmp/rmt_lambda-calculus-eval_0u_ehs03/b0/proj/src/parser.c:488: undefined reference to `insert'
+/usr/bin/ld: /tmp/rmt_lambda-calculus-eval_0u_ehs03/b0/parse"
+leftpad,True,ok,0,1,0,False,-lm,
+lib2bit,True,ok,0,1,0,False,-lm,
+libbase122,True,ok,0,1,0,False,-lm,
+libbeaufort,True,ok,0,3,1,False,-lm,
+libfor,False,compile,0,2,2,False,,"[for-gen.c]
+8224:24: error: ‘linsearch18_x’ undeclared here (not in a function)
+28224 |                        linsearch18_x,
+      |                        ^~~~~~~~~~~~~
+/tmp/rmt_libfor_kt9u7h2z/b0/proj/for-gen.c:28225:24: error: ‘linsearch19_x’ undeclared here (not in a function)
+28225 |                        linsearch19_x,
+      |                        ^~~~~~~~~~~~~
+/tmp/rmt_libfor_kt9u7h2z/b0/proj/for-gen.c:28226:24: error: ‘linsearch20_x’ undeclared here (not in a function)
+28226 |                        linsearch20_x,
+      |                        ^~~~~~~~~~~~~
+/tmp/rmt_libfor_kt9u7h2z/b0/proj/for-gen.c:28227:24: error: ‘linsearch21_x’ undeclared here (not in a function)
+28227 |                        linsearch21_x,
+      |                        ^~~~~~~~~~~~~
+/tmp/rmt_libfor_kt9u7h2z/b0/proj/for-gen.c:28228:24: error: ‘linsearch22_x’ undeclared here (not in a function)
+28228 |                        linsearch22_x,
+      |                        ^~~~~~~~~~~~~
+/tmp/rmt_libfor_kt9u7h2z/b0/proj/for-gen.c:28229:24: error: ‘linsearch23_x’ undeclared here (not in a function)
+28229 |                        linsearch23_x,
+      |                        ^~~~~~~~~~~~~
+/tmp/rmt_libfor_kt9u7h2z/b0/proj/for-gen.c:28230:24: error: ‘linsearch24_x’ undeclared here (not in a function)
+28230 |                        linsearch24_x,
+      |                        ^~~~~~~~~~~~~
+/tmp/rmt_libfor_kt9u7h2z/b0/proj/for-gen.c:28231:24: error: ‘linsearch25_x’ undeclared here (not in a function)"
+libm17,True,ok,0,6,0,False,-lm,
+libpgn,True,ok,0,12,0,False,-lm,
+libpsbt,True,ok,0,4,2,False,-lm,
+libqueue,True,ok,0,1,0,False,-lm,
+libtinyfseq,True,ok,0,0,0,True,-lm,
+libutf,True,ok,0,30,0,False,-lm,
+libvcd,True,ok,0,1,0,False,-lm,
+libwecan,True,ok,0,1,0,False,-lm,
+ljmm,False,link,0,1,0,False,,"/usr/bin/ld: /tmp/rmt_ljmm_xkqdjt0j/b0/ljmm.c.0.o: in function `ljmm_init':
+/tmp/rmt_ljmm_xkqdjt0j/b0/proj/ljmm.c:73: undefined reference to `__real_mmap64'
+/usr/bin/ld: /tmp/rmt_ljmm_xkqdjt0j/b0/proj/ljmm.c:83: undefined reference to `__real_mmap64'
+/usr/bin/ld: /tmp/rmt_ljmm_xkqdjt0j/b0/ljmm.c.0.o: in function `__wrap_mmap64':
+/tmp/rmt_ljmm_xkqdjt0j/b0/proj/ljmm.c:289: undefined reference to `__real_mmap64'
+/usr/bin/ld: /tmp/rmt_ljmm_xkqdjt0j/b0/proj/ljmm.c:293: undefined reference to `__real_mmap64'
+/usr/bin/ld: /tmp/rmt_ljmm_xkqdjt0j/b0/proj/ljmm.c:301: undefined reference to `__real_mmap64'
+/usr/bin/ld: /tmp/rmt_ljmm_xkqdjt0j/b0/ljmm.c.0.o:/tmp/rmt_ljmm_xkqdjt0j/b0/proj/ljmm.c:308: more undefined references to `__real_mmap64' follow
+collect2: error: ld returned 1 exit status
+"
+matrix_multiplication,False,compile,0,2,1,False,,"[matrix.c]
+^~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/lib/gcc/x86_64-linux-gnu/11/include/immintrin.h:43,
+                 from /tmp/rmt_matrix_multiplication_ek1_a4fq/b0/proj/matrix.c:6:
+/usr/lib/gcc/x86_64-linux-gnu/11/include/avxintrin.h:903:1: error: inlining failed in call to ‘always_inline’ ‘_mm256_loadu_ps’: target specific option mismatch
+  903 | _mm256_loadu_ps (float const *__P)
+      | ^~~~~~~~~~~~~~~
+/tmp/rmt_matrix_multiplication_ek1_a4fq/b0/proj/matrix.c:429:24: note: called from here
+  429 |                 m_b =  _mm256_loadu_ps(b[k] + j);
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/lib/gcc/x86_64-linux-gnu/11/include/immintrin.h:43,
+                 from /tmp/rmt_matrix_multiplication_ek1_a4fq/b0/proj/matrix.c:6:
+/usr/lib/gcc/x86_64-linux-gnu/11/include/avxintrin.h:318:1: error: inlining failed in call to ‘always_inline’ ‘_mm256_mul_ps’: target specific option mismatch
+  318 | _mm256_mul_ps (__m256 __A, __m256 __B)
+      | ^~~~~~~~~~~~~
+/tmp/rmt_matrix_multiplication_ek1_a4fq/b0/proj/matrix.c:418:23: note: called from here
+  418 |                 m_c = _mm256_mul_ps(m_a, m_b);
+      |                       ^~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/lib/gcc/x86_64-linux-gnu/11/include/immintrin.h:43,
+                 from /tmp/rmt_matrix_multiplication_ek1_a4fq/b0/proj/matrix.c:6:
+/usr/lib/gcc/x86_64-linux-gnu/11/include/avxintrin.h:903:1: error: inlining failed in call to ‘always_inline’ ‘_mm256_loadu_ps"
+mdb,True,ok,0,1,2,False,-lm,
+merkle-tree-c,True,ok,0,0,1,True,-lm,
+morton,True,ok,0,1,0,False,-lm,
+murmurhash_c,True,ok,0,1,3,False,-lm,
+mvptree,True,ok,0,1,2,False,-lm,
+quadtree,True,ok,0,4,0,False,-lm,
+razz_simulation,True,ok,0,2,2,False,-lm,
+rbtree-lab,True,ok,0,1,1,False,-lm,
+recordManager,True,ok,0,7,2,False,-lm,
+rect_pack_h,True,ok,0,0,0,True,-lm,
+rhbloom,True,ok,0,1,1,False,-lm,
+roaring-bitmap,False,compile,0,1,1,False,,"[rset.c]
+In file included from /usr/lib/gcc/x86_64-linux-gnu/11/include/smmintrin.h:812,
+                 from /tmp/rmt_roaring-bitmap_2twdr1dl/b0/proj/rset.c:3:
+/tmp/rmt_roaring-bitmap_2twdr1dl/b0/proj/rset.c: In function ‘sse_intersection’:
+/usr/lib/gcc/x86_64-linux-gnu/11/include/popcntintrin.h:35:1: error: inlining failed in call to ‘always_inline’ ‘_mm_popcnt_u32’: target specific option mismatch
+   35 | _mm_popcnt_u32 (unsigned int __X)
+      | ^~~~~~~~~~~~~~
+/tmp/rmt_roaring-bitmap_2twdr1dl/b0/proj/rset.c:412:18: note: called from here
+  412 |         count += _mm_popcnt_u32(r);
+      |                  ^~~~~~~~~~~~~~~~~
+In file included from /usr/lib/gcc/x86_64-linux-gnu/11/include/smmintrin.h:32,
+                 from /tmp/rmt_roaring-bitmap_2twdr1dl/b0/proj/rset.c:3:
+/usr/lib/gcc/x86_64-linux-gnu/11/include/tmmintrin.h:136:1: error: inlining failed in call to ‘always_inline’ ‘_mm_shuffle_epi8’: target specific option mismatch
+  136 | _mm_shuffle_epi8 (__m128i __X, __m128i __Y)
+      | ^~~~~~~~~~~~~~~~
+/tmp/rmt_roaring-bitmap_2twdr1dl/b0/proj/rset.c:410:26: note: called from here
+  410 |         __m128i v_shuf = _mm_shuffle_epi8(v_b, shuffle_mask16[r]);
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/lib/gcc/x86_64-linux-gnu/11/include/smmintrin.h:32,
+                 from /tmp/rmt_roaring-bitmap_2twdr1dl/b0/proj/rset.c:3:
+/usr/lib/gcc/x86_64-linux-gnu/11/include/tmmintrin.h:136:1: error: inlining failed in call to"
+rubiksolver,True,ok,0,3,4,False,-lm,
+satc,True,ok,0,0,1,True,-lm,
+simple_lang,True,ok,0,7,4,False,-lm,
+skp,True,ok,0,1,0,False,-lm,
+ted,True,ok,0,2,0,False,-lm,
+tisp,False,compile,0,6,2,False,,"[core.c]
+ore.c:169:15: error: unknown type name ‘Tsp’
+  169 | prim_recmerge(Tsp st, Rec env, Val args)
+      |               ^~~
+/tmp/rmt_tisp_y6ul3nsb/b0/proj/tib/core.c:169:23: error: unknown type name ‘Rec’
+  169 | prim_recmerge(Tsp st, Rec env, Val args)
+      |                       ^~~
+/tmp/rmt_tisp_y6ul3nsb/b0/proj/tib/core.c:169:32: error: unknown type name ‘Val’
+  169 | prim_recmerge(Tsp st, Rec env, Val args)
+      |                                ^~~
+/tmp/rmt_tisp_y6ul3nsb/b0/proj/tib/core.c:184:8: error: unknown type name ‘Val’
+  184 | static Val
+      |        ^~~
+/tmp/rmt_tisp_y6ul3nsb/b0/proj/tib/core.c:185:14: error: unknown type name ‘Tsp’
+  185 | prim_records(Tsp st, Rec env, Val args)
+      |              ^~~
+/tmp/rmt_tisp_y6ul3nsb/b0/proj/tib/core.c:185:22: error: unknown type name ‘Rec’
+  185 | prim_records(Tsp st, Rec env, Val args)
+      |                      ^~~
+/tmp/rmt_tisp_y6ul3nsb/b0/proj/tib/core.c:185:31: error: unknown type name ‘Val’
+  185 | prim_records(Tsp st, Rec env, Val args)
+      |                               ^~~
+/tmp/rmt_tisp_y6ul3nsb/b0/proj/tib/core.c:205:8: error: unknown type name ‘Val’
+  205 | static Val
+      |        ^~~
+/tmp/rmt_tisp_y6ul3nsb/b0/proj/tib/core.c:206:10: error: unknown type name ‘Tsp’
+  206 | form_def(Tsp st, Rec env, Val args)
+      |          ^~~
+/tmp/rmt_tisp_y6ul3nsb/b0/proj/tib/core.c:206:18: error: unknown type name ‘Rec’
+  206 | form_def(Tsp st, Rec env, Val args)
+      |                  ^~~
+/tmp/rmt_ti"
+totp,True,ok,0,2,2,False,-lm,
+ulidgen,True,ok,0,1,1,False,-lm,
+utf8,True,ok,0,1,0,False,-lm,
+vec,True,ok,0,1,0,False,-lm,
+worsp,True,ok,0,1,0,False,-lm,
