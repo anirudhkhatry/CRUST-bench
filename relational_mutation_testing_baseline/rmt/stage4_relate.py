@@ -52,7 +52,7 @@ def apply_patch(impl_dir, rec):
     return patch
 
 
-def make_counterpart(impl_dir, verdict, tag, retries=1):
+def make_counterpart(impl_dir, verdict, tag, retries=2):
     """Build M' from M for one mutant. Returns (patch|None, record)."""
     user = load_prompt(
         "rust_mutate",
@@ -65,8 +65,17 @@ def make_counterpart(impl_dir, verdict, tag, retries=1):
 
     trail = []
     for i in range(retries + 1):
-        rec = json_block(ask(SYSTEM, user, effort="high", max_tokens=16000,
-                             tag=f"rmut_{tag}_{i}"))
+        # 32k, not 16k: adaptive thinking on a large implementation can spend the whole
+        # budget reasoning and return no text at all, and an empty reply used to take
+        # the mutant down as an exception rather than costing one retry.
+        reply = ask(SYSTEM, user, effort="high", max_tokens=32000, tag=f"rmut_{tag}_{i}")
+        try:
+            rec = json_block(reply)
+        except ValueError as e:
+            trail.append({"attempt": i, "outcome": "no_json", "detail": str(e)[:200]})
+            user += ("\n\n---\n\nThat reply contained no JSON object. Answer with the "
+                     "JSON object only, and keep it short.")
+            continue
         if isinstance(rec, list):
             rec = rec[0] if rec else {}
         if rec.get("applicable") is False:

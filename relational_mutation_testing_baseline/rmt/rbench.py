@@ -30,7 +30,12 @@ FN_RE = re.compile(r"\bfn\s+(\w+)")
 TRAIT_RE = re.compile(r"^(pub\s+)?(?:unsafe\s+)?trait\s+\w+")
 IMPL_RE = re.compile(r"^impl\b(?P<head>.*)$")
 TEST_NAME = "rmt_test"
-TEST_PATH = f"src/bin/{TEST_NAME}.rs"
+# `tests/`, not `src/bin/`. RBench registers its own ground-truth tests as `[[test]]`
+# stanzas pointing into `src/bin/`, but cargo *also* auto-discovers everything under
+# `src/bin/` as a binary -- and in a binary `#[cfg(test)]` is off, so the `#[test] fn
+# rmt_kill` is stripped and any `fn main` calling it fails to compile. That charged the
+# generated test with an F2 it had not earned, on every project that ships a `src/bin/`.
+TEST_PATH = f"tests/{TEST_NAME}.rs"
 
 
 def iface_files(project):
@@ -151,7 +156,7 @@ def gt_green_projects():
 
 
 def _inject(dst, test_rs):
-    (dst / "src/bin").mkdir(parents=True, exist_ok=True)
+    (dst / TEST_PATH).parent.mkdir(parents=True, exist_ok=True)
     (dst / TEST_PATH).write_text(test_rs)
     cargo = dst / "Cargo.toml"
     txt = cargo.read_text()
