@@ -26,7 +26,9 @@ REFERENCE = ROOT / "datasets/codex_expts/all/initial_codex_output"
 PHASE0 = ROOT / "relational_mutation_testing_baseline/results/phase0"
 SCRATCH = Path(os.environ.get("RMT_CARGO_TARGET", "/tmp/rmt_cargo"))
 
-FN_RE = re.compile(r"^\s*(?:pub\s+)?fn\s+(\w+)", re.M)
+FN_RE = re.compile(r"\bfn\s+(\w+)")
+TRAIT_RE = re.compile(r"^(pub\s+)?(?:unsafe\s+)?trait\s+\w+")
+IMPL_RE = re.compile(r"^impl\b(?P<head>.*)$")
 TEST_NAME = "rmt_test"
 TEST_PATH = f"src/bin/{TEST_NAME}.rs"
 
@@ -50,10 +52,48 @@ def iface_source(project, max_chars=120_000):
     return "\n".join(parts)
 
 
+def pub_fns(text):
+    """Function names an outside caller can name -- the observable surface.
+
+    An interface file declares private helpers next to the public API; only the public
+    ones are a contract a generated test may call. Counting both told Stage 1 that a
+    private helper was observable and Stage 2 to assert on it, and the transpiled test
+    then could not compile -- an F2 manufactured by the harness rather than by the
+    mutant. Public means: a free `pub fn`, a `pub fn` in an inherent impl, or any method
+    of a `pub trait` or of a trait impl (those are public through the trait, with no
+    `pub` of their own).
+    """
+    names, stack, pending, depth = [], [], None, 0
+    for line in text.splitlines():
+        s = line.strip()
+        if s.startswith("//"):
+            continue
+        if TRAIT_RE.match(s):
+            pending = "all" if s.startswith("pub") else "none"
+        elif IMPL_RE.match(s):
+            pending = "all" if " for " in IMPL_RE.match(s).group("head") else "pub"
+        m = FN_RE.search(s)
+        if m:
+            ctx = stack[-1][1] if stack else None
+            if ctx == "all" or (s.startswith("pub") and ctx in (None, "pub")):
+                names.append(m.group(1))
+        for ch in s:
+            if ch == "{":
+                depth += 1
+                if pending is not None:
+                    stack.append((depth, pending))
+                    pending = None
+            elif ch == "}":
+                if stack and stack[-1][0] == depth:
+                    stack.pop()
+                depth -= 1
+    return names
+
+
 def iface_fns(project):
     names = []
     for f in iface_files(project):
-        names += FN_RE.findall(f.read_text(errors="ignore"))
+        names += pub_fns(f.read_text(errors="ignore"))
     return sorted(set(names))
 
 

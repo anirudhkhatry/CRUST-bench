@@ -20,7 +20,7 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from . import cbench, rbench
+from . import cbench, llm, rbench
 from . import stage1_mutate as s1
 from . import stage2_testgen as s2
 from . import stage3_transpile as s3
@@ -43,7 +43,9 @@ def _one_mutant(project, mutant, ctx, outdir, retries, log, redo=False):
 
     if done.exists() and not redo:
         rec = json.loads(done.read_text())
-        if rec.get("outcome"):
+        # F5_exception is a crash, not a verdict -- always retry it. (The collateral
+        # pass persists whatever record it is handed, so one can end up on disk.)
+        if rec.get("outcome") and rec["outcome"] != "F5_exception":
             log(f"{name}/{mid}: {rec['outcome']} (cached)")
             return rec
 
@@ -145,12 +147,25 @@ def run_project(prof, n_mutants, outdir, retries, workers, log=print, redo=False
     return payload
 
 
+def _finished(root, prof):
+    """A project is done only if no mutant fell over on a transient error.
+
+    `F5_exception` is not a result -- it is an API overload or a crash -- and its mutant
+    never wrote a `verdicts.json`, so re-running the project retries exactly those and
+    reloads the rest from cache.
+    """
+    f = root / prof["project"] / "mutants.json"
+    if not f.exists():
+        return False
+    return not any(m["outcome"] == "F5_exception"
+                   for m in json.loads(f.read_text())["mutants"])
+
+
 def run(run_name, projects, n_mutants=10, retries=3, project_workers=4,
         mutant_workers=4, redo=False):
     root = RESULTS / run_name
     root.mkdir(parents=True, exist_ok=True)
-    todo = projects if redo else [
-        p for p in projects if not (root / p["project"] / "mutants.json").exists()]
+    todo = projects if redo else [p for p in projects if not _finished(root, p)]
     skipped = len(projects) - len(todo)
     print(f"run={run_name} projects={len(todo)} (+{skipped} done) "
           f"mutants/project={n_mutants} "
@@ -179,4 +194,12 @@ def run(run_name, projects, n_mutants=10, retries=3, project_workers=4,
                     counts[m["outcome"]] = counts.get(m["outcome"], 0) + 1
                 print(f"[{n}/{len(todo)}] {r['project']}: {counts} ({r['seconds']}s)",
                       flush=True)
-    print(f"done in {round(time.time() - t0)}s", flush=True)
+
+    # Where the tokens went, per stage. Written even on a partial run: it is the only
+    # record of usage, and the disk cache means a rerun would not re-measure it.
+    cost = llm.cost_ledger()
+    cost["seconds"] = round(time.time() - t0)
+    (root / "cost.json").write_text(json.dumps(cost, indent=2))
+    print(f"done in {cost['seconds']}s; "
+          f"{cost['total']['calls']} LLM calls, ${cost['total']['paid_usd']:.2f} paid "
+          f"(${cost['total']['usd']:.2f} incl. cache hits)", flush=True)

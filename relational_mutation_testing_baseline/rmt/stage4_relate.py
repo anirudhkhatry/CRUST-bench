@@ -12,6 +12,7 @@ syntax with the C, so the only transferable thing is the described behaviour.
 from . import rbench as R
 from .llm import ask, json_block
 from .prompts import load as load_prompt
+from .stage1_mutate import edits_of
 
 SYSTEM = ("You are a precise Rust programmer introducing a described fault into an "
           "implementation. You make the smallest edit that reproduces it and follow "
@@ -19,26 +20,36 @@ SYSTEM = ("You are a precise Rust programmer introducing a described fault into 
 
 
 def apply_patch(impl_dir, rec):
-    """Return (relpath, mutated_text) or raise ValueError with the rejection reason."""
+    """Return {relpath: mutated_text} or raise ValueError with the rejection reason.
+
+    A fault with several sites in the C original usually has several here too, so this
+    takes a list of edits and applies them all or none.
+    """
     files = R.impl_files(impl_dir)
-    rel = rec.get("file", "")
-    if rel not in files:
-        cands = [f for f in files if f.endswith(rel.lstrip("./"))]
-        if len(cands) != 1:
-            raise ValueError(f"unknown file {rel!r}")
-        rel = cands[0]
-    text = (impl_dir / rel).read_text(errors="ignore")
-    old, new = rec.get("original_snippet", ""), rec.get("mutated_snippet", "")
-    if not old:
-        raise ValueError("empty original_snippet")
-    if old == new:
+    patch, changed = {}, False
+    for e in edits_of(rec):
+        rel = e.get("file", "")
+        if rel not in files:
+            cands = [f for f in files if f.endswith(rel.lstrip("./"))]
+            if len(cands) != 1:
+                raise ValueError(f"unknown file {rel!r}")
+            rel = cands[0]
+        text = patch.get(rel) or (impl_dir / rel).read_text(errors="ignore")
+        old, new = e.get("original_snippet", ""), e.get("mutated_snippet", "")
+        if not old:
+            raise ValueError("empty original_snippet")
+        n = text.count(old)
+        if n == 0:
+            raise ValueError(f"original_snippet not found verbatim in {rel}")
+        if n > 1:
+            raise ValueError(f"original_snippet occurs {n} times in {rel}, not unique")
+        changed |= old != new
+        patch[rel] = text.replace(old, new)
+    if not patch:
+        raise ValueError("no edits")
+    if not changed:
         raise ValueError("mutated_snippet identical to original")
-    n = text.count(old)
-    if n == 0:
-        raise ValueError("original_snippet not found verbatim")
-    if n > 1:
-        raise ValueError(f"original_snippet occurs {n} times, not unique")
-    return rel, text.replace(old, new)
+    return patch
 
 
 def make_counterpart(impl_dir, verdict, tag, retries=1):
@@ -64,7 +75,7 @@ def make_counterpart(impl_dir, verdict, tag, retries=1):
             return None, {"applied": False, "reason": "not_applicable",
                           "note": rec.get("note", "")[:400], "trail": trail}
         try:
-            rel, mutated = apply_patch(impl_dir, rec)
+            patch = apply_patch(impl_dir, rec)
         except ValueError as e:
             trail.append({"attempt": i, "outcome": "apply_failed", "detail": str(e)})
             user += (f"\n\n---\n\nThat patch could not be applied: {e}. "
@@ -72,7 +83,6 @@ def make_counterpart(impl_dir, verdict, tag, retries=1):
                      "verbatim from it. Return the JSON object again.")
             continue
 
-        patch = {rel: mutated}
         build = R.run_test(impl_dir, None, patch=patch, tag=f"rb{i}")
         if build["status"] != "green":
             trail.append({"attempt": i, "outcome": "build_error"})
@@ -82,10 +92,11 @@ def make_counterpart(impl_dir, verdict, tag, retries=1):
             continue
 
         trail.append({"attempt": i, "outcome": "ok"})
-        return patch, {"applied": True, "reason": "ok", "file": rel,
+        return patch, {"applied": True, "reason": "ok",
+                       "file": ", ".join(sorted(patch)), "n_sites": len(edits_of(rec)),
                        "note": rec.get("note", "")[:400],
-                       "original_snippet": rec.get("original_snippet", "")[:600],
-                       "mutated_snippet": rec.get("mutated_snippet", "")[:600],
+                       "edits": [{k: (v or "")[:600] for k, v in e.items()}
+                                 for e in edits_of(rec)],
                        "trail": trail}
 
     return None, {"applied": False, "reason": trail[-1]["outcome"] if trail else "failed",

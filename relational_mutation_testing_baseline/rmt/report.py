@@ -29,6 +29,67 @@ LABEL = {
 }
 
 
+def crosstab(projects, field, title, killrate=False):
+    """`field` x outcome-family grid, one row per observed value of `field`."""
+    grid = collections.Counter((m.get(field) or "?", m["outcome"].split("_")[0])
+                               for p in projects for m in p["mutants"])
+    if not grid:
+        return []
+    cols = sorted({c for _, c in grid})
+    head = cols + ["kill rate"] if killrate else cols
+    out = [f"\n## {title.capitalize()}\n",
+           "| " + field.replace("_", " ") + " | " + " | ".join(head) + " |",
+           "|---" * (len(head) + 1) + "|"]
+    for v in sorted({f for f, _ in grid}):
+        cells = [str(grid[(v, c)]) for c in cols]
+        if killrate:
+            n = sum(grid[(v, c)] for c in cols)
+            cells.append(f"{100 * grid[(v, 'KILLED')] / n:.0f}%" if n else "-")
+        out.append(f"| {v} | " + " | ".join(cells) + " |")
+    return out
+
+
+STAGE_LABEL = {
+    "stage1_mutate": "Stage 1 — propose mutants (1 call/project)",
+    "stage2_testgen": "Stage 2 — killing C test (+ repair rounds)",
+    "stage3_transpile": "Stage 3 — transpile to Rust (+ repair rounds)",
+    "stage4_rust_mutant": "Stage 4b — build the Rust counterpart M'",
+}
+
+
+def cost_table(run_name, n_valid):
+    """Per-stage token spend, written by the driver at the end of a run.
+
+    `usd` is what the calls cost the first time they ran; `paid` excludes the ones this
+    invocation served from the disk cache, so on a fresh run the two agree and on a
+    resumed one the gap is what resumability saved.
+    """
+    f = RESULTS / run_name / "cost.json"
+    if not f.exists():
+        return []
+    c = json.loads(f.read_text())
+    t = c["total"]
+    out = [f"\n## Cost by stage\n",
+           f"`{c['model']}`, priced at ${c['price_in']}/${c['price_out']} per Mtok "
+           f"in/out.\n",
+           "| stage | calls | cached | input tok | output tok | usd | paid |",
+           "|---|---:|---:|---:|---:|---:|---:|"]
+    for k in list(STAGE_LABEL) + sorted(set(c["by_stage"]) - set(STAGE_LABEL)):
+        s = c["by_stage"].get(k)
+        if not s:
+            continue
+        out.append(f"| {STAGE_LABEL.get(k, k)} | {s['calls']} | {s['cache_hits']} | "
+                   f"{s['input']:,} | {s['output']:,} | ${s['usd']:.2f} | "
+                   f"${s['paid_usd']:.2f} |")
+    out.append(f"| **total** | {t['calls']} | {t['cache_hits']} | {t['input']:,} | "
+               f"{t['output']:,} | **${t['usd']:.2f}** | **${t['paid_usd']:.2f}** |")
+    if n_valid:
+        out.append(f"\n${t['usd'] / n_valid:.2f} per valid mutant carried through the "
+                   f"whole funnel ({n_valid} mutants"
+                   + (f", {c['seconds']}s wall clock" if c.get("seconds") else "") + ").")
+    return out
+
+
 def load(run_name):
     root = RESULTS / run_name
     return [json.loads(f.read_text()) for f in sorted(root.glob("*/mutants.json"))]
@@ -69,15 +130,12 @@ def summarise(run_name):
                    f"{100 * k / n:.0f}% |" if n else
                    f"| {p['project']} | - | - | 0 | 0 | - |")
 
-    out.append("\n## Fault class vs outcome\n")
-    grid = collections.Counter((m.get("fault_class", "?"),
-                                m["outcome"].split("_")[0])
-                               for p in projects for m in p["mutants"])
-    cols = sorted({c for _, c in grid})
-    out.append("| fault class | " + " | ".join(cols) + " |")
-    out.append("|---" * (len(cols) + 1) + "|")
-    for fc in sorted({f for f, _ in grid}):
-        out.append(f"| {fc} | " + " | ".join(str(grid[(fc, c)]) for c in cols) + " |")
+    # Semantic mutants are the object of study; the operator control group says whether a
+    # low kill rate is about C->Rust translation or merely about harder faults.
+    out += crosstab(projects, "mutant_kind", "mutant kind vs outcome", killrate=True)
+    out += crosstab(projects, "fault_class", "fault class vs outcome")
+
+    out += cost_table(run_name, valid)
 
     # The ground-truth control: does the RBench suite catch M' when RT does not?
     gt = collections.Counter()

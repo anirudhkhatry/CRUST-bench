@@ -29,6 +29,59 @@ MAX_INFLIGHT = int(os.environ.get("RMT_MAX_INFLIGHT", "16"))
 _gate = threading.Semaphore(MAX_INFLIGHT)
 _lock = threading.Lock()
 
+# USD per million tokens. Override with RMT_PRICE_IN / RMT_PRICE_OUT if the rate card
+# moves; the token counts in the ledger are measured, the dollars are only this rate
+# applied to them.
+PRICE_IN = float(os.environ.get("RMT_PRICE_IN", "5"))
+PRICE_OUT = float(os.environ.get("RMT_PRICE_OUT", "25"))
+
+# Which stage a call belongs to, by the tag prefix its caller passes.
+STAGE_OF = {"mut": "stage1_mutate", "tst": "stage2_testgen", "tr": "stage3_transpile",
+            "rmut": "stage4_rust_mutant"}
+_ledger = []
+
+
+def _record(tag, usage, cached):
+    """One line in the per-stage cost ledger. Cache hits are recorded too, with the
+    usage the call originally cost: a resumed run should still be able to report what
+    the pipeline costs, not merely what this invocation paid for."""
+    with _lock:
+        _ledger.append({
+            "stage": STAGE_OF.get(tag.split("_")[0], "other"),
+            "tag": tag, "cached": cached,
+            "input": usage.get("input_tokens", 0),
+            "output": usage.get("output_tokens", 0),
+            "cache_read": usage.get("cache_read_input_tokens") or 0,
+            "cache_creation": usage.get("cache_creation_input_tokens") or 0,
+        })
+
+
+def cost_ledger():
+    """Per-stage totals, plus the whole-run total. `paid_usd` excludes cache hits."""
+    with _lock:
+        rows = list(_ledger)
+    by = {}
+    for r in rows:
+        s = by.setdefault(r["stage"], {"calls": 0, "cache_hits": 0, "input": 0,
+                                       "output": 0, "usd": 0.0, "paid_usd": 0.0})
+        s["calls"] += 1
+        s["cache_hits"] += r["cached"]
+        s["input"] += r["input"] + r["cache_read"] + r["cache_creation"]
+        s["output"] += r["output"]
+        usd = ((r["input"] + r["cache_read"] + r["cache_creation"]) * PRICE_IN
+               + r["output"] * PRICE_OUT) / 1e6
+        s["usd"] += usd
+        if not r["cached"]:
+            s["paid_usd"] += usd
+    total = {"calls": sum(s["calls"] for s in by.values()),
+             "cache_hits": sum(s["cache_hits"] for s in by.values()),
+             "input": sum(s["input"] for s in by.values()),
+             "output": sum(s["output"] for s in by.values()),
+             "usd": sum(s["usd"] for s in by.values()),
+             "paid_usd": sum(s["paid_usd"] for s in by.values())}
+    return {"model": MODEL, "price_in": PRICE_IN, "price_out": PRICE_OUT,
+            "by_stage": by, "total": total}
+
 
 def _key():
     k = os.environ.get("ANTHROPIC_API_KEY")
@@ -54,6 +107,26 @@ def client():
     return _client
 
 
+RETRYABLE = {"overloaded_error", "rate_limit_error", "api_error", "timeout_error"}
+
+
+def _retryable(e):
+    """Whether a failed call is worth trying again.
+
+    The status code alone is not enough: a stream that has already returned 200 reports
+    an overload as an SSE error event, so the HTTP status says nothing and only the
+    error type in the body does. Reading just the status dropped those calls on the
+    floor, and a dropped call kills the mutant it belonged to.
+    """
+    if isinstance(e, (anthropic.APIConnectionError, anthropic.APITimeoutError)):
+        return True
+    if (getattr(e, "status_code", 0) or 0) >= 429:
+        return True
+    body = getattr(e, "body", None)
+    err = body.get("error") if isinstance(body, dict) else None
+    return isinstance(err, dict) and err.get("type") in RETRYABLE
+
+
 def ask(system, user, effort="high", max_tokens=16000, temperature=None, tag="x"):
     """One turn. Returns the concatenated text blocks (thinking blocks dropped)."""
     payload = {"model": MODEL, "system": system, "user": user, "effort": effort,
@@ -62,7 +135,9 @@ def ask(system, user, effort="high", max_tokens=16000, temperature=None, tag="x"
     CACHE.mkdir(parents=True, exist_ok=True)
     hit = CACHE / f"{tag}_{h}.json"
     if hit.exists():
-        return json.loads(hit.read_text())["text"]
+        blob = json.loads(hit.read_text())
+        _record(tag, blob.get("usage") or {}, cached=True)
+        return blob["text"]
 
     kwargs = dict(
         model=MODEL,
@@ -73,7 +148,7 @@ def ask(system, user, effort="high", max_tokens=16000, temperature=None, tag="x"
         output_config={"effort": effort},
     )
     last = None
-    for attempt in range(4):
+    for attempt in range(5):
         try:
             with _gate:
                 with client().messages.stream(**kwargs) as s:
@@ -83,8 +158,8 @@ def ask(system, user, effort="high", max_tokens=16000, temperature=None, tag="x"
                 anthropic.APITimeoutError) as e:
             # Overload, rate limit, transport: back off and retry. Anything else --
             # a bad kwarg, a bad key -- is our bug and must surface immediately rather
-            # than costing four backoffs per call across the whole run.
-            if isinstance(e, anthropic.APIStatusError) and e.status_code < 429:
+            # than costing five backoffs per call across the whole run.
+            if not _retryable(e):
                 raise
             last = e
             time.sleep(5 * (attempt + 1) ** 2)
@@ -92,11 +167,13 @@ def ask(system, user, effort="high", max_tokens=16000, temperature=None, tag="x"
         raise RuntimeError(f"LLM call failed after retries: {last}")
 
     text = "".join(b.text for b in msg.content if b.type == "text")
+    usage = msg.usage.model_dump()
+    _record(tag, usage, cached=False)
     # Atomic: concurrent workers may race on the same key, and a half-written cache
     # entry would poison every later run.
     tmp = hit.with_suffix(f".{os.getpid()}.{threading.get_ident()}.tmp")
-    tmp.write_text(json.dumps({"payload": payload, "text": text,
-                               "usage": msg.usage.model_dump()}, indent=1))
+    tmp.write_text(json.dumps({"payload": payload, "text": text, "usage": usage},
+                              indent=1))
     tmp.replace(hit)
     return text
 
