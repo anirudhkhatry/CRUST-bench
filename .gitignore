@@ -3,3 +3,5 @@ datasets/RBench/
 **/__pycache__/
 **/cache/
 **/results/
+.claude/worktrees/
+.superpowers/
