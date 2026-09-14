@@ -75,3 +75,72 @@ def metrics(rows):
             "frr": None if gar is None else 1 - gar,
             "accuracy": _ratio(tp + tn, n), "balanced_accuracy": bal,
             "precision": prec, "recall": rec, "f1": f1}
+
+
+# --- reporting -------------------------------------------------------------------
+# Arm S (seeded faults) and Arm N (harvested LLM migrations) are reported separately and
+# never pooled. If an arm beats the naive baseline on S but not on N, that is the finding:
+# the advantage would be mutation-family resemblance rather than detection power.
+
+ARMS = ("mutation", "naive", "existing", "ceiling")
+ARM_LABEL = {"mutation": "ARM M (mutation-guided)", "naive": "ARM N (naive LLM)",
+             "existing": "ARM A (developer tests)", "ceiling": "ARM C (sees the diff)"}
+
+
+def by_arm(rows):
+    """{arm: {"S": metrics, "N": metrics, "overall": metrics}}."""
+    out = {}
+    for arm in sorted({r["arm"] for r in rows}):
+        mine = [r for r in rows if r["arm"] == arm]
+        good = [r for r in mine if r["label"] == "GOOD"]
+        entry = {"overall": metrics(mine)}
+        for pop in ("S", "N"):
+            bad = [r for r in mine if r["label"] == "BAD" and r.get("bad_arm") == pop]
+            if bad:
+                entry[pop] = metrics(bad + good)
+        out[arm] = entry
+    return out
+
+
+def by_fault_class(rows):
+    """Spec §16: detection rate per semantic fault category, BAD candidates only."""
+    bad = [r for r in rows if r["label"] == "BAD" and r.get("fault_category")]
+    out = []
+    for cat in sorted({r["fault_category"] for r in bad}):
+        mine = [r for r in bad if r["fault_category"] == cat]
+        hit = [r for r in mine if r["verdict"] == REJECT]
+        out.append({"fault_category": cat, "number": len(mine), "detected": len(hit),
+                    "detection_rate": _ratio(len(hit), len(mine))})
+    return out
+
+
+def _pct(x):
+    return "n/a" if x is None else f"{100 * x:.0f}%"
+
+
+def report(rows, title):
+    per = by_arm(rows)
+    lines = [f"# Good-vs-bad classification: {title}", "",
+             "The headline is BRR at matched GAR -- an arm that rejects more BAD while also",
+             "rejecting more GOOD has not won anything. ARM A is excluded from GAR",
+             "comparison: its GAR is definitional, since GOOD admission required its suite",
+             "to pass (spec §3.6).", "",
+             "| arm | population | n GOOD | n BAD | GAR | BRR | AP | precision | F1 |",
+             "|---|---|---:|---:|---:|---:|---:|---:|---:|"]
+    for arm in [a for a in ARMS if a in per] + [a for a in per if a not in ARMS]:
+        for pop in ("S", "N", "overall"):
+            m = per[arm].get(pop)
+            if not m:
+                continue
+            name = {"S": "seeded", "N": "harvested", "overall": "all"}[pop]
+            gar = "definitional" if arm == "existing" else _pct(m["gar"])
+            lines.append(f"| {ARM_LABEL.get(arm, arm)} | {name} | {m['n_good']} | "
+                         f"{m['n_bad']} | {gar} | {_pct(m['brr'])} | {_pct(m['ap'])} | "
+                         f"{_pct(m['precision'])} | {_pct(m['f1'])} |")
+    lines += ["", "## Detection rate by fault category (spec §16)", "",
+              "| fault category | number | detected | detection rate |",
+              "|---|---:|---:|---:|"]
+    for r in by_fault_class(rows):
+        lines.append(f"| {r['fault_category']} | {r['number']} | {r['detected']} | "
+                     f"{_pct(r['detection_rate'])} |")
+    return "\n".join(lines) + "\n"

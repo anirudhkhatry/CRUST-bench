@@ -92,3 +92,47 @@ def test_f1_is_none_when_a_class_is_empty():
     m = metrics([{"label": "GOOD", "verdict": ACCEPT}])
     assert m["recall"] is None
     assert m["f1"] is None
+
+
+from additional_datasets.score import by_arm, by_fault_class, report
+
+
+def _row(arm, label, v, bad_arm=None, fault=None):
+    return {"arm": arm, "label": label, "verdict": v, "bad_arm": bad_arm,
+            "fault_category": fault}
+
+
+def test_by_arm_splits_seeded_from_harvested_and_never_pools_them():
+    rows = [_row("mutation", "BAD", REJECT, "S", "ordering difference"),
+            _row("mutation", "BAD", ACCEPT, "N", "wrong default value"),
+            _row("mutation", "GOOD", ACCEPT)]
+    out = by_arm(rows)
+    assert out["mutation"]["S"]["brr"] == 1.0
+    assert out["mutation"]["N"]["brr"] == 0.0
+    # The GOOD rows are shared by both BAD populations, so GAR is reported once.
+    assert out["mutation"]["overall"]["gar"] == 1.0
+    assert "pooled" not in out["mutation"]
+
+
+def test_by_fault_class_reports_detection_rate_per_category():
+    rows = [_row("mutation", "BAD", REJECT, "S", "encoding difference"),
+            _row("mutation", "BAD", REJECT, "S", "encoding difference"),
+            _row("mutation", "BAD", ACCEPT, "S", "ordering difference")]
+    out = {r["fault_category"]: r for r in by_fault_class(rows)}
+    assert out["encoding difference"]["number"] == 2
+    assert out["encoding difference"]["detected"] == 2
+    assert out["encoding difference"]["detection_rate"] == 1.0
+    assert out["ordering difference"]["detection_rate"] == 0.0
+
+
+def test_report_renders_and_flags_the_matched_gar_comparison():
+    rows = [_row("mutation", "BAD", REJECT, "S", "ordering difference"),
+            _row("mutation", "GOOD", ACCEPT),
+            _row("existing", "BAD", ACCEPT, "S", "ordering difference"),
+            _row("existing", "GOOD", ACCEPT)]
+    text = report(rows, title="pilot")
+    assert "pilot" in text
+    assert "BRR" in text and "GAR" in text
+    # Baseline A must be marked, never silently compared on GAR (spec §3.6).
+    assert "ARM A" in text
+    assert "GAR is definitional" in text
