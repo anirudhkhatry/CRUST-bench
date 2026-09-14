@@ -925,14 +925,26 @@ git commit -m "feat(ad): split a vitest suite by leaf case via skip-masking"
 
 The benchmark ships no `package.json` — its `HARNESS_INTERFACE.md` says evaluators bring their own package installation — so this task builds that runtime once and reuses it for all 123 fixtures.
 
-- [ ] **Step 1: Clone the corpus**
+- [ ] **Step 1: Fetch the corpus**
+
+The corpus lives at `/nas/CRUST-bench-COLM/CRUST-bench/datasets/refactor-bench`, **outside
+this worktree**. A worktree-isolated session is refused any `git` command targeting a path
+outside its own worktree, so this is a tarball fetch, not a `git clone` — the corpus needs
+no history:
 
 ```bash
+mkdir -p /nas/CRUST-bench-COLM/CRUST-bench/datasets
 cd /nas/CRUST-bench-COLM/CRUST-bench/datasets
-git clone --depth 1 https://github.com/Create-Inc/refactor-bench.git refactor-bench
+if [ ! -d refactor-bench ]; then
+  curl -sL https://codeload.github.com/Create-Inc/refactor-bench/tar.gz/refs/heads/main \
+       -o /tmp/rbjs.tar.gz
+  mkdir -p refactor-bench
+  tar xzf /tmp/rbjs.tar.gz -C refactor-bench --strip-components=1
+fi
 ls refactor-bench/refactoring/data | wc -l
 ```
-Expected: `123`.
+Expected: `123`. This may already be present — the controller pre-fetched it; the guard
+above makes the step a no-op in that case.
 
 - [ ] **Step 2: Create the shared runtime**
 
