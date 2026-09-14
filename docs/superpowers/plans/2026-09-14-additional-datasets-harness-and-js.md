@@ -975,9 +975,15 @@ import path from 'node:path';
 // The workspace is passed in per run; `@` is the alias every fixture's tests use for src/.
 const root = process.env.AD_WORKSPACE || process.cwd();
 
+// `@` points at the workspace ROOT, not <root>/src. A fixture's holdout test sits at the
+// fixture root and imports `./app/index.js`, while `refactoring_eval.config.json` gives
+// targetFile relative to `src/` — so the two agree only if `src/`'s CONTENTS are staged at
+// the workspace root. Staging `src/` as a subdirectory makes every holdout test fail with
+// `Failed to resolve import "./app/index.js"`. Verified against binary_search: 19/19 green
+// with this layout, 0/19 with `src/` nested.
 export default defineConfig({
   root,
-  resolve: { alias: { '@': path.join(root, 'src') } },
+  resolve: { alias: { '@': root } },
   test: { environment: 'jsdom', globals: false, include: ['*.test.js', '*.test.jsx'] },
 });
 ```
@@ -1014,16 +1020,20 @@ pytestmark = pytest.mark.skipif(not JS.FIXTURES.is_dir(),
 
 
 def test_parse_vitest_json_reads_case_names_and_statuses():
+    # Real vitest `fullName` values are the describe/test titles joined by a SPACE, e.g.
+    # "Binary Search binarySearchRecursive should find existing element" -- verified
+    # against a real run. The parser passes the string through untouched, so the exact
+    # separator does not matter to it; these names are shaped like the real ones.
     blob = {"testResults": [{"assertionResults": [
-        {"fullName": "Binary Search > search > finds an element", "status": "passed"},
-        {"fullName": "Binary Search > search > misses it", "status": "failed"},
-        {"fullName": "Binary Search > search > skipped one", "status": "skipped"}]}]}
+        {"fullName": "Binary Search search finds an element", "status": "passed"},
+        {"fullName": "Binary Search search misses it", "status": "failed"},
+        {"fullName": "Binary Search search skipped one", "status": "skipped"}]}]}
     status, cases = JS.parse_vitest_json(blob)
     assert status == "test_failed"
-    assert cases["Binary Search > search > finds an element"] == "ok"
-    assert cases["Binary Search > search > misses it"] == "FAILED"
+    assert cases["Binary Search search finds an element"] == "ok"
+    assert cases["Binary Search search misses it"] == "FAILED"
     # A skipped case is masked out by the oracle split and must not be scored either way.
-    assert "Binary Search > search > skipped one" not in cases
+    assert "Binary Search search skipped one" not in cases
 
 
 def test_parse_vitest_json_green_when_nothing_failed():
@@ -1052,12 +1062,18 @@ def test_fixture_config_names_the_target_and_the_holdout_suite():
 
 
 def test_the_holdout_suite_runs_green_against_the_untouched_fixture(tmp_path):
-    """The toolchain smoke test from spec §8 step 1. If this fails, stop."""
+    """The toolchain smoke test from spec §8 step 1. If this fails, stop.
+
+    Verified by hand before this plan was written: binary_search reports exactly 19
+    cases, all green. A `build_error` here with "Failed to resolve import './app/index.js'"
+    means `stage` nested the sources under `src/` instead of putting their contents at the
+    workspace root — re-read `stage`'s docstring.
+    """
     ws = JS.stage("binary_search", tmp_path / "ws")
     suite = (JS.FIXTURES / "binary_search" / JS.fixture_config("binary_search")["testFile"]).read_text()
     res = JS.run_suite(ws, suite, "oracle")
     assert res.status == "green", res.out[-2000:]
-    assert len(res.cases) >= 5
+    assert len(res.cases) == 19
 ```
 
 - [ ] **Step 5: Run it to make sure it fails**
@@ -1115,13 +1131,20 @@ def pure_logic_fixtures():
 
 
 def stage(name, dest, sources=None):
-    """Copy a fixture into a writable workspace. `sources` overrides files under src/."""
+    """Copy a fixture into a writable workspace. `sources` overrides files by relpath.
+
+    The CONTENTS of `src/` land at the workspace root, not in a `src/` subdirectory. The
+    holdout test sits at the fixture root and imports `./app/index.js`, so `app/` has to be
+    a sibling of the test file; nesting it under `src/` makes every holdout suite fail to
+    resolve its import. Source paths are therefore relative to `src/`, matching the
+    `targetFile` field in `refactoring_eval.config.json`.
+    """
     dest = Path(dest)
     if dest.exists():
         shutil.rmtree(dest)
-    shutil.copytree(FIXTURES / name / "src", dest / "src")
+    shutil.copytree(FIXTURES / name / "src", dest, dirs_exist_ok=True)
     for rel, text in (sources or {}).items():
-        p = dest / "src" / rel
+        p = dest / rel
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(text)
     return dest
@@ -2417,6 +2440,8 @@ import json
 import sys
 from pathlib import Path
 
+# Runs are namespaced, matching the existing `results/<run>/<project>/` convention in
+# rmt/ and pmb/, so a task's tree is results/additional_datasets/<run>/<benchmark>/<task>.
 RESULTS = Path(__file__).resolve().parent / "results/additional_datasets"
 BENCHMARKS = ("refactorbench_js",)
 
@@ -2441,7 +2466,7 @@ def cmd_run(a):
     mod = _module(a.benchmark)
     from additional_datasets.adapters import js_vitest as JS
     names = (a.fixtures or JS.pure_logic_fixtures())[:a.tasks]
-    root = RESULTS.parent / "additional_datasets" / a.run if a.run else RESULTS
+    root = RESULTS / a.run if a.run else RESULTS
     rows = []
     for n in names:
         try:
@@ -2456,7 +2481,7 @@ def cmd_run(a):
 
 def cmd_report(a):
     from additional_datasets.score import report
-    root = RESULTS.parent / "additional_datasets" / a.run if a.run else RESULTS
+    root = RESULTS / a.run if a.run else RESULTS
     rows = json.loads((root / "rows.json").read_text())
     text = report(rows, title=a.run or "pilot")
     (root / "REPORT.md").write_text(text)

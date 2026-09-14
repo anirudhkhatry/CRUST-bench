@@ -1274,7 +1274,7 @@ def cmd_select(a):
 
 def cmd_run(a):
     mod = _module(a.benchmark)
-    root = RESULTS.parent / "additional_datasets" / a.run if a.run else RESULTS
+    root = RESULTS / a.run if a.run else RESULTS
     if a.benchmark == "refactorbench_js":
         from additional_datasets.adapters import js_vitest as JS
         items = (a.fixtures or JS.pure_logic_fixtures())[:a.tasks]

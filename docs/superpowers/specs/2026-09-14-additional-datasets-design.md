@@ -350,7 +350,7 @@ wholesale — disk cache, cost ledger, concurrency cap — rather than forked.
 On-disk layout follows the brief's §19 verbatim:
 
 ```
-results/additional_datasets/<benchmark>/<task_id>/
+results/additional_datasets/<run>/<benchmark>/<task_id>/
     original/            P0: a pointer + commit, not a copy
     candidates/
         good_01/ ... bad_01/ ...
@@ -359,6 +359,9 @@ results/additional_datasets/<benchmark>/<task_id>/
     hidden_oracle/
     metadata.json
 ```
+
+The `<run>` segment namespaces a run the way `results/<run>/<project>/` already does in
+`rmt/` and `pmb/`, so two pilots do not overwrite each other.
 
 `metadata.json` carries every field the brief's §9 lists — `task_id`, `repository`,
 `source_commit`, `transformation`, `language`, `LLM`, `model_version`,
