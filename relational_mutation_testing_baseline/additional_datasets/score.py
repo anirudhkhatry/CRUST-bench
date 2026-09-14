@@ -11,6 +11,8 @@ Two refinements matter, both learned from `pmb/validate.py` and the 2026-09-08 a
   in the C<->Rust study; it is not optional.
 """
 ACCEPT, REJECT, LOAD_FAILED, ERROR = "accept", "reject", "load_failed", "error"
+# LOAD_FAILED is never returned by `verdict()`; the runner assigns it directly when a
+# suite could not be loaded against a candidate at all. It is unscorable, like ERROR.
 BEHAVIOURAL, STRUCTURAL = "behavioural", "structural"
 
 
@@ -59,7 +61,15 @@ def metrics(rows):
     gar, brr = _ratio(tn, n_good), _ratio(tp, n_bad)
     bal = None if gar is None or brr is None else (gar + brr) / 2
     prec, rec = _ratio(tp, tp + fp), _ratio(tp, n_bad)
-    f1 = None if not prec or not rec else 2 * prec * rec / (prec + rec)
+    # F1 is None only when precision or recall is *undefined* (an empty class). When both
+    # are legitimately 0.0 -- nothing rejected, or nothing to reject -- F1 is 0.0, the
+    # sklearn convention. The explicit zero guard avoids 0/0 in the harmonic mean.
+    if prec is None or rec is None:
+        f1 = None
+    elif prec + rec == 0:
+        f1 = 0.0
+    else:
+        f1 = 2 * prec * rec / (prec + rec)
     return {**c, "n_good": n_good, "n_bad": n_bad, "n": n,
             "gar": gar, "brr": brr, "ap": _ratio(tn, tn + fn),
             "frr": None if gar is None else 1 - gar,

@@ -75,3 +75,20 @@ def test_metrics_are_none_not_zero_when_a_class_is_empty():
     m = metrics([{"label": "GOOD", "verdict": ACCEPT}])
     assert m["brr"] is None
     assert m["gar"] == 1.0
+
+
+def test_f1_is_zero_not_none_when_nothing_was_caught():
+    # tp=0 with both classes non-empty: precision and recall are a real 0.0, not undefined.
+    rows = ([{"label": "BAD", "verdict": ACCEPT}] * 4
+            + [{"label": "GOOD", "verdict": REJECT}] * 3
+            + [{"label": "GOOD", "verdict": ACCEPT}] * 2)
+    m = metrics(rows)
+    assert m["precision"] == 0.0
+    assert m["recall"] == 0.0
+    assert m["f1"] == 0.0
+
+
+def test_f1_is_none_when_a_class_is_empty():
+    m = metrics([{"label": "GOOD", "verdict": ACCEPT}])
+    assert m["recall"] is None
+    assert m["f1"] is None
