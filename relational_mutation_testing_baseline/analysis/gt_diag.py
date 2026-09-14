@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path("/nas/CRUST-bench-COLM/CRUST-bench")
 EXPORTS = ROOT / "exports"
-RBENCH = ROOT / "datasets/RBench"
+RBENCH = Path(os.environ.get("GT_RBENCH", ROOT / "datasets/RBench"))
 SCRATCH = Path("/tmp/gt_diag_target")
 
 PANIC_RE = re.compile(r"thread '([^']+)' \(?\d*\)? ?panicked at ([^\n]+):\n([^\n]*)")
@@ -85,7 +85,11 @@ def main():
     ap.add_argument("--verdict", default="bad", choices=["bad", "good", "both"])
     ap.add_argument("-o", "--out", default="results/gt_diag")
     ap.add_argument("--refresh", action="store_true")
+    ap.add_argument("--rbench", default=None, help="alternative RBench root (e.g. datasets/RBench_fixed)")
     a = ap.parse_args()
+    global RBENCH
+    if a.rbench:
+        RBENCH = Path(a.rbench).resolve()
     out = Path(a.out)
     jobs = []
     for b in a.benchmark:
