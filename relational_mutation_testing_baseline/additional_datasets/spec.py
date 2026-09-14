@@ -5,7 +5,7 @@ Candidates (compiling post-migration implementations, each labelled GOOD or BAD 
 hidden oracle the test-generating arms never see).
 """
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -52,6 +52,10 @@ class Candidate:
     generation_parameters: dict
     build_status: str               # "ok" | "build_error"
     hidden_oracle_failure: str | None   # why the oracle called it BAD; None for GOOD
+    # Candidates here are generated file sets, not commits, so the analogue of a commit
+    # is a content hash of the candidate's sources. Defaulted so later tasks that build
+    # a Candidate positionally are unaffected.
+    candidate_commit: str | None = None
 
     def dir(self, task: Task) -> Path:
         return task.candidates_dir / self.candidate_id
@@ -62,7 +66,8 @@ class Candidate:
                 "model": self.model, "model_version": self.model_version,
                 "generation_parameters": self.generation_parameters,
                 "build_status": self.build_status,
-                "hidden_oracle_failure": self.hidden_oracle_failure}
+                "hidden_oracle_failure": self.hidden_oracle_failure,
+                "candidate_commit": self.candidate_commit}
 
 
 @dataclass(frozen=True)

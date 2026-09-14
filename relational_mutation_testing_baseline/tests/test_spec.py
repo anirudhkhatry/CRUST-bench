@@ -54,6 +54,17 @@ def test_metadata_round_trips_every_spec_9_field(tmp_path):
     row = blob["candidates"][0]
     for field in ("candidate_id", "ground_truth_label", "build_status",
                   "hidden_oracle_failure", "fault_category", "model", "model_version",
-                  "generation_parameters", "bad_arm"):
+                  "generation_parameters", "bad_arm", "candidate_commit"):
         assert field in row, field
     assert row["ground_truth_label"] == "GOOD"
+
+
+def test_candidate_commit_round_trips_when_set(tmp_path):
+    t = _task(tmp_path)
+    c = Candidate(candidate_id="bad_01", task_id=t.task_id, label="BAD", bad_arm="S",
+                  fault_category="ordering difference", model="claude-opus-5",
+                  model_version="claude-opus-5", generation_parameters={},
+                  build_status="ok", hidden_oracle_failure="2 cases regressed",
+                  candidate_commit="sha256:abcd1234")
+    write_metadata(t, [c])
+    assert read_metadata(t)["candidates"][0]["candidate_commit"] == "sha256:abcd1234"
