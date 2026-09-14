@@ -36,7 +36,7 @@ Affected operation: `<<FUNCTION>>` (reachable through the public API as `<<REACH
    the *closest observable equivalent* through safe code, and say what you did in
    `note`. If there is no observable equivalent at all, return
    `{"applicable": false, "note": "..."}` and no patch.
-4. **Do not touch tests, `src/interfaces/`, or `src/lib.rs`.**
+4. **Do not touch <<FORBIDDEN>>.**
 5. **Every `original_snippet` must appear EXACTLY ONCE, VERBATIM, in its named file.** Copy
    it character for character, including indentation; include surrounding lines if one
    line is not unique. They are applied by literal string replacement, all or nothing.

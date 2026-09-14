@@ -119,16 +119,33 @@ def summarise(run_name):
         meaning = LABEL.get(k) or LABEL.get(k.split("_")[0], "")
         out.append(f"| `{k}` | {n} | {meaning} |")
 
+    # The reference M is only assumable-correct where it passed RBench's own suite in
+    # Phase 0. On the rest, an F3 may be the reference's fault rather than the
+    # transpilation's, so the two strata are never pooled into one kill rate.
+    if any(not p["profile"].get("gt_green", True) for p in projects):
+        out.append("\n## Reference implementation stratum\n")
+        out.append("| stratum | projects | valid | killed | kill rate |")
+        out.append("|---|---:|---:|---:|---:|")
+        for green, name in ((True, "GT-green (M assumed correct)"),
+                            (False, "not GT-green (M unverified)")):
+            grp = [p for p in projects if bool(p["profile"].get("gt_green", True)) is green]
+            n = sum(len(p["mutants"]) for p in grp)
+            k = sum(1 for p in grp for m in p["mutants"] if m["outcome"] == "KILLED")
+            out.append(f"| {name} | {len(grp)} | {n} | {k} | "
+                       f"{100 * k / n:.0f}% |" if n else f"| {name} | {len(grp)} | 0 | 0 | - |")
+
     out.append("\n## Per project\n")
-    out.append("| project | loc | iface | valid | killed | kill rate |")
-    out.append("|---|---:|---:|---:|---:|---:|")
-    for p in sorted(projects, key=lambda p: p["profile"]["c_loc"]):
+    out.append("| project | gt | loc | iface | valid | killed | kill rate |")
+    out.append("|---|:-:|---:|---:|---:|---:|---:|")
+    for p in sorted(projects, key=lambda p: (not p["profile"].get("gt_green", True),
+                                             p["profile"]["c_loc"])):
         n = len(p["mutants"])
         k = sum(1 for m in p["mutants"] if m["outcome"] == "KILLED")
-        out.append(f"| {p['project']} | {p['profile']['c_loc']} | "
+        g = "yes" if p["profile"].get("gt_green", True) else "**no**"
+        out.append(f"| {p['project']} | {g} | {p['profile']['c_loc']} | "
                    f"{p['profile']['n_iface_fns']} | {n} | {k} | "
                    f"{100 * k / n:.0f}% |" if n else
-                   f"| {p['project']} | - | - | 0 | 0 | - |")
+                   f"| {p['project']} | {g} | - | - | 0 | 0 | - |")
 
     # Semantic mutants are the object of study; the operator control group says whether a
     # low kill rate is about C->Rust translation or merely about harder faults.

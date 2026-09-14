@@ -61,6 +61,10 @@ def make_counterpart(impl_dir, verdict, tag, retries=2):
         reachable_via=verdict.get("reachable_via", "?"),
         semantic_change=verdict.get("semantic_change", ""),
         observable_effect=verdict.get("observable_effect", ""),
+        forbidden=("tests or `src/lib.rs` (the `src/interfaces/` files shown above are "
+                   "this crate's implementation, pulled in by `include!`, and may be "
+                   "edited)" if R.includes_interfaces(impl_dir)
+                   else "tests, `src/interfaces/`, or `src/lib.rs`"),
         impl=R.impl_source(impl_dir))
 
     trail = []
@@ -112,7 +116,7 @@ def make_counterpart(impl_dir, verdict, tag, retries=2):
                   "trail": trail}
 
 
-def trial(project, test_rs, verdict, tag):
+def trial(project, test_rs, verdict, tag, impl_dir=None):
     """The relational trial for one mutant: RT on M, and RT on M'.
 
     Verdict vocabulary, which is the study's actual result column:
@@ -121,8 +125,14 @@ def trial(project, test_rs, verdict, tag):
       unsound       -- RT fails M. The transpiled test is wrong about correct Rust.
       no_counterpart-- the fault could not be reproduced in Rust at all.
       error         -- RT does not build against M, or a run timed out.
+
+    `impl_dir` overrides the reference: the driver hands in an alternate
+    ground-truth-passing implementation when RT fails the codex reference but passes
+    other correct implementations, i.e. when the evidence says the reference, not the
+    test, is the odd one out. The record then carries `reference` so the swap is visible.
     """
-    impl_dir = R.reference(project)
+    swapped = impl_dir is not None
+    impl_dir = impl_dir or R.reference(project)
     if impl_dir is None:
         return {"verdict": "error", "detail": "no reference implementation"}
     on_m = R.run_test(impl_dir, test_rs, tag=f"{tag}_m")
@@ -148,7 +158,10 @@ def trial(project, test_rs, verdict, tag):
     # "RT is weak" from "M' is barely different", and gives the Stage 5 comparison
     # (RT-only / GT-only / both / neither) for free.
     gt = R.run_gt(impl_dir, patch=patch, tag=f"{tag}_gt")
-    return {"verdict": "killed" if killed else "not_killed",
-            "on_m": "green", "on_mp": on_mp["status"],
-            "gt_on_mp": gt["status"], "gt_kills_mp": gt["status"] == "test_failed",
-            "rust_mutant": mrec, "out": on_mp["out"][-1500:] if killed else ""}
+    rec = {"verdict": "killed" if killed else "not_killed",
+           "on_m": "green", "on_mp": on_mp["status"],
+           "gt_on_mp": gt["status"], "gt_kills_mp": gt["status"] == "test_failed",
+           "rust_mutant": mrec, "out": on_mp["out"][-1500:] if killed else ""}
+    if swapped:
+        rec["reference"] = str(impl_dir)
+    return rec

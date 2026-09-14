@@ -17,18 +17,28 @@ from pathlib import Path
 from . import cbench, rbench
 
 OUT = Path(__file__).resolve().parent.parent / "results/pilot.json"
+# The full panel is frozen separately so selecting it does not clobber the pilot's set.
+PANEL = Path(__file__).resolve().parent.parent / "results/panel.json"
 PARSER_HINT = re.compile(r"pars|json|lex|token|toml|yaml|xml|regex|csv|ini", re.I)
 MIN_IFACE_FNS = 5
 # Enough mutable code to host ~10 mutants in distinct functions.
 MIN_C_LOC = 60
 
 
-def eligible():
+def eligible(gt_green_only=True):
+    """Projects the harness can drive.
+
+    `gt_green_only` is the hard filter that makes M assumable-correct. Dropping it keeps
+    the six projects whose reference Rust already fails its own ground-truth suite; they
+    are runnable, but a failure on them cannot be charged to the pipeline, so the report
+    keeps them in a separate stratum rather than mixing them into the headline number.
+    """
     with open(cbench.ROOT / "relational_mutation_testing_baseline"
               / "results/phase0/eligible.csv") as f:
         rows = list(csv.DictReader(f))
     green = rbench.gt_green_projects()
-    return [r for r in rows if r["c_usable"] == "True" and r["project"] in green]
+    return [r for r in rows if r["c_usable"] == "True"
+            and (r["project"] in green or not gt_green_only)]
 
 
 def profile(row):
@@ -43,6 +53,7 @@ def profile(row):
             "mode": mode,
             "c_files": n_files, "c_loc": loc,
             "n_iface_fns": len(fns), "iface_fns": fns,
+            "gt_green": name in rbench.gt_green_projects(),
             "parserish": bool(PARSER_HINT.search(name))}
 
 
@@ -74,5 +85,21 @@ def select(n=10):
     return profs, picked
 
 
-def load():
-    return json.loads(OUT.read_text())["pilot"]
+def select_all(out=None):
+    """The whole panel: every harness-drivable project, soft filters off.
+
+    The stratified pick exists to make a 10-project sample representative; at full scale
+    there is nothing to sample, so the size filters go too -- a project with three
+    interface functions simply yields fewer distinct mutation sites, which is a result
+    rather than a reason to exclude it.
+    """
+    profs = list(map(profile, eligible(gt_green_only=False)))
+    profs.sort(key=lambda p: (not p["gt_green"], p["c_loc"]))
+    out = out or PANEL
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps({"n_eligible": len(profs), "pilot": profs}, indent=2))
+    return profs, profs
+
+
+def load(path=None):
+    return json.loads((path or OUT).read_text())["pilot"]

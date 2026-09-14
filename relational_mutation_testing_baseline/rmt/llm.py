@@ -1,14 +1,20 @@
-"""Thin Anthropic client for the relational pipeline.
+"""Thin model client for the relational pipeline.
 
-Deliberately small: one blocking call, adaptive thinking, streaming (Stage 2/3
+Deliberately small: one blocking call, reasoning at a chosen effort, streaming (Stage 2/3
 outputs are long), and a content-addressed disk cache so a rerun after a crash
 does not re-pay for prompts that already succeeded.
+
+Two providers, chosen by the model name in RMT_MODEL: Anthropic for `claude-*`, OpenAI
+for `gpt-*`. The pipeline is a measurement instrument and the model is the thing being
+measured, so everything above this file -- prompts, gates, taxonomy -- is identical
+across providers, and only the transport differs. The cache key includes the model, so
+two runs never read each other's answers.
 
 Thread-safe: the driver runs many mutants concurrently, so cache writes go through a
 temp file and an atomic rename, and a semaphore caps how many requests are in flight.
 
-The key comes from /nas/secrets.env (JSON, `anthropic_key`) unless ANTHROPIC_API_KEY
-is already set.
+Keys come from /nas/secrets.env (JSON: `anthropic_key`, `openai-key`) unless the
+corresponding environment variable is already set.
 """
 import hashlib
 import json
@@ -20,6 +26,7 @@ from pathlib import Path
 import anthropic
 
 MODEL = os.environ.get("RMT_MODEL", "claude-opus-5")
+PROVIDER = "openai" if MODEL.startswith("gpt") else "anthropic"
 CACHE = Path(os.environ.get("RMT_CACHE",
                             Path(__file__).resolve().parent.parent / "results/.llm_cache"))
 SECRETS = Path("/nas/secrets.env")
@@ -29,15 +36,18 @@ MAX_INFLIGHT = int(os.environ.get("RMT_MAX_INFLIGHT", "16"))
 _gate = threading.Semaphore(MAX_INFLIGHT)
 _lock = threading.Lock()
 
-# USD per million tokens. Override with RMT_PRICE_IN / RMT_PRICE_OUT if the rate card
-# moves; the token counts in the ledger are measured, the dollars are only this rate
-# applied to them.
-PRICE_IN = float(os.environ.get("RMT_PRICE_IN", "5"))
-PRICE_OUT = float(os.environ.get("RMT_PRICE_OUT", "25"))
+# USD per million tokens, per model. Override with RMT_PRICE_IN / RMT_PRICE_OUT if the
+# rate card moves; the token counts in the ledger are measured, the dollars are only this
+# rate applied to them.
+RATES = {"claude-opus-5": (5.0, 25.0), "gpt-5.4-mini": (0.75, 4.5),
+         "gpt-5.4": (2.5, 15.0), "gpt-5.5": (5.0, 30.0)}
+_rate = RATES.get(MODEL, (5.0, 25.0))
+PRICE_IN = float(os.environ.get("RMT_PRICE_IN", _rate[0]))
+PRICE_OUT = float(os.environ.get("RMT_PRICE_OUT", _rate[1]))
 
 # Which stage a call belongs to, by the tag prefix its caller passes.
 STAGE_OF = {"mut": "stage1_mutate", "tst": "stage2_testgen", "tr": "stage3_transpile",
-            "rmut": "stage4_rust_mutant"}
+            "rmut": "stage4_rust_mutant", "nb": "baseline_naive_testgen"}
 _ledger = []
 
 
@@ -83,11 +93,8 @@ def cost_ledger():
             "by_stage": by, "total": total}
 
 
-def _key():
-    k = os.environ.get("ANTHROPIC_API_KEY")
-    if k:
-        return k
-    return json.loads(SECRETS.read_text())["anthropic_key"]
+def _key(env, field):
+    return os.environ.get(env) or json.loads(SECRETS.read_text())[field]
 
 
 _client = None
@@ -97,17 +104,37 @@ def client():
     global _client
     with _lock:
         if _client is None:
-            # Pin the base URL: the shell exports ANTHROPIC_BASE_URL for a local proxy
-            # that does not accept the sk-ant- key from secrets.env.
-            _client = anthropic.Anthropic(
-                api_key=_key(),
-                base_url=os.environ.get("RMT_BASE_URL", "https://api.anthropic.com"),
-                max_retries=4, timeout=1800.0,
-            )
+            if PROVIDER == "openai":
+                import openai
+                _client = openai.OpenAI(
+                    api_key=_key("OPENAI_API_KEY", "openai-key"),
+                    max_retries=4, timeout=1800.0)
+            else:
+                # Pin the base URL: the shell exports ANTHROPIC_BASE_URL for a local
+                # proxy that does not accept the sk-ant- key from secrets.env.
+                _client = anthropic.Anthropic(
+                    api_key=_key("ANTHROPIC_API_KEY", "anthropic_key"),
+                    base_url=os.environ.get("RMT_BASE_URL", "https://api.anthropic.com"),
+                    max_retries=4, timeout=1800.0,
+                    # Ask for gzip only. The installed httpx2 hands zstd bodies to
+                    # `zstandard` with a keyword the installed version does not accept,
+                    # so a zstd-encoded reply raises TypeError inside the stream reader
+                    # before any of our code sees it -- intermittently, since the server
+                    # picks the encoding. Not advertising zstd sidesteps it entirely.
+                    default_headers={"accept-encoding": "gzip"},
+                )
     return _client
 
 
 RETRYABLE = {"overloaded_error", "rate_limit_error", "api_error", "timeout_error"}
+
+
+class TransientStreamError(RuntimeError):
+    """A stream that ended in `response.failed`, or with no terminal event at all.
+
+    Server-side and worth retrying, unlike a truncated-but-well-formed turn, which is
+    returned to the caller as a short reply.
+    """
 
 
 def _retryable(e):
@@ -118,13 +145,72 @@ def _retryable(e):
     error type in the body does. Reading just the status dropped those calls on the
     floor, and a dropped call kills the mutant it belonged to.
     """
-    if isinstance(e, (anthropic.APIConnectionError, anthropic.APITimeoutError)):
+    if isinstance(e, (anthropic.APIConnectionError, anthropic.APITimeoutError,
+                      TransientStreamError)):
+        return True
+    if type(e).__name__ in ("APIConnectionError", "APITimeoutError", "InternalServerError"):
         return True
     if (getattr(e, "status_code", 0) or 0) >= 429:
         return True
     body = getattr(e, "body", None)
     err = body.get("error") if isinstance(body, dict) else None
     return isinstance(err, dict) and err.get("type") in RETRYABLE
+
+
+def _call_anthropic(system, user, effort, max_tokens):
+    # Adaptive thinking and the effort dial are Claude 5 features; Haiku 4.5 rejects
+    # both with a 400. It is in the panel as the weaker migration arm, and asking it to
+    # think harder is not what that arm is for, so it simply runs without them.
+    extra = ({"thinking": {"type": "adaptive"}, "output_config": {"effort": effort}}
+             if not MODEL.startswith("claude-haiku") else {})
+    with client().messages.stream(
+            model=MODEL, max_tokens=max_tokens, system=system,
+            messages=[{"role": "user", "content": user}], **extra) as s:
+        msg = s.get_final_message()
+    return ("".join(b.text for b in msg.content if b.type == "text"),
+            msg.usage.model_dump())
+
+
+TERMINAL_EVENTS = ("response.completed", "response.incomplete", "response.failed")
+
+
+def _call_openai(system, user, effort, max_tokens):
+    """The same turn through the Responses API.
+
+    `max_output_tokens` there covers reasoning *and* text, as Anthropic's `max_tokens`
+    does, so the budgets the stages pass mean the same thing on both sides. Cached input
+    is reported as zero in the ledger because OpenAI already counts cached tokens inside
+    `input_tokens`, and the ledger adds the two.
+
+    We read the terminal event ourselves instead of calling `get_final_response()`. A turn
+    that spends its whole budget on reasoning ends the stream with `response.incomplete`
+    (`incomplete_details.reason == 'max_output_tokens'`) and never emits
+    `response.completed`, which that helper reports as a bare RuntimeError. That is a
+    *truncated reply*, not a transport failure, and it is the same condition the Anthropic
+    side already handles: every stage re-asks when a reply will not parse. Raising here
+    instead killed the mutant outright -- ~15% of them on gpt-5.4-mini -- so we surface the
+    partial text and let the stage decide. Usage is still recorded: those tokens were paid
+    for whether or not the reply was usable.
+    """
+    final = None
+    with client().responses.stream(
+            model=MODEL, instructions=system, input=user,
+            max_output_tokens=max_tokens,
+            reasoning={"effort": effort}) as s:
+        for ev in s:
+            if getattr(ev, "type", "") in TERMINAL_EVENTS:
+                final = ev.response
+    if final is None:
+        raise TransientStreamError("Responses stream ended with no terminal event")
+    if getattr(final, "status", None) == "failed":
+        raise TransientStreamError(f"response.failed: {getattr(final, 'error', None)}")
+    u = getattr(final, "usage", None)
+    return (final.output_text or ""), {
+        "input_tokens": u.input_tokens if u else 0,
+        "output_tokens": u.output_tokens if u else 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+    }
 
 
 def ask(system, user, effort="high", max_tokens=16000, temperature=None, tag="x"):
@@ -139,23 +225,14 @@ def ask(system, user, effort="high", max_tokens=16000, temperature=None, tag="x"
         _record(tag, blob.get("usage") or {}, cached=True)
         return blob["text"]
 
-    kwargs = dict(
-        model=MODEL,
-        max_tokens=max_tokens,
-        system=system,
-        messages=[{"role": "user", "content": user}],
-        thinking={"type": "adaptive"},
-        output_config={"effort": effort},
-    )
+    call = _call_openai if PROVIDER == "openai" else _call_anthropic
     last = None
     for attempt in range(5):
         try:
             with _gate:
-                with client().messages.stream(**kwargs) as s:
-                    msg = s.get_final_message()
+                text, usage = call(system, user, effort, max_tokens)
             break
-        except (anthropic.APIStatusError, anthropic.APIConnectionError,
-                anthropic.APITimeoutError) as e:
+        except Exception as e:
             # Overload, rate limit, transport: back off and retry. Anything else --
             # a bad kwarg, a bad key -- is our bug and must surface immediately rather
             # than costing five backoffs per call across the whole run.
@@ -166,8 +243,6 @@ def ask(system, user, effort="high", max_tokens=16000, temperature=None, tag="x"
     else:
         raise RuntimeError(f"LLM call failed after retries: {last}")
 
-    text = "".join(b.text for b in msg.content if b.type == "text")
-    usage = msg.usage.model_dump()
     _record(tag, usage, cached=False)
     # Atomic: concurrent workers may race on the same key, and a half-written cache
     # entry would poison every later run.

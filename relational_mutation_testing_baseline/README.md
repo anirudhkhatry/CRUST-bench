@@ -21,6 +21,10 @@ Everything upstream exists to produce a well-formed instance of it.
 .venv/bin/python run.py select                # choose and freeze the project set
 .venv/bin/python run.py run --mutants 10      # run the funnel
 .venv/bin/python run.py report                # funnel table + failure taxonomy
+
+.venv/bin/python run.py naive --run <run>      # the naive baseline, on that run's mutants
+.venv/bin/python run.py rustnative --run <run> # the rust-native ceiling, same mutants
+.venv/bin/python run.py naive-report --run <run>
 ```
 
 Projects and mutants both fan out (`--project-workers`, `--mutant-workers`), capped at
@@ -65,6 +69,57 @@ described behaviour.
 | `F4_not_discriminating` | RT passes both M and M′ — discriminating power lost in translation |
 | `F5_*` | the fault has no Rust counterpart, or an infrastructure error |
 
+## The naive baseline
+
+The funnel's cost is entirely in the mutant: it exists to make Stage 2 write a test that
+provably discriminates. So the control worth having is the version with the mutant taken
+out. `baseline_naive.py` hands one model the **C source and the Rust interfaces** — no
+mutant, no diff, no C test — and asks for a Rust test suite, one per project. It is then
+scored against the *same* `M'` set the funnel built, replayed from the recorded Stage 4b
+edits, so RT, the naive suite and the RBench ground-truth suite share a denominator.
+
+Two allowances keep it fair rather than flattering:
+
+| | |
+|---|---|
+| compile repair | the same as Stage 3's — build errors only, assertions may not be weakened |
+| pruning to M | only cases that pass the assumed-correct M can score a mutant; a case that already failed M would "kill" every M' |
+
+Pruning mirrors what RT gets implicitly: RT reaches the M' comparison only where it passed
+M, and Stage 4 charges the rest as F3. `naive-report` writes
+`results/<run>/NAIVE_BASELINE.md`.
+
+## The rust-native arm (the ceiling)
+
+The naive arm removes the mutant; this one removes **C**. For each of the same `M'`,
+`baseline_rustnative.py` shows one model the reference implementation `M` and the exact
+`M → M'` unified diff — reconstructed by applying the recorded Stage 4 edits, so it is the
+same mutant the other three arms were scored on, byte for byte — and asks for one Rust
+test that passes `M` and fails `M'`. Same gates in the same order as RT: compile repair
+(build errors only), soundness on `M`, then the kill check on `M'`, with the gate's
+verdict fed back for up to `--retries` attempts.
+
+On `full100` it kills **768/773 (99.4%)** against the funnel's 97% — so the C detour costs
+about two points, and four of the five survivors are mutants the arm itself calls
+unreachable through the public API
+([write-up](updates/2026-09-04-rustnative-ceiling.md)).
+
+It knows the fault exactly, in the language the test is written in, with no translation
+step to lose it in. So it is an **upper bound, not a technique**: whatever it cannot kill
+is a mutant that is hard to reach through the public API, not one the pipeline mislaid, and
+`1 - rn_kill_rate` is the floor under every other arm's miss rate. Its own outcome
+breakdown (`F_UNSOUND_ON_M`, `F_NOT_DISCRIMINATING`, `UNREACHABLE`, …) says which.
+
+```bash
+.venv/bin/python run.py rustnative --all --run full100 --max-mutants 2   # cheap pilot
+.venv/bin/python run.py rustnative --all --run full100                   # the full arm
+.venv/bin/python run.py naive-report --run full100   # folds it in as a fourth column
+```
+
+It pays per *mutant*, like the funnel, not per project like the naive arm — budget for it
+accordingly, and start with `--max-mutants`. Results are cached per mutant
+(`<project>/rustnative/<id>.json`), so an interrupted run resumes for free.
+
 ## What plays the role of correct Rust
 
 RBench ships only interfaces and a ground-truth test suite — no reference
@@ -83,6 +138,9 @@ rmt/
   cbench.py         C build/run harness (gcc-uniform, throwaway copies)
   rbench.py         RBench interfaces, the reference impl, cargo test injection
   stage1..stage4    the funnel
+  baseline_naive    the mutant-free control arm
+  baseline_rustnative  the C-free oracle arm: a test per M' from the M->M' diff
+  baseline_report   RT vs naive vs GT vs rust-native, on one denominator
   pilot.py          project selection
   driver.py         parallel orchestration
   report.py         funnel table and taxonomy

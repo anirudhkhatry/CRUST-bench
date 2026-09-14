@@ -16,6 +16,7 @@ import functools
 import os
 import re
 import shutil
+import stat
 import subprocess
 import tempfile
 from pathlib import Path
@@ -36,6 +37,31 @@ TEST_NAME = "rmt_test"
 # rmt_kill` is stripped and any `fn main` calling it fails to compile. That charged the
 # generated test with an F2 it had not earned, on every project that ships a `src/bin/`.
 TEST_PATH = f"tests/{TEST_NAME}.rs"
+# `test some_name ... ok` / `... FAILED`, cargo's per-test line. The single-test stages
+# only need the aggregate counts, but the naive baseline injects a whole suite and has to
+# know *which* tests moved, since a test that already failed on M cannot be evidence
+# against M'.
+CASE_RE = re.compile(r"^test (\S+) \.\.\. (ok|FAILED|ignored)", re.M)
+
+_IGNORE_NAMES = shutil.ignore_patterns(".git", "target")
+
+
+def _copy_ignore(dir_path, contents):
+    """`copytree` ignore that drops FIFOs as well as `.git`/`target`.
+
+    A few source trees (`impcheck`) carry leftover named pipes and stale `.nfs*` handles.
+    `copytree` cannot copy those, so it raises `shutil.Error` listing every one of them and
+    the project dies before a single mutant runs -- the failure looked like an infra error
+    but cost the whole project. Nothing under test ever reads them, so skipping is safe.
+    """
+    ignored = set(_IGNORE_NAMES(dir_path, contents))
+    for name in contents:
+        try:
+            if stat.S_ISFIFO(os.lstat(os.path.join(dir_path, name)).st_mode):
+                ignored.add(name)
+        except OSError:
+            ignored.add(name)  # vanished mid-walk (stale NFS handle); nothing to copy
+    return ignored
 
 
 def iface_files(project):
@@ -114,16 +140,50 @@ def lib_modules(project):
     return re.findall(r"pub\s+mod\s+(\w+)\s*;", txt)
 
 
+# `include!("interfaces/x.rs")` or `#[path = "interfaces/x.rs"] mod x;` -- either way the
+# interface file *is* the module's code.
+INCLUDE_IFACE_RE = re.compile(r'include!\s*\(\s*"[^"]*interfaces/'
+                              r'|#\s*\[\s*path\s*=\s*"[^"]*interfaces/')
+
+
+def includes_interfaces(impl_dir):
+    """Does this crate pull `src/interfaces/*.rs` in as *code* via `include!`?
+
+    Most implementations keep the interface files as the verbatim specification and
+    implement elsewhere. A few (`rbtree_lab`, `worsp`, `Megalania`) implement *into* the
+    interface file and make each module a one-line `include!("interfaces/x.rs")`. There
+    the interface file is the implementation, and forbidding Stage 4b from touching it
+    left it with nothing to mutate -- every mutant came back `no_counterpart` for a
+    reason that was the harness's rule, not the fault's.
+    """
+    src = Path(impl_dir) / "src"
+    for f in src.rglob("*.rs"):
+        rel = f.relative_to(impl_dir)
+        if len(rel.parts) > 1 and rel.parts[1] in ("interfaces", "bin"):
+            continue
+        try:
+            if INCLUDE_IFACE_RE.search(f.read_text(errors="ignore")):
+                return True
+        except OSError:
+            continue
+    return False
+
+
 def impl_files(impl_dir):
     """The candidate's own Rust code: src/**/*.rs minus the shared interfaces and tests.
 
-    These are the only files the Rust counterpart mutation (Stage 4b) may touch.
+    These are the only files the Rust counterpart mutation (Stage 4b) may touch. The
+    interface files join the set only when the crate `include!`s them, i.e. when they
+    *are* the implementation (see `includes_interfaces`).
     """
     src = Path(impl_dir) / "src"
+    iface_is_code = includes_interfaces(impl_dir)
     out = []
     for f in sorted(src.rglob("*.rs")):
         rel = f.relative_to(impl_dir)
-        if rel.parts[1] in ("interfaces", "bin") or rel.name == "lib.rs":
+        if rel.parts[1] == "bin" or rel.name == "lib.rs":
+            continue
+        if rel.parts[1] == "interfaces" and not iface_is_code:
             continue
         out.append(rel.as_posix())
     return out
@@ -174,8 +234,7 @@ def run_test(impl_dir, test_rs, timeout=600, tag="0", patch=None, test_name=TEST
     SCRATCH.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="rmt_rs_") as td:
         dst = Path(td) / "proj"
-        shutil.copytree(impl_dir, dst, symlinks=True,
-                        ignore=shutil.ignore_patterns(".git", "target"))
+        shutil.copytree(impl_dir, dst, symlinks=True, ignore=_copy_ignore)
         for rel, text in (patch or {}).items():
             (dst / rel).write_text(text)
         if test_rs is None:
@@ -194,7 +253,8 @@ def run_test(impl_dir, test_rs, timeout=600, tag="0", patch=None, test_name=TEST
                                cwd=dst, capture_output=True, text=True,
                                timeout=timeout, env=env)
         except subprocess.TimeoutExpired:
-            return {"status": "timeout", "passed": 0, "failed": 0, "out": ""}
+            return {"status": "timeout", "passed": 0, "failed": 0, "rc": None,
+                    "cases": {}, "out": ""}
     out = r.stdout + r.stderr
     passed = failed = 0
     for m in re.finditer(r"test result: \w+\.\s+(\d+) passed;\s+(\d+) failed;", out):
@@ -206,7 +266,8 @@ def run_test(impl_dir, test_rs, timeout=600, tag="0", patch=None, test_name=TEST
         status = "test_failed"
     else:
         status = "green"
-    return {"status": status, "passed": passed, "failed": failed,
+    return {"status": status, "passed": passed, "failed": failed, "rc": r.returncode,
+            "cases": dict(CASE_RE.findall(out)),
             "out": out[-4000:] if status != "green" else ""}
 
 
@@ -220,8 +281,7 @@ def run_gt(impl_dir, patch=None, timeout=900, tag="gt"):
     SCRATCH.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="rmt_gt_") as td:
         dst = Path(td) / "proj"
-        shutil.copytree(impl_dir, dst, symlinks=True,
-                        ignore=shutil.ignore_patterns(".git", "target"))
+        shutil.copytree(impl_dir, dst, symlinks=True, ignore=_copy_ignore)
         for rel, text in (patch or {}).items():
             (dst / rel).write_text(text)
         env = {**os.environ, "CARGO_TARGET_DIR": str(SCRATCH / tag)}

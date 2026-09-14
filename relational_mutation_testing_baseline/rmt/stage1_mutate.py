@@ -36,16 +36,45 @@ def source_bundle(project, max_chars=180_000):
     return "\n".join(parts)
 
 
-def propose(project, iface_text, n, tag):
-    """Ask for n mutants. Returns the raw records, unvalidated."""
-    n_operator = max(1, round(n * OPERATOR_SHARE)) if n > 2 else 0
+def propose(project, iface_text, n, tag, retries=2, exclude=None, round_=0):
+    """Ask for n mutants. Returns the raw records, unvalidated.
+
+    One call carries all n mutants and each one quotes two verbatim C snippets, so the
+    reply is long; 48k, because at 24k adaptive thinking plus ten snippet pairs could run
+    the budget out mid-array and the truncated JSON took the *whole project* down as an
+    error rather than costing one retry.
+
+    `exclude` is the top-up case: a rendered list of the mutants already tried on this
+    project and how each one fell out of the funnel. The model is asked for `n` *new*
+    faults that avoid them. `round_` keeps the cache key distinct per top-up round, since
+    an identical prompt would otherwise be served the identical (already tried) reply.
+    """
+    n_operator = (max(1, round(n * OPERATOR_SHARE)) if n > 2 else 0) if not exclude else 0
     user = load_prompt("mutate", project=project.name, n=n,
                         n_operator=n_operator, n_semantic=n - n_operator,
                         sources=source_bundle(project), iface=iface_text)
-    recs = json_block(ask(SYSTEM, user, effort="high", max_tokens=24000, tag=f"mut_{tag}"))
-    if isinstance(recs, dict):
-        recs = recs.get("mutants", [])
-    return recs
+    if exclude:
+        user += "\n\n---\n\n" + load_prompt("mutate_topup", n=n, tried=exclude)
+    prefix = f"mut_{tag}_" + (f"r{round_}_" if round_ else "")
+    for i in range(retries + 1):
+        try:
+            recs = json_block(ask(SYSTEM, user, effort="high", max_tokens=48000,
+                                  tag=f"{prefix}{i}"))
+        except ValueError:
+            user += ("\n\n---\n\nThat reply was not parseable as one JSON array -- it ran "
+                     "out of room. Answer with the JSON array only, no prose, and keep "
+                     "every snippet to the few lines that actually change.")
+            continue
+        if isinstance(recs, dict):
+            recs = recs.get("mutants", [])
+        if not isinstance(recs, list) or not recs:
+            # A well-formed but empty array is a refusal in disguise, not a result.
+            user += ("\n\n---\n\nThat reply held no mutants. Every library has "
+                     "behaviour a misunderstanding could change; return the JSON array "
+                     f"of {n} mutants.")
+            continue
+        return recs
+    return []
 
 
 def _resolve(project, rel):
@@ -133,10 +162,47 @@ def gate(project, rec):
     return patch, {**v, "file": ", ".join(sorted(patch)), "valid": True, "reason": "ok"}
 
 
-def generate(project, iface_text, n, tag):
-    """Propose n mutants and keep the ones that pass the gate."""
+def describe_tried(records):
+    """Render already-tried mutants for the top-up prompt: site, fault, and fate.
+
+    `records` are stage-1 verdicts merged with their funnel outcome (`outcome` key).
+    The fate is phrased as what the *next* proposal should avoid, since "no killing test
+    could be written" and "not portable to the Rust re-implementation" call for
+    different avoidance than "test was unsound on correct Rust".
+    """
+    why = {
+        "KILLED": "succeeded -- do not propose this fault again",
+        "F1": "no C test could observe it through the public API",
+        "F2": "its test could not be expressed against the Rust interfaces",
+        "F3": "its test contradicted correct Rust behaviour (likely depends on a C-only "
+              "detail: memory layout, capacity, pointer identity, uninitialised reads)",
+        "F4": "the fault had no observable effect in the Rust re-implementation",
+        "F5": "the fault has no counterpart in the Rust re-implementation",
+    }
+    lines = []
+    for r in records:
+        if not r.get("valid", True) and r.get("reason") not in ("ok", None):
+            fate = f"rejected at the gate: {r.get('reason')}"
+        else:
+            fam = (r.get("outcome") or "").split("_")[0]
+            fate = why.get(fam, r.get("outcome") or "unknown")
+        lines.append(f"- `{r.get('function', '?')}` [{r.get('fault_class', '?')}]: "
+                     f"{(r.get('semantic_change') or '')[:300]}\n  -> {fate}")
+    return "\n".join(lines)
+
+
+def generate(project, iface_text, n, tag, exclude=None, round_=0, start_id=1):
+    """Propose n mutants and keep the ones that pass the gate.
+
+    Ids are reassigned from `start_id` so a top-up round never collides with the ids
+    already on disk: the model numbers its own reply from m01 every time.
+    """
     kept, verdicts = [], []
-    for rec in propose(project, iface_text, n, tag):
+    for k, rec in enumerate(propose(project, iface_text, n, tag, exclude=exclude,
+                                    round_=round_)):
+        if not isinstance(rec, dict):
+            continue
+        rec["id"] = f"m{start_id + k:02d}"
         patch, v = gate(project, rec)
         verdicts.append(v)
         if patch:
