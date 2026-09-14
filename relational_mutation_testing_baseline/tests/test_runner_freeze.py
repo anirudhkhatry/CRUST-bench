@@ -51,3 +51,35 @@ def test_assert_no_leak_ignores_trivially_short_fragments():
     # A three-character fragment appears in any English prompt; only meaningful
     # fragments are checked, or the guard would fire constantly and get disabled.
     assert_no_leak("Write a test for the app.", ["app"])
+
+
+def test_assert_frozen_refuses_when_nothing_was_ever_frozen(tmp_path):
+    t = _task(tmp_path)
+    write_metadata(t, [])                       # metadata exists, freeze never called
+    with pytest.raises(LeakageError, match="never called"):
+        assert_frozen(t, {"naive": "test('a', () => {})"})
+
+
+def test_assert_frozen_refuses_an_arm_that_was_not_frozen(tmp_path):
+    t = _task(tmp_path)
+    write_metadata(t, [])
+    freeze(t, {"naive": "test('a', () => {})"})
+    with pytest.raises(LeakageError, match="never frozen"):
+        assert_frozen(t, {"naive": "test('a', () => {})",
+                          "mutation": "test('b', () => {})"})
+
+
+def test_assert_frozen_refuses_when_there_is_no_metadata_at_all(tmp_path):
+    t = _task(tmp_path)
+    t.root.mkdir(parents=True, exist_ok=True)   # no metadata.json written
+    with pytest.raises(LeakageError, match="never frozen"):
+        assert_frozen(t, {"naive": "test('a', () => {})"})
+
+
+def test_freeze_refuses_an_unknown_language(tmp_path):
+    t = Task(task_id="x", benchmark="b", language="Javascript", repository="r",
+             source_commit="c", transformation="t", results_root=tmp_path)
+    write_metadata(t, [])
+    with pytest.raises(LeakageError, match="unknown language"):
+        freeze(t, {"naive": "test('a', () => {})"})
+

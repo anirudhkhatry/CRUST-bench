@@ -28,7 +28,12 @@ def freeze(task: Task, suites: dict) -> dict:
         raise LeakageError(
             f"{task.task_id}: candidates already exist -- suites must be frozen before "
             f"any candidate is on disk (spec §7)")
-    ext = EXT.get(task.language, "txt")
+    try:
+        ext = EXT[task.language]
+    except KeyError:
+        raise LeakageError(
+            f"{task.task_id}: unknown language {task.language!r}; known: "
+            f"{', '.join(sorted(EXT))}") from None
     hashes = {}
     for arm, text in sorted(suites.items()):
         d = task.generated_tests_dir / arm
@@ -43,9 +48,25 @@ def freeze(task: Task, suites: dict) -> dict:
 
 
 def assert_frozen(task: Task, suites: dict) -> None:
-    recorded = json.loads((task.root / "metadata.json").read_text()).get("suite_hashes", {})
+    """Every suite must have been frozen, and must still match what was frozen.
+
+    This fails CLOSED on purpose. A missing metadata.json, a missing `suite_hashes` key,
+    or an arm absent from it all mean the freeze never happened for that suite -- and a
+    leakage gate that returns normally when it was never armed is worse than no gate,
+    because the run still produces numbers that look valid.
+    """
+    meta = task.root / "metadata.json"
+    if not meta.exists():
+        raise LeakageError(f"{task.task_id}: no metadata.json -- suites were never frozen")
+    blob = json.loads(meta.read_text())
+    if "suite_hashes" not in blob:
+        raise LeakageError(f"{task.task_id}: metadata.json has no suite_hashes -- "
+                           f"freeze() was never called")
+    recorded = blob["suite_hashes"]
     for arm, text in sorted(suites.items()):
-        if arm in recorded and recorded[arm] != _sha(text):
+        if arm not in recorded:
+            raise LeakageError(f"{task.task_id}/{arm}: never frozen")
+        if recorded[arm] != _sha(text):
             raise LeakageError(f"{task.task_id}/{arm}: suite changed after freezing")
 
 
