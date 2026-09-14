@@ -266,6 +266,8 @@ A `row` throughout is a dict carrying at least `label` ("GOOD"/"BAD") and `verdi
 Create `tests/test_score.py`:
 
 ```python
+import pytest
+
 from additional_datasets.score import (ACCEPT, BEHAVIOURAL, ERROR, LOAD_FAILED, REJECT,
                                        STRUCTURAL, confusion, metrics, verdict)
 from additional_datasets.spec import SuiteResult
@@ -282,9 +284,18 @@ def test_failing_admissible_case_is_a_behavioural_rejection():
 
 
 def test_a_case_outside_the_admissible_set_cannot_reject():
-    # A case that already failed the trusted P0 would "reject" every candidate.
-    r = SuiteResult(status="test_failed", cases={"b": "FAILED"}, rc=1, seconds=1.0)
+    # A case that already failed the trusted P0 would "reject" every candidate, so it
+    # must not fire. `a` is present and green, so the suite did run to completion.
+    r = SuiteResult(status="test_failed", cases={"a": "ok", "b": "FAILED"}, rc=1,
+                    seconds=1.0)
     assert verdict(r, {"a"}) == (ACCEPT, "")
+
+
+def test_a_run_cut_short_before_an_admissible_case_is_a_detection():
+    # A SIGSEGV or stack overflow in mutated code takes the process down mid-run and the
+    # remaining cases are never reported. That is a detection, not a miss.
+    r = SuiteResult(status="test_failed", cases={"a": "ok"}, rc=139, seconds=1.0)
+    assert verdict(r, {"a", "b"}) == (REJECT, BEHAVIOURAL)
 
 
 def test_build_error_is_structural_not_behavioural():
@@ -319,12 +330,12 @@ def test_metrics_match_the_spec_12_definitions():
     m = metrics(rows)
     assert m["brr"] == 0.8           # 8 of 10 BAD rejected
     assert m["gar"] == 0.9           # 9 of 10 GOOD accepted
-    assert m["frr"] == 0.1           # 1 - gar
-    assert round(m["ap"], 4) == 0.8182   # 9 GOOD accepted / 11 accepted
-    assert round(m["precision"], 4) == 0.8889   # 8 TP / 9 rejections
+    assert m["frr"] == pytest.approx(0.1)          # 1 - gar
+    assert m["ap"] == pytest.approx(9 / 11)        # 9 GOOD accepted / 11 accepted
+    assert m["precision"] == pytest.approx(8 / 9)  # 8 TP / 9 rejections
     assert m["recall"] == 0.8
-    assert m["accuracy"] == 0.85
-    assert m["balanced_accuracy"] == 0.85
+    assert m["accuracy"] == pytest.approx(0.85)
+    assert m["balanced_accuracy"] == pytest.approx(0.85)
     assert m["n_good"] == 10 and m["n_bad"] == 10
 
 
@@ -480,7 +491,7 @@ def test_report_renders_and_flags_the_matched_gar_comparison():
     assert "pilot" in text
     assert "BRR" in text and "GAR" in text
     # Baseline A must be marked, never silently compared on GAR (spec §3.6).
-    assert "existing" in text
+    assert "ARM A" in text
     assert "GAR is definitional" in text
 ```
 
@@ -1434,7 +1445,7 @@ Return only the test file in a single fenced code block.
 
 `additional_datasets/prompts/repair.md`:
 
-```markdown
+````markdown
 Your test file did not build or load. Fix only what prevents it from running.
 
 ## The errors
@@ -1451,7 +1462,7 @@ Your test file did not build or load. Fix only what prevents it from running.
 
 Do not weaken, delete or loosen any assertion. Fix imports, names and syntax only. Return
 the corrected file in a single fenced code block.
-```
+````
 
 - [ ] **Step 2: Write the failing test**
 
@@ -2531,7 +2542,7 @@ scored per BAD candidate rather than once per task, which is why it does not go 
 
 `additional_datasets/prompts/ceiling_testgen.md`:
 
-```markdown
+````markdown
 Below is a correct implementation and a diff that introduces a behavioural fault into it.
 Write one test that passes on the correct implementation and fails on the faulty one.
 
@@ -2555,7 +2566,7 @@ Write a single <<LANGUAGE>> test file using <<FRAMEWORK>>.
   first line beginning `// UNREACHABLE:` and write the closest test you can.
 
 Return only the test file in a single fenced code block.
-```
+````
 
 - [ ] **Step 2: Write the failing test**
 
