@@ -262,14 +262,35 @@ that run but fail it, and (S) seeded faults confirmed by it.
 ### 4.4 The oracle split, which is required for correctness
 
 Here Baseline A and the hidden oracle would be the same file, so Baseline A would score a
-rejection rate of 1.0 by construction and the Baseline A column would be a tautology.
+rejection rate of 1.0 by construction and the Baseline A column would be a tautology. The
+suite must therefore be split: one half becomes "existing developer tests" for ARM A, the
+other stays sealed as the hidden oracle. Neither half is ever shown to ARM M or ARM N.
 
-**Fix: split each holdout suite by top-level `describe` block.** One half is designated
-"existing developer tests" and given to ARM A; the other half is sealed as the hidden
-oracle and labels candidates. Neither half is ever shown to ARM M or ARM N. The split is
-deterministic (by a hash of the fixture name) so it is reproducible, and it is recorded in
-`metadata.json`. Fixtures whose suite has too few `describe` blocks to split are kept but
-scored with ARM A marked `n/a` rather than zero.
+**The split is by leaf `test`/`it` case, not by `describe` block.** An earlier draft of
+this design proposed splitting on top-level `describe` blocks; measuring the pilot corpus
+refuted it. Of the 18 pure-logic fixtures, **16 have exactly one top-level `describe`**
+(only `wallet_api` has 2 and `basic_web_with_auth` has 5), so a `describe` split would
+leave 16 of 18 fixtures unsplittable. The real structure is one outer `describe`, nested
+`describe`s per function under it, and 5–24 leaf `test` cases at the bottom — so the leaf
+cases are the only granularity that exists in quantity.
+
+**Mechanism: skip-masking, not text extraction.** Both halves are the original file with
+the other half's leaf calls rewritten `test(` → `test.skip(` (likewise `it(` → `it.skip(`).
+Nothing is cut out, so every enclosing `describe`, every import, every `beforeEach` and
+every shared fixture constant — `const sortedArray = [...]` in the outer describe body, and
+its equivalents — survives intact in both halves. A text-extraction split would have to
+re-derive that shared setup and would silently break wherever it guessed wrong.
+
+Assignment is deterministic: leaf cases in source order, alternating, with the starting
+parity seeded by a hash of the fixture name, so the split is reproducible and neither half
+is systematically the earlier or simpler tests. The per-case assignment is recorded in
+`metadata.json`.
+
+**The split is verified, not assumed.** After splitting, both halves run against the
+unmodified P0 and the harness asserts three properties: every case in either half passes;
+the union of the two halves' reported case names equals the original suite's case names;
+and the intersection is empty. A fixture failing any of the three is excluded from ARM A
+scoring — marked `n/a`, never zero — rather than silently contributing a corrupt baseline.
 
 ## 5. Metrics, and the trap in "mutation tests beat naive tests"
 
@@ -401,7 +422,7 @@ This design is built so that a negative result is still a result.
 | **Java build cost.** 92 repos, median 7.3k LOC, no Docker, no warm Maven cache. A real fraction will not build, and `mvn test` on `anba/es6draft` (205k LOC) is not a pilot-sized operation. | high | phase 0 ladder absorbs it; cap pilot task LOC; expect the usable pool well under 92; `-full` is the fallback |
 | Equivalent mutants inflate apparent difficulty | medium | hidden-oracle confirmation is an admission condition (§3.5) |
 | Arm S resembles the mutation arm's own operators | medium | separate prompt, separate taxonomy, separate model role (§7.4); Arm N reported separately (§5) |
-| RefactorBench-JS Baseline A is degenerate | medium | deterministic `describe`-block split (§4.4) |
+| RefactorBench-JS Baseline A is degenerate | medium | deterministic leaf-case skip-mask split, verified against P0 (§4.4) |
 | Vitest + jsdom + React Testing Library setup is fiddly | medium | pilot on the 18 pure-logic fixtures, which need none of it |
 | Hidden-oracle labels are themselves noisy | medium | precedent: `results/gt_diag_fixed` showed GT bugs capped recall on RBench; record `hidden_oracle_failure` per candidate so labels stay auditable |
 
