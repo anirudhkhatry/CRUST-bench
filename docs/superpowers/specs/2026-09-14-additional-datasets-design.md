@@ -327,7 +327,8 @@ Also required:
 ```
 additional_datasets/
     spec.py        Task/Candidate dataclasses + metadata.json schema (brief §9 fields)
-    registry.py    benchmark plugins: migrationbench_java, refactorbench_js
+    benchmarks/    one module per benchmark: refactorbench_js.py, migrationbench_java.py
+                   (each owns its task construction and candidate generation)
     runner.py      the protocol: freeze+hash tests -> run every arm x every candidate
     score.py       GAR/BRR/AP, confusion matrices, per-fault-class table
     seed.py        Arm S fault injector (taxonomy-driven, isolated model role)
