@@ -47,7 +47,8 @@ PRICE_OUT = float(os.environ.get("RMT_PRICE_OUT", _rate[1]))
 
 # Which stage a call belongs to, by the tag prefix its caller passes.
 STAGE_OF = {"mut": "stage1_mutate", "tst": "stage2_testgen", "tr": "stage3_transpile",
-            "rmut": "stage4_rust_mutant", "nb": "baseline_naive_testgen"}
+            "rmut": "stage4_rust_mutant", "nb": "baseline_naive_testgen",
+            "prb": "stage5_probe", "tw": "stage5_twin", "twp": "stage5_twin"}
 _ledger = []
 
 
@@ -129,6 +130,16 @@ def client():
 RETRYABLE = {"overloaded_error", "rate_limit_error", "api_error", "timeout_error"}
 
 
+class Refused(RuntimeError):
+    """The request was declined by the API's safety layer (`stop_reason == "refusal"`).
+
+    Not cached and not retried here: the same prompt is refused again far more often
+    than not, and the caller knows how to rephrase where a blind retry does not. Seen
+    first on Stage 5 probe prompts, where "record the library's behaviour" next to a
+    description of an out-of-bounds read looked like exploit-writing to the classifier.
+    """
+
+
 class TransientStreamError(RuntimeError):
     """A stream that ended in `response.failed`, or with no terminal event at all.
 
@@ -168,7 +179,7 @@ def _call_anthropic(system, user, effort, max_tokens):
             messages=[{"role": "user", "content": user}], **extra) as s:
         msg = s.get_final_message()
     return ("".join(b.text for b in msg.content if b.type == "text"),
-            msg.usage.model_dump())
+            msg.usage.model_dump(), msg.stop_reason)
 
 
 TERMINAL_EVENTS = ("response.completed", "response.incomplete", "response.failed")
@@ -210,7 +221,7 @@ def _call_openai(system, user, effort, max_tokens):
         "output_tokens": u.output_tokens if u else 0,
         "cache_read_input_tokens": 0,
         "cache_creation_input_tokens": 0,
-    }
+    }, getattr(final, "status", None)
 
 
 def ask(system, user, effort="high", max_tokens=16000, temperature=None, tag="x"):
@@ -230,7 +241,7 @@ def ask(system, user, effort="high", max_tokens=16000, temperature=None, tag="x"
     for attempt in range(5):
         try:
             with _gate:
-                text, usage = call(system, user, effort, max_tokens)
+                text, usage, stop = call(system, user, effort, max_tokens)
             break
         except Exception as e:
             # Overload, rate limit, transport: back off and retry. Anything else --
@@ -244,6 +255,14 @@ def ask(system, user, effort="high", max_tokens=16000, temperature=None, tag="x"
         raise RuntimeError(f"LLM call failed after retries: {last}")
 
     _record(tag, usage, cached=False)
+    if stop == "refusal":
+        # Logged with usage so input-side (0 output tokens) and mid-stream refusals
+        # can be told apart afterwards; neither is cached.
+        with _lock, (CACHE / "refusals.log").open("a") as f:
+            f.write(f"{time.strftime('%H:%M:%S')}\t{tag}\t{h}\t"
+                    f"out={usage.get('output_tokens', 0)}\ttext={len(text)}\n")
+        raise Refused(f"{tag}: request refused by the API safety layer "
+                      f"(after {usage.get('output_tokens', 0)} output tokens)")
     # Atomic: concurrent workers may race on the same key, and a half-written cache
     # entry would poison every later run.
     tmp = hit.with_suffix(f".{os.getpid()}.{threading.get_ident()}.tmp")

@@ -46,6 +46,12 @@ def cmd_run(a):
                retry_outcomes=driver.RETRY_OUTCOMES if a.topup else None)
 
 
+def cmd_widen(a):
+    from rmt import widen
+    widen.run(a.run, _projects(a), retries=a.retries, project_workers=a.project_workers,
+              mutant_workers=a.mutant_workers, redo=a.redo)
+
+
 def cmd_report(a):
     text = report.summarise(a.run)
     out = driver.RESULTS / a.run / "REPORT.md"
@@ -104,6 +110,18 @@ def main():
                         "whose failure this code has since addressed "
                         "(F3 unsound, F5 no counterpart / error / exception)")
     s.set_defaults(fn=cmd_run)
+
+    s = sub.add_parser("widen", help="stage 5: add a differential oracle (C-probe "
+                                     "replay) to every KILLED mutant's test, in place")
+    s.add_argument("--run", required=True, help="run name (results/<run>/), a COPY of "
+                                                "a finished run")
+    s.add_argument("--retries", type=int, default=3)
+    s.add_argument("--project-workers", type=int, default=4)
+    s.add_argument("--mutant-workers", type=int, default=4)
+    s.add_argument("--projects", nargs="*")
+    s.add_argument("--all", action="store_true")
+    s.add_argument("--redo", action="store_true")
+    s.set_defaults(fn=cmd_widen)
 
     s = sub.add_parser("report", help="summarise a run")
     s.add_argument("--run", default="pilot1")

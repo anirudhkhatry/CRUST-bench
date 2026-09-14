@@ -225,7 +225,8 @@ def _inject(dst, test_rs):
         cargo.write_text(txt)
 
 
-def run_test(impl_dir, test_rs, timeout=600, tag="0", patch=None, test_name=TEST_NAME):
+def run_test(impl_dir, test_rs, timeout=600, tag="0", patch=None, test_name=TEST_NAME,
+             keep=4000):
     """Run one generated Rust test against one implementation.
 
     `patch` is {relpath: new_contents} applied to the copy -- this is how the Rust
@@ -268,7 +269,7 @@ def run_test(impl_dir, test_rs, timeout=600, tag="0", patch=None, test_name=TEST
         status = "green"
     return {"status": status, "passed": passed, "failed": failed, "rc": r.returncode,
             "cases": dict(CASE_RE.findall(out)),
-            "out": out[-4000:] if status != "green" else ""}
+            "out": out[-keep:] if status != "green" else ""}
 
 
 def run_gt(impl_dir, patch=None, timeout=900, tag="gt"):

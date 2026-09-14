@@ -345,7 +345,8 @@ class Project:
         return out
 
     # -- build ---------------------------------------------------------------
-    def run(self, test_c=None, patch=None, timeout=20, argv=(), stdin=""):
+    def run(self, test_c=None, patch=None, timeout=20, argv=(), stdin="",
+            stdout_limit=8000):
         """Compile the library (with `patch` applied) plus `test_c`, then run it.
 
         patch: {relpath: new_contents}. test_c: source text providing main().
@@ -434,7 +435,7 @@ class Project:
         except subprocess.TimeoutExpired:
             return RunResult("run", True, returncode=124, stderr="TIMEOUT")
         return RunResult("ok", True, returncode=p.returncode,
-                         stdout=p.stdout[-8000:], stderr=p.stderr[-4000:])
+                         stdout=p.stdout[-stdout_limit:], stderr=p.stderr[-4000:])
 
 
 def usable_projects():
