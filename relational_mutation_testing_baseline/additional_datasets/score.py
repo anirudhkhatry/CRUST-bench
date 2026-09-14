@@ -93,7 +93,13 @@ def by_arm(rows):
     for arm in sorted({r["arm"] for r in rows}):
         mine = [r for r in rows if r["arm"] == arm]
         good = [r for r in mine if r["label"] == "GOOD"]
-        entry = {"overall": metrics(mine)}
+        # GAR is arm-wide: it describes how this arm treats GOOD candidates and does not
+        # depend on which BAD population is scored beside it. Every BAD-derived figure is
+        # deliberately absent here -- pooling seeded and harvested BADs into one BRR would
+        # hide the divergence this benchmark exists to measure (design §5).
+        arm_wide = metrics(good)
+        entry = {"overall": {"n_good": arm_wide["n_good"], "gar": arm_wide["gar"],
+                             "frr": arm_wide["frr"]}}
         for pop in ("S", "N"):
             bad = [r for r in mine if r["label"] == "BAD" and r.get("bad_arm") == pop]
             if bad:
@@ -103,13 +109,21 @@ def by_arm(rows):
 
 
 def by_fault_class(rows):
-    """Spec §16: detection rate per semantic fault category, BAD candidates only."""
+    """Design §16: detection rate per fault category, split by arm and BAD population.
+
+    Nothing is pooled on either axis. Blending arms would hide which arm detects a class,
+    which is the comparison this table exists to make; blending S and N would hide whether
+    an advantage is mutation-family resemblance.
+    """
     bad = [r for r in rows if r["label"] == "BAD" and r.get("fault_category")]
     out = []
-    for cat in sorted({r["fault_category"] for r in bad}):
-        mine = [r for r in bad if r["fault_category"] == cat]
+    for key in sorted({(r["arm"], r.get("bad_arm"), r["fault_category"]) for r in bad},
+                      key=lambda k: (k[0], str(k[1]), k[2])):
+        arm, pop, cat = key
+        mine = [r for r in bad if (r["arm"], r.get("bad_arm"), r["fault_category"]) == key]
         hit = [r for r in mine if r["verdict"] == REJECT]
-        out.append({"fault_category": cat, "number": len(mine), "detected": len(hit),
+        out.append({"arm": arm, "bad_arm": pop, "fault_category": cat,
+                    "number": len(mine), "detected": len(hit),
                     "detection_rate": _ratio(len(hit), len(mine))})
     return out
 
@@ -128,19 +142,22 @@ def report(rows, title):
              "| arm | population | n GOOD | n BAD | GAR | BRR | AP | precision | F1 |",
              "|---|---|---:|---:|---:|---:|---:|---:|---:|"]
     for arm in [a for a in ARMS if a in per] + [a for a in per if a not in ARMS]:
-        for pop in ("S", "N", "overall"):
+        for pop in ("S", "N"):
             m = per[arm].get(pop)
             if not m:
                 continue
-            name = {"S": "seeded", "N": "harvested", "overall": "all"}[pop]
-            gar = "definitional" if arm == "existing" else _pct(m["gar"])
+            name = {"S": "seeded", "N": "harvested"}[pop]
+            arm_wide = per[arm]["overall"]
+            gar = "definitional" if arm == "existing" else _pct(arm_wide["gar"])
             lines.append(f"| {ARM_LABEL.get(arm, arm)} | {name} | {m['n_good']} | "
                          f"{m['n_bad']} | {gar} | {_pct(m['brr'])} | {_pct(m['ap'])} | "
                          f"{_pct(m['precision'])} | {_pct(m['f1'])} |")
     lines += ["", "## Detection rate by fault category (spec §16)", "",
-              "| fault category | number | detected | detection rate |",
-              "|---|---:|---:|---:|"]
+              "| arm | population | fault category | number | detected | detection rate |",
+              "|---|---|---|---:|---:|---:|"]
     for r in by_fault_class(rows):
-        lines.append(f"| {r['fault_category']} | {r['number']} | {r['detected']} | "
-                     f"{_pct(r['detection_rate'])} |")
+        arm_label = ARM_LABEL.get(r["arm"], r["arm"])
+        pop_name = {"S": "seeded", "N": "harvested", None: "n/a"}[r.get("bad_arm")]
+        lines.append(f"| {arm_label} | {pop_name} | {r['fault_category']} | {r['number']} | "
+                     f"{r['detected']} | {_pct(r['detection_rate'])} |")
     return "\n".join(lines) + "\n"

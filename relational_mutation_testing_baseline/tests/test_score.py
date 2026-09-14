@@ -118,11 +118,11 @@ def test_by_fault_class_reports_detection_rate_per_category():
     rows = [_row("mutation", "BAD", REJECT, "S", "encoding difference"),
             _row("mutation", "BAD", REJECT, "S", "encoding difference"),
             _row("mutation", "BAD", ACCEPT, "S", "ordering difference")]
-    out = {r["fault_category"]: r for r in by_fault_class(rows)}
-    assert out["encoding difference"]["number"] == 2
-    assert out["encoding difference"]["detected"] == 2
-    assert out["encoding difference"]["detection_rate"] == 1.0
-    assert out["ordering difference"]["detection_rate"] == 0.0
+    out = {(r["arm"], r["bad_arm"], r["fault_category"]): r for r in by_fault_class(rows)}
+    assert out[("mutation", "S", "encoding difference")]["number"] == 2
+    assert out[("mutation", "S", "encoding difference")]["detected"] == 2
+    assert out[("mutation", "S", "encoding difference")]["detection_rate"] == 1.0
+    assert out[("mutation", "S", "ordering difference")]["detection_rate"] == 0.0
 
 
 def test_report_renders_and_flags_the_matched_gar_comparison():
@@ -136,3 +136,31 @@ def test_report_renders_and_flags_the_matched_gar_comparison():
     # Baseline A must be marked, never silently compared on GAR (spec §3.6).
     assert "ARM A" in text
     assert "GAR is definitional" in text
+
+
+def test_report_never_emits_a_pooled_bad_figure():
+    # S is caught, N is missed. A pooled BRR would read 50% and erase the divergence.
+    rows = [_row("mutation", "BAD", REJECT, "S", "ordering difference"),
+            _row("mutation", "BAD", ACCEPT, "N", "wrong default value"),
+            _row("mutation", "GOOD", ACCEPT)]
+    per = by_arm(rows)
+    assert "brr" not in per["mutation"]["overall"]
+    assert per["mutation"]["S"]["brr"] == 1.0
+    assert per["mutation"]["N"]["brr"] == 0.0
+    text = report(rows, title="t")
+    # The "all" row is gone; S and N rows show 100% and 0% BRR respectively.
+    assert "| all |" not in text
+    # Verify the individual BRR values appear correctly without pooling
+    lines = text.split('\n')
+    s_line = [l for l in lines if 'seeded' in l and 'ARM M' in l][0]
+    n_line = [l for l in lines if 'harvested' in l and 'ARM M' in l][0]
+    assert "100%" in s_line  # S BRR
+    assert "0%" in n_line    # N BRR
+
+
+def test_by_fault_class_does_not_blend_arms():
+    rows = [_row("mutation", "BAD", REJECT, "S", "ordering difference"),
+            _row("existing", "BAD", ACCEPT, "S", "ordering difference")]
+    got = {(r["arm"], r["fault_category"]): r for r in by_fault_class(rows)}
+    assert got[("mutation", "ordering difference")]["detection_rate"] == 1.0
+    assert got[("existing", "ordering difference")]["detection_rate"] == 0.0
