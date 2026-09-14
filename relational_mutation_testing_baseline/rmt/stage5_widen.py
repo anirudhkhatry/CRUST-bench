@@ -374,16 +374,20 @@ def repair_panic(project, twin_rs, obs, panic_text, retries=1, tag="w"):
     recorded) or to drop the affected records as UNTRANSLATABLE. Compile-checked; the
     value check is `settle`'s.
     """
-    attempts, user, twin = [], None, twin_rs
+    attempts, twin = [], twin_rs
     base = load_prompt("twin_panic", panic=panic_text, prev=twin_rs)
-    user = base
-    for i in range(retries + 1):
+    user, systems, i, refusals = base, [SYSTEM_RS, *SYSTEM_RS_ALTS], 0, 0
+    while i <= retries and refusals <= MAX_REFUSALS:
         try:
-            reply = ask(SYSTEM_RS, user, effort="medium", max_tokens=40000,
-                        tag=f"twp_{tag}_{i}")
+            reply = ask(systems[0], user, effort="medium", max_tokens=40000,
+                        tag=f"twp_{tag}_{i}" + (f"r{refusals}" if refusals else ""))
         except Refused as e:
+            refusals += 1
             attempts.append({"attempt": i, "outcome": "refused", "detail": str(e)[:200]})
-            break
+            if len(systems) > 1:
+                systems.pop(0)
+            continue
+        i += 1
         cand = fenced(reply, "rust")
         if not cand or "obs_done()" not in cand:
             attempts.append({"attempt": i, "outcome": "no_code"})
