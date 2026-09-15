@@ -2726,9 +2726,20 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
     m_suite, rec = mutation.generate(task, sources, JS, ws / "mut", imp,
                                      tag=f"{name}_mut")
     m_run = JS.run_suite(p0_ws, m_suite, "mut_p0") if m_suite else None
-    suites["mutation"] = m_suite
-    admissible["mutation"] = m_run.passed if m_run else []
     records["mutation"] = rec
+    # An arm that produced NO suite is omitted rather than registered empty. `score_task`
+    # refuses an arm with an empty admissible set, because such an arm silently accepts
+    # every candidate -- but ARM M keeping nothing is a legitimate, informative outcome
+    # (no mutant yielded a killing test), not a reason to crash the task and lose the
+    # naive arm's results with it. An omitted arm simply has no row, which is honest;
+    # `records["mutation"]["n_kept"] == 0` says why.
+    if m_suite and m_run and m_run.passed:
+        suites["mutation"] = m_suite
+        admissible["mutation"] = m_run.passed
+    else:
+        log(f"{name}: ARM M produced no scorable suite "
+            f"(n_kept={rec.get('n_kept')}, composite={rec.get('composite_status')}) "
+            f"-- omitted from scoring")
 
     # 3. Freeze. Candidates must not exist yet. Baseline A's half of the holdout is frozen
     # alongside the generated arms so it passes through the same gate they do.
