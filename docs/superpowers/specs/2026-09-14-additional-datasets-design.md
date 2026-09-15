@@ -85,6 +85,38 @@ a technique, and `1 - ARM C's rejection rate` is the floor under every other arm
 rate. Baseline C (a generic automated generator such as EvoSuite) is **out of scope for
 the pilot** and noted in §11 as future work.
 
+### ARM N is a matched control, not a single draw
+
+**Decision, 2026-09-15 (user-directed).** A whole-branch review found that ARM M received
+roughly 6.75x ARM N's generation budget *and* best-of-6 selection: it proposes up to 6
+faults, writes a test for each with its own repair budget, and keeps only those that both
+compile and kill. ARM N got one suite, one repair budget, no selection. If ARM M won under
+that arrangement, the result could not distinguish "mutation pressure works" from
+"six filtered samples beat one unfiltered sample".
+
+ARM N is therefore a **matched control**:
+
+| | ARM M | ARM N (matched) |
+|---|---|---|
+| draws | 6 | 6 |
+| per-draw budget | `_generate_with_repair`, build-errors-only | identical |
+| filter | green on P0 **and red on the mutant** | green on P0 |
+| assembly | concatenate, validate composite, drop colliding | identical |
+
+The single surviving difference is the kill gate, which is the variable under test.
+
+Two residual asymmetries are intrinsic and are disclosed rather than removed:
+
+1. ARM M spends ~3 additional calls proposing its faults. That is the cost of knowing a
+   fault at all, and no version of ARM N needs it.
+2. ARM M's draws are diverse because each prompt carries a *different* fault description;
+   ARM N's draws differ only by sampling noise, since `rmt.llm.ask` does not plumb
+   temperature. Giving ARM N fault-driven diversity would mean giving it faults, which is
+   the thing being withheld.
+
+Neither favours ARM N, so both bias against this project's own thesis — the honest
+direction for a residual to run.
+
 ## 3. Benchmark A — MigrationBench, Java 8 to Java 17
 
 ### 3.1 Toolchain
