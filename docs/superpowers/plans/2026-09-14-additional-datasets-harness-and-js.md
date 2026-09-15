@@ -1496,7 +1496,9 @@ git commit -m "feat(ad): verify the oracle split against P0 before letting it sc
 
 **Interfaces:**
 - Consumes: `SuiteResult`, `assert_no_leak`, `js_vitest.run_suite`/`stage`.
-- Produces: `naive.generate(task, sources, adapter, workspace, retries=3) -> (suite_text, record)`; `mutation.propose_mutants(sources, n, tag) -> list[dict]` (each `{"file", "original_snippet", "mutated_snippet", "semantic_change", "fault_class"}`); `mutation.generate(task, sources, adapter, workspace, n_mutants=6, retries=3) -> (suite_text, record)`.
+- Produces: `naive.generate(task, sources, adapter, workspace, import_line, framework="vitest", retries=3, tag="naive") -> (suite_text, record)`; `mutation.propose_mutants(sources, n, tag) -> list[dict]` (each `{"file", "original_snippet", "mutated_snippet", "semantic_change", "fault_class"}`); `mutation.apply_mutant(sources, rec) -> dict | None`; `mutation.kills(on_p0, on_mutant) -> bool`; `mutation.generate(task, sources, adapter, workspace, import_line, framework="vitest", n_mutants=6, retries=3, tag="mut") -> (suite_text, record)`.
+
+`import_line` is supplied by the caller (the benchmark module, from the adapter's `import_path`). Both arms receive it identically — neither is advantaged by knowing where the code lives, and without it a model invents a path that does not resolve and every suite build-errors. This was measured: in a pilot, handing the model the target path relative to the fixture rather than to the staged workspace made **every** suite fail to build, twice, through two repair rounds.
 
 The two arms differ in exactly one thing: ARM M's tests must pass an **executed** kill gate (green on P0, red on the mutant) before being kept. Everything else — model, effort, repair budget, output format — is held identical, or the comparison measures the wrong variable.
 
@@ -1541,6 +1543,10 @@ preserved observable behaviour.
 
 Write a single <<LANGUAGE>> test file using <<FRAMEWORK>>.
 
+- Import the code under test with EXACTLY this line, character for character:
+  `<<IMPORT_LINE>>`
+  Do not alter that path. It is where the file actually sits in the test workspace, and a
+  path you invent instead will not resolve.
 - Assert exact values. A test that only checks a value is non-null, or that two calls
   agree with each other, cannot detect a behavioural change.
 - Test only the behaviour visible through the program's public surface, using the names
@@ -1597,6 +1603,10 @@ Write a test that detects the following fault in the program below.
 Write a single <<LANGUAGE>> test file using <<FRAMEWORK>> that **passes** on the program
 exactly as shown above and **fails** on a version of it carrying that fault.
 
+- Import the code under test with EXACTLY this line, character for character:
+  `<<IMPORT_LINE>>`
+  Do not alter that path. It is where the file actually sits in the test workspace, and a
+  path you invent instead will not resolve.
 - Assert exact values. The test is executed against both versions and kept only if it
   separates them, so a weak assertion will simply be rejected.
 - Reach the fault through the program's public surface, using the names it already
@@ -1651,10 +1661,21 @@ class FakeAdapter:
         return self.results.pop(0)
 
 
-def test_naive_prompt_carries_the_program_and_the_transformation():
+def test_naive_prompt_carries_the_program_the_transformation_and_the_import():
     text = load("naive_testgen", sources="SRC_HERE", transformation="MIGRATE_HERE",
+                import_line="import * as mod from './src/app/page.jsx';",
                 language="JavaScript", framework="vitest")
     assert "SRC_HERE" in text and "MIGRATE_HERE" in text
+    assert "./src/app/page.jsx" in text
+    assert "<<" not in text
+
+
+def test_mutation_prompt_carries_the_fault_and_the_import():
+    text = load("mutation_testgen", sources="SRC_HERE", semantic_change="FAULT_HERE",
+                import_line="import * as mod from './app/index.js';",
+                language="JavaScript", framework="vitest")
+    assert "SRC_HERE" in text and "FAULT_HERE" in text
+    assert "./app/index.js" in text
     assert "<<" not in text
 
 
@@ -1717,10 +1738,17 @@ SYSTEM = ("You are a precise programmer writing tests. You assert exact values, 
           "correct implementation.")
 
 
-def generate(task, sources, adapter, workspace, framework="vitest", retries=3, tag="naive"):
-    """(suite_text, record). Repair is build-errors-only; assertions may not weaken."""
+def generate(task, sources, adapter, workspace, import_line, framework="vitest",
+             retries=3, tag="naive"):
+    """(suite_text, record). Repair is build-errors-only; assertions may not weaken.
+
+    `import_line` is the exact import statement the suite must use to reach the code under
+    test. It is passed in rather than derived, because only the adapter knows where the
+    file lands in a staged workspace -- handing a model the target's path relative to the
+    fixture makes it write an import that does not resolve, and every suite build-errors.
+    """
     base = load("naive_testgen", sources=_bundle(sources),
-                transformation=task.transformation,
+                transformation=task.transformation, import_line=import_line,
                 language=task.language.capitalize(), framework=framework)
     return _generate_with_repair(base, adapter, workspace, retries, tag)
 
@@ -1813,9 +1841,14 @@ def kills(on_p0, on_mutant):
         on_mutant.status == "build_error")
 
 
-def generate(task, sources, adapter, workspace, framework="vitest", n_mutants=6,
-             retries=3, tag="mut"):
-    """(suite_text, record). Concatenates every test that passed its kill gate."""
+def generate(task, sources, adapter, workspace, import_line, framework="vitest",
+             n_mutants=6, retries=3, tag="mut"):
+    """(suite_text, record). Concatenates every test that passed its kill gate.
+
+    `import_line` is the exact import statement the suite must use -- see naive.generate.
+    Both arms are given it identically, so neither is advantaged by knowing where the code
+    lives.
+    """
     mutants = propose_mutants(sources, n_mutants, tag)
     kept, rejected = [], []
     for k, rec in enumerate(mutants):
@@ -1825,6 +1858,7 @@ def generate(task, sources, adapter, workspace, framework="vitest", n_mutants=6,
             continue
         base = load("mutation_testgen", sources=_bundle(sources),
                     semantic_change=rec.get("semantic_change", ""),
+                    import_line=import_line,
                     language=task.language.capitalize(), framework=framework)
         p0_ws = adapter.stage(task.task_id, workspace / f"p0_{k}")
         suite, srec = _generate_with_repair(base, adapter, p0_ws, retries, f"{tag}_{k}")
@@ -2486,9 +2520,11 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
     # 2. Every arm's suite, from P0 and the transformation only.
     p0_ws = JS.stage(name, ws / "p0")
     suites, admissible, records = {}, {}, {}
-    n_suite, rec = naive.generate(task, sources, JS, p0_ws, tag=f"{name}_naive")
+    imp = f"import * as mod from '{JS.import_path(name)}';"
+    n_suite, rec = naive.generate(task, sources, JS, p0_ws, imp, tag=f"{name}_naive")
     suites["naive"], admissible["naive"], records["naive"] = n_suite, rec["admissible"], rec
-    m_suite, rec = mutation.generate(task, sources, JS, ws / "mut", tag=f"{name}_mut")
+    m_suite, rec = mutation.generate(task, sources, JS, ws / "mut", imp,
+                                     tag=f"{name}_mut")
     m_run = JS.run_suite(p0_ws, m_suite, "mut_p0") if m_suite else None
     suites["mutation"] = m_suite
     admissible["mutation"] = m_run.passed if m_run else []
@@ -2692,7 +2728,9 @@ git commit -m "feat(ad): refactorbench-js wired end to end, plus the CLI"
 
 **Interfaces:**
 - Consumes: `SuiteResult` (Task 1), `_generate_with_repair` (Task 8), `Candidate` (Task 1).
-- Produces: `diff_of(good_sources, bad_sources) -> str`; `generate(task, good_sources, bad_sources, adapter, workspace, framework="vitest", retries=3, tag="ceil") -> (suite_text, record)`; `score_ceiling(task, candidates, adapter, workspace, good_sources) -> list[dict]`.
+- Produces: `diff_of(good_sources, bad_sources) -> str`; `is_unreachable(suite_text) -> bool`; `outcome(on_good, on_bad) -> str`; `generate(task, good_sources, bad_sources, adapter, workspace, import_line, framework="vitest", retries=3, tag="ceil") -> (suite_text, record)`; `score_ceiling(task, candidates, adapter, workspace, good_sources, import_line) -> list[dict]`.
+
+`import_line` threads through for the same reason as in Task 8: a model handed the wrong path writes an import that does not resolve, and the suite build-errors before it can say anything about the fault.
 
 `score.py` already names `ceiling` in `ARMS` and `ARM_LABEL` (Task 3), so without this task the report has a column nothing ever fills.
 
@@ -2725,6 +2763,9 @@ Write one test that passes on the correct implementation and fails on the faulty
 
 Write a single <<LANGUAGE>> test file using <<FRAMEWORK>>.
 
+- Import the code under test with EXACTLY this line, character for character:
+  `<<IMPORT_LINE>>`
+  Do not alter that path.
 - Assert exact values, and reach the fault through the public surface.
 - The test is executed against both versions and is kept only if it separates them.
 - If the fault is genuinely unreachable through the public API, say so in a comment on the
@@ -2818,10 +2859,10 @@ def outcome(on_good, on_bad):
     return "F_NOT_DISCRIMINATING"
 
 
-def generate(task, good_sources, bad_sources, adapter, workspace, framework="vitest",
-             retries=3, tag="ceil"):
+def generate(task, good_sources, bad_sources, adapter, workspace, import_line,
+             framework="vitest", retries=3, tag="ceil"):
     base = load("ceiling_testgen", sources=_bundle(good_sources),
-                diff=diff_of(good_sources, bad_sources),
+                diff=diff_of(good_sources, bad_sources), import_line=import_line,
                 language=task.language.capitalize(), framework=framework)
     good_ws = adapter.stage(task.task_id, workspace / "good", sources=good_sources)
     suite, rec = _generate_with_repair(base, adapter, good_ws, retries, tag)
@@ -2829,7 +2870,7 @@ def generate(task, good_sources, bad_sources, adapter, workspace, framework="vit
     return suite, rec
 
 
-def score_ceiling(task, candidates, adapter, workspace, good_sources):
+def score_ceiling(task, candidates, adapter, workspace, good_sources, import_line):
     """One row per BAD candidate. GOOD candidates are not scored: ARM C has no GAR."""
     from ..score import ACCEPT, BEHAVIOURAL, REJECT
 
@@ -2838,7 +2879,8 @@ def score_ceiling(task, candidates, adapter, workspace, good_sources):
         if cand.label != "BAD":
             continue
         ws = workspace / f"ceil_{cid}"
-        suite, rec = generate(task, good_sources, sources, adapter, ws, tag=f"ceil_{cid}")
+        suite, rec = generate(task, good_sources, sources, adapter, ws, import_line,
+                              tag=f"ceil_{cid}")
         if not rec["compiles"]:
             rows.append({"task_id": task.task_id, "benchmark": task.benchmark,
                          "candidate_id": cid, "ground_truth": "BAD", "label": "BAD",
@@ -2901,7 +2943,8 @@ with:
     # ARM C is exempt from the freeze: it is handed the GOOD->BAD diff by construction,
     # which is exactly why it is a ceiling and not a technique.
     if good_sources:
-        rows += ceiling.score_ceiling(task, candidates, JS, ws / "ceiling", good_sources)
+        rows += ceiling.score_ceiling(task, candidates, JS, ws / "ceiling", good_sources,
+                                      imp)
     else:
         log(f"{name}: no verified-GOOD candidate, ARM C skipped")
     (task.root / "rows.json").write_text(json.dumps(rows, indent=2))

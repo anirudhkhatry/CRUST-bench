@@ -1099,10 +1099,15 @@ def run_task(row, results_root, n_good=3, n_bad=3, workspace=None, log=print):
     p0 = JM.stage(task.task_id, ws / "p0", origin=origin)
     adapter = _BoundAdapter(origin)
     suites, admissible, records = {}, {}, {}
-    n_suite, rec = naive.generate(task, sources, adapter, p0, framework="JUnit 4",
+    # The Java analogue of an import line: the suite is compiled into the project's own
+    # test source root, so the classes under test are already on the classpath. Both arms
+    # are told this identically (see the Task 8 note in the harness plan).
+    imp = ("the classes under test are already on the test classpath; import them by "
+           "their own package names")
+    n_suite, rec = naive.generate(task, sources, adapter, p0, imp, framework="JUnit 4",
                                   tag=f"{task.task_id}_naive")
     suites["naive"], admissible["naive"], records["naive"] = n_suite, rec["admissible"], rec
-    m_suite, rec = mutation.generate(task, sources, adapter, ws / "mut",
+    m_suite, rec = mutation.generate(task, sources, adapter, ws / "mut", imp,
                                      framework="JUnit 4", tag=f"{task.task_id}_mut")
     m_run = JM.run_suite(p0, m_suite, "ADMutTest") if m_suite else None
     suites["mutation"] = m_suite
@@ -1178,7 +1183,7 @@ def run_task(row, results_root, n_good=3, n_bad=3, workspace=None, log=print):
     rows += _score_existing(task, candidates, adapter, ws / "existing", origin)
     if good_sources:
         rows += ceiling.score_ceiling(task, candidates, adapter, ws / "ceiling",
-                                      good_sources)
+                                      good_sources, imp)
     (task.root / "rows.json").write_text(json.dumps(rows, indent=2))
     log(f"{task.task_id}: {len(candidates)} candidates, {len(rows)} rows")
     return rows
