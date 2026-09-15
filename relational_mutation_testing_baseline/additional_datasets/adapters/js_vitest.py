@@ -95,6 +95,16 @@ def stage(name, dest, sources=None):
     # -- stage(name, dest, sources) / run_suite(workspace, text, suite_name) -- identical
     # for every benchmark, which the Java adapter also has to satisfy.
     (dest / PREFIX_MARKER).write_text(pre)
+    # Bare specifiers -- `react`, `react/jsx-dev-runtime`, `@testing-library/react`,
+    # `vitest` -- are resolved by Node walking UP from the importing file, so a workspace
+    # staged outside the runtime directory resolves none of them. The automatic JSX
+    # runtime needs `react/jsx-dev-runtime` in particular, so without this every React
+    # fixture dies with "Failed to resolve import" and reports zero cases -- silently
+    # excluding exactly the complex subjects the experiment needs. A symlink covers every
+    # bare specifier at once rather than aliasing them one by one in the vitest config.
+    link = dest / "node_modules"
+    if not link.exists():
+        link.symlink_to(RUNTIME / "node_modules", target_is_directory=True)
     return dest
 
 
