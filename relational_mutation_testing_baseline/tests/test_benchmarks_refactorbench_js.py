@@ -365,13 +365,25 @@ def test_p0_returned_unchanged_is_never_admitted_as_a_candidate(tmp_path, monkey
     assert _meta(tmp_path)["candidates"] == []
 
 
-def test_the_candidate_sweep_is_one_model_at_several_temperatures():
-    """Change 3: a temperature sweep, not a model mix -- so GOOD vs BAD is a property of
-    the sampling temperature. Fails if a second model is reintroduced into the list, or if
-    the list collapses to a single temperature (which would give no spread)."""
-    assert {m for m, _ in rjs.MODELS} == {rjs.CANDIDATE_MODEL}
-    assert "haiku" in rjs.CANDIDATE_MODEL
-    assert len({t for _, t in rjs.MODELS}) >= 3
+def test_the_candidate_sweep_spans_model_strength():
+    """The sweep must span model STRENGTH, not sampling temperature.
+
+    Measured in run `expt2`: twelve Haiku draws on a 1,600-line React component produced
+    0 GOOD and 8 BAD, and 7 of the 8 failed the SAME oracle case -- so resampling one
+    model gave one fault twelve times, not twelve faults, and GAR was unmeasurable. A
+    ladder is what produces both labels: the weak model supplies BADs, the strong one
+    GOODs.
+
+    Fails if the list collapses to a single model (the state that produced 0 GOOD), if the
+    weak model is dropped (no BADs), or if the strong model is dropped (no GOODs).
+    """
+    models = {m for m, _ in rjs.MODELS}
+    assert len(models) >= 2, "a single-model sweep cannot span correctness"
+    assert rjs.WEAK_MODEL in models, "no weak model -- BAD candidates become unlikely"
+    assert rjs.STRONG_MODEL in models, "no strong model -- GOOD candidates become unlikely"
+    # Strongest first: Arm S needs a verified-GOOD migration to seed into, and is skipped
+    # entirely if the sweep exhausts without finding one.
+    assert rjs.MODELS[0][0] == rjs.STRONG_MODEL
 
 
 # --- matched CASE count (the leaf case, not the contributor) ---------------------------

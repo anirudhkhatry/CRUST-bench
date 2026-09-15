@@ -23,17 +23,34 @@ from ..spec import Candidate, Task, sources_hash, write_metadata
 # accept. Either way it is unusable for the comparison, and `run_task` says so in metadata
 # rather than letting it flatter whichever arm rejects more.
 #
-# This is a TEMPERATURE SWEEP on one model, which since 9176dcb is a real sweep:
-# `rmt.llm.ask` now takes `model=` and `temperature=` and applies both, and
-# `harvest.propose_candidate` passes both explicitly. Low temperatures tend to produce
-# the careful, behaviour-preserving refactoring (GOOD); high ones produce the ambitious
-# one that drops a case (BAD). One model throughout, so "GOOD vs BAD" is a property of
-# the sampling temperature rather than of which vendor model drew the candidate.
-CANDIDATE_MODEL = "claude-haiku-4-5-20251001"
-MODELS = [(CANDIDATE_MODEL, t) for t in (0.0, 0.3, 0.7, 1.0, 1.0, 1.0)]
-# The sweep is exhausted after this many draws. Two passes of the six settings: repeated
-# entries are not cache hits (the cache tag carries the draw index), so a repeated 1.0 is
-# a fresh high-temperature sample.
+# This is a MODEL-STRENGTH LADDER, not a temperature sweep. The temperature sweep it
+# replaces produced 0 GOOD candidates from 12 Haiku draws on a 1,600-line React component
+# (measured, run `expt2`): every single one failed the oracle, so GAR was n/a for every arm
+# and the fixture could not test half the hypothesis. Two reasons it could not work:
+#
+#   1. `temperature` reaches no API call. anthropic 1.5.0 exposes no temperature parameter
+#      on messages.stream() or messages.create(). It still varies the CACHE KEY, so each
+#      entry is an independently sampled draw -- but the draws differ only by sampling
+#      noise, not by any controlled setting.
+#   2. Sampling noise does not span correctness. Refactoring a large component either is
+#      or is not within a model's reach; resampling a model that cannot do it yields twelve
+#      different wrong answers.
+#
+# Model strength does span it, which is what the design wanted all along: a weak model
+# supplies the BAD candidates and a strong one the GOOD, so the population contains both
+# labels by construction rather than by luck. The label is then a property of which model
+# drew the candidate -- recorded per candidate, so it is visible in the results and can be
+# controlled for.
+STRONG_MODEL = "claude-opus-5"
+MID_MODEL = "claude-sonnet-5"
+WEAK_MODEL = "claude-haiku-4-5-20251001"
+CANDIDATE_MODEL = WEAK_MODEL          # kept: referenced elsewhere as the default drawer
+# Strongest first, so a GOOD candidate is found early and Arm S (which needs a
+# verified-GOOD migration to seed into) is not skipped for want of one.
+MODELS = [(STRONG_MODEL, 1.0), (MID_MODEL, 1.0), (WEAK_MODEL, 1.0),
+          (STRONG_MODEL, 1.0), (MID_MODEL, 1.0), (WEAK_MODEL, 1.0)]
+# The sweep is exhausted after this many draws. Repeated entries are not cache hits (the
+# cache tag carries the draw index), so each is a fresh sample from that model.
 CANDIDATE_SWEEP = MODELS * 2
 TRANSFORMATION = ("Decompose the target file into smaller, well-structured modules while "
                   "preserving all externally observable behaviour.")
