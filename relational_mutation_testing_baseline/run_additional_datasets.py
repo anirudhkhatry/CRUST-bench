@@ -12,6 +12,7 @@ import json
 import sys
 from pathlib import Path
 
+from additional_datasets.arms.assemble import N_DRAWS
 from additional_datasets.runner import LeakageError
 
 # Runs are namespaced, matching the existing `results/<run>/<project>/` convention in
@@ -44,7 +45,7 @@ def cmd_run(a):
     failures = []
     for n in names:
         try:
-            rows += mod.run_task(n, root, n_good=a.good, n_bad=a.bad)
+            rows += mod.run_task(n, root, n_good=a.good, n_bad=a.bad, draws=a.draws)
         except LeakageError as e:
             # A leakage control fired: the run is not scoreable, full stop (spec §15).
             # It must not be caught with the per-task handler below, dropped to a
@@ -88,6 +89,13 @@ def main():
     s.add_argument("--fixtures", nargs="*", help="restrict to these task ids")
     s.add_argument("--good", type=int, default=3, help="GOOD candidates per task")
     s.add_argument("--bad", type=int, default=3, help="seeded BAD candidates per task")
+    # ONE knob for both arms. ARM N's draw count and ARM M's mutant count must stay equal
+    # -- that equality is the matched control -- so there is deliberately no --mutants to
+    # set alongside it. Lower it for a cheap pilot; `run_task` asserts the two arms were
+    # given the same number.
+    s.add_argument("--draws", type=int, default=N_DRAWS,
+                   help=f"draws per arm: ARM N suites AND ARM M mutants (default "
+                        f"{N_DRAWS}); they are always equal")
     s.set_defaults(fn=cmd_run)
 
     s = sub.add_parser("report", help="the spec §5 metrics table")

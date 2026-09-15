@@ -26,7 +26,7 @@ def test_cli_rejects_an_unknown_benchmark():
 
 def _run_args(run_name, **kw):
     d = dict(benchmark="refactorbench_js", fixtures=["fake_fixture"], tasks=1,
-             run=run_name, good=1, bad=1)
+             run=run_name, good=1, bad=1, draws=2)
     d.update(kw)
     return SimpleNamespace(**d)
 
@@ -40,7 +40,7 @@ def test_a_fired_leakage_control_aborts_the_run_and_writes_no_artifact(tmp_path,
     """
     from additional_datasets.benchmarks import refactorbench_js as rjs
 
-    def fake_run_task(name, root, n_good, n_bad):
+    def fake_run_task(name, root, n_good, n_bad, draws):
         raise LeakageError(f"{name}: candidates already exist")
 
     monkeypatch.setattr(rjs, "run_task", fake_run_task)
@@ -61,7 +61,7 @@ def test_a_non_leakage_task_failure_is_recorded_in_the_artifact_and_flagged_in_t
     """
     from additional_datasets.benchmarks import refactorbench_js as rjs
 
-    def fake_run_task(name, root, n_good, n_bad):
+    def fake_run_task(name, root, n_good, n_bad, draws):
         raise RuntimeError("vitest exploded")
 
     monkeypatch.setattr(rjs, "run_task", fake_run_task)

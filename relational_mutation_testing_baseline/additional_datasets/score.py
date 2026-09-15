@@ -117,13 +117,21 @@ def metrics(rows, behavioural_only=False):
 # never pooled. If an arm beats the naive baseline on S but not on N, that is the finding:
 # the advantage would be mutation-family resemblance rather than detection power.
 
-ARMS = ("mutation", "naive", "existing", "ceiling")
+ARMS = ("mutation_matched", "naive_matched", "mutation", "naive", "existing", "ceiling")
 # ARM A is the developer suite, which since spec §4.4 is the hidden oracle itself: it
 # assigned every GOOD/BAD label, so its verdicts are definitions rather than measurements.
 # It is reported for completeness and excluded from every comparison.
 DEFINITIONAL_ARM = "existing"
 ARM_LABEL = {"mutation": "ARM M (mutation-guided)", "naive": "ARM N (naive LLM)",
+             "mutation_matched": "ARM M (mutation-guided, matched count)",
+             "naive_matched": "ARM N (naive LLM, matched count)",
              "existing": "ARM A (developer tests)", "ceiling": "ARM C (sees the diff)"}
+# The comparison the user asked for: "at the same number of generated tests". The `*_raw`
+# arms keep everything each arm's own gate admitted, so ARM M's and ARM N's suites differ
+# in SIZE as well as in how they were selected; the `*_matched` arms truncate both to
+# min(kept_M, kept_N) before assembling. Both are reported; the matched pair is the
+# headline.
+MATCHED_ARMS = ("mutation_matched", "naive_matched")
 
 
 def by_arm(rows, behavioural_only=False):
@@ -239,6 +247,36 @@ def _structural_lines(per):
             f"per arm -- counted in the first table, not in the second: {body}.", ""]
 
 
+def single_label_tasks(rows):
+    """{task_id: "GOOD"|"BAD"} for tasks whose candidates all carried one label.
+
+    Such a task cannot measure the comparison: with only GOOD candidates every arm's BRR
+    is n/a, with only BAD every arm's GAR is n/a. Pooling its rows into the tables does not
+    make it neutral -- it adds a population that only one half of the confusion matrix can
+    see, which flatters whichever arm rejects more (or less). So it is excluded from the
+    tables and listed instead.
+    """
+    return {r["task_id"]: r["single_label"] for r in rows if r.get("single_label")}
+
+
+def comparable(rows):
+    """The rows that can enter a table: everything from a task with BOTH labels."""
+    return [r for r in rows if not r.get("single_label")]
+
+
+def _single_label_lines(rows):
+    single = single_label_tasks(rows)
+    if not single:
+        return []
+    out = [f"> **{len(single)} fixture(s) are UNUSABLE for the comparison and are EXCLUDED "
+           "from every table below.** Each produced candidates of only one label, so one "
+           "half of the confusion matrix does not exist for it:", ""]
+    for task, lbl in sorted(single.items()):
+        missing = "BRR is n/a for every arm" if lbl == "GOOD" else "GAR is n/a for every arm"
+        out.append(f"> - `{task}`: every candidate is {lbl} -- {missing}.")
+    return out + [""]
+
+
 def report(rows, title, failures=()):
     """The spec §5 tables. `failures` are tasks that errored and produced no rows.
 
@@ -248,8 +286,10 @@ def report(rows, title, failures=()):
     distinction, so reporting only the first table would overstate every arm, and reporting
     only the second would hide how much of each arm's detection was structural.
     """
+    all_rows, rows = rows, comparable(rows)
     per = by_arm(rows)
     lines = [f"# Good-vs-bad classification: {title}", ""]
+    lines += _single_label_lines(all_rows)
     if failures:
         # A run with failed tasks must not render as a clean report: the arms below were
         # measured over the tasks that survived, which is a different population.
@@ -258,7 +298,15 @@ def report(rows, title, failures=()):
         for f in failures:
             lines.append(f"> - `{f.get('task')}`: {f.get('error')}")
         lines.append("")
-    lines += ["The headline is BRR at matched GAR -- an arm that rejects more BAD while also",
+    lines += ["**The headline rows are the two `matched count` arms**: ARM M keeps only",
+              "killing tests and ARM N keeps green ones, so their raw suites differ in SIZE",
+              "as well as in selection. The matched arms truncate both to the same number of",
+              "kept contributors -- min(kept_M, kept_N), earliest first -- and re-assemble",
+              "through the same shared helper, which is the comparison 'at the same number",
+              "of generated tests'. The unmatched `ARM M`/`ARM N` rows are reported beside",
+              "them: if the two comparisons disagree, the raw advantage was suite size.",
+              "",
+              "The headline is BRR at matched GAR -- an arm that rejects more BAD while also",
               "rejecting more GOOD has not won anything. The comparison is ARM M against",
               "ARM N. **ARM A is excluded from every comparison: its GAR is definitional AND",
               "so is its BRR**, because ARM A is the developer suite, which is the hidden",

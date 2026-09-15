@@ -90,3 +90,38 @@ def test_propose_candidate_prompt_never_sees_the_oracle_or_a_label(monkeypatch):
                               "app/index.js", "m", 1.0, "t")
     for forbidden in ("expect(", "describe(", "GOOD", "BAD", "oracle"):
         assert forbidden not in seen["user"], f"{forbidden!r} leaked into the Arm N prompt"
+
+
+def test_propose_candidate_forwards_the_model_and_temperature_it_was_given(monkeypatch):
+    """Change 3: the sweep is only real if both values reach `ask` and are recorded.
+
+    `rmt.llm.ask` gained `model=` and applied `temperature=` at 9176dcb. Fails on the
+    previous code, which passed neither model nor an honest record of what was used --
+    every entry in the sweep then produced the same call and the spread was noise.
+    """
+    seen = {}
+    monkeypatch.setattr(harvest, "ask", lambda system, user, **kw: seen.update(kw) or
+                        '```json\n{"app/index.js": "export const x = 2;"}\n```')
+    got = harvest.propose_candidate(_task_obj(), {"app/index.js": "export const x = 1;"},
+                                    "app/index.js", "claude-haiku-4-5-20251001", 0.7, "t")
+    assert seen["model"] == "claude-haiku-4-5-20251001"
+    assert seen["temperature"] == 0.7
+    # ...and it reports back what it used, so the Candidate cannot record a setting that
+    # was never applied.
+    assert got["model"] == "claude-haiku-4-5-20251001" and got["temperature"] == 0.7
+
+
+def test_two_temperatures_do_not_share_a_cache_tag(monkeypatch):
+    """`ask` names its cache entry `<tag>_<hash>.json`. Two draws that shared a tag AND a
+    payload would return the identical candidate for free, collapsing the sweep.
+
+    Fails if the temperature is dropped from the tag while also being dropped from the
+    payload -- which is precisely the state the code was in before 9176dcb.
+    """
+    tags = []
+    monkeypatch.setattr(harvest, "ask", lambda system, user, **kw:
+                        tags.append(kw["tag"]) or '```json\n{"a.js": "x"}\n```')
+    for temp in (0.0, 1.0):
+        harvest.propose_candidate(_task_obj(), {"app/index.js": "export const x = 1;"},
+                                  "app/index.js", "m", temp, "t")
+    assert len(set(tags)) == 2, tags

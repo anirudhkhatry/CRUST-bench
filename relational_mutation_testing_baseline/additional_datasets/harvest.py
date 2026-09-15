@@ -13,18 +13,26 @@ from .prompts import load
 SYSTEM = "You are a careful software engineer performing a behaviour-preserving refactoring."
 
 
-def propose_candidate(task, sources, target, model_tag, temperature, tag):
-    """One candidate transformation, or None if the reply was unusable."""
+def propose_candidate(task, sources, target, model, temperature, tag):
+    """One candidate transformation, or None if the reply was unusable.
+
+    `model` and `temperature` are both forwarded to `ask` and both returned, so what the
+    Candidate records is what the call actually used. Since 9176dcb `rmt.llm.ask` accepts
+    and applies both -- before that it had no `model` argument and dropped `temperature`,
+    so the sweep was sampling noise and nothing could honestly be recorded. Passing them
+    explicitly (rather than leaning on `ask`'s defaults) is what makes the temperature
+    sweep real: the spread of GOOD vs BAD candidates depends on it.
+    """
     user = load("refactor_js", target=target, sources=_bundle(sources))
     reply = ask(SYSTEM, user, effort="high", max_tokens=32000,
-                temperature=temperature, tag=f"{tag}_{model_tag}")
+                model=model, temperature=temperature, tag=f"{tag}_{model}_t{temperature}")
     try:
         files = json_block(reply)
     except ValueError:
         return None
     if not isinstance(files, dict) or not files:
         return None
-    return {"sources": {**sources, **files}}
+    return {"sources": {**sources, **files}, "model": model, "temperature": temperature}
 
 
 def label(adapter, task, sources, oracle_text, workspace):

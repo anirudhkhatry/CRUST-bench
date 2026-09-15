@@ -40,6 +40,21 @@ The research question, restated for these benchmarks:
 
 ## 2. The structural insight: Stage 3 disappears
 
+> **SUPERSEDED IN PART, 2026-09-15 (user-directed). The translate stage is back in ARM M.**
+> The argument below is that a same-language transformation needs no translation, so Stage
+> 3 can go. That holds for the test's SYNTAX and fails for its DEPENDENCIES: a killing test
+> is written against P0's concrete structure, and the migration guarantees only the exported
+> surface. Translation is where the CRUST-bench pipeline actually loses discriminating power
+> (`F4_not_discriminating`), so dropping it here would benchmark an easier pipeline than the
+> one being proposed. `arms/mutation.translate` re-expresses each killing test over the
+> target file's declared exports and re-gates it — still green on P0, still red on the
+> mutant — counting `F2_translate_no_build`, `F3_unsound_on_p0` and `F4_not_discriminating`
+> as outcomes rather than avoiding them. It is shown only the test and a list of exported
+> names, never a candidate. Consequence 2 below ("a failure is attributable") is therefore
+> narrower than stated: an ARM M miss is now a weak test OR a lossy translation, and the
+> outcome counts are what tell those apart.
+
+
 Both benchmarks here are **same-language, behaviour-preserving** transformations — Java 8
 to Java 17, and JavaScript module decomposition. This is not a detail; it changes the
 instrument.

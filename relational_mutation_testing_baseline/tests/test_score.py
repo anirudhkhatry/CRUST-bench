@@ -193,3 +193,66 @@ def test_by_fault_class_does_not_blend_arms():
     got = {(r["arm"], r["fault_category"]): r for r in by_fault_class(rows)}
     assert got[("mutation", "ordering difference")]["detection_rate"] == 1.0
     assert got[("existing", "ordering difference")]["detection_rate"] == 0.0
+
+
+# --- single-label fixtures and the matched arms ---------------------------------------
+
+def _srow(task, arm, label, v, single_label=None):
+    return {"task_id": task, "arm": arm, "label": label, "verdict": v,
+            "rejection_kind": "" if v == ACCEPT else BEHAVIOURAL,
+            "bad_arm": None if label == "GOOD" else "N", "fault_category": None,
+            "single_label": single_label}
+
+
+def test_a_single_label_task_is_excluded_from_the_tables_and_listed():
+    """A GOOD-only fixture gives every arm BRR n/a; pooling it in still moves GAR.
+
+    `t_good_only` contributes two GOOD candidates that ARM N accepts. If it were pooled,
+    ARM N's GAR denominator would be 3 instead of 1 and the reported GAR would change from
+    0% to 67% -- a fixture that measures nothing would be improving an arm's headline
+    number. Fails on any implementation that does not filter by `single_label`.
+    """
+    from additional_datasets.score import report, single_label_tasks
+    rows = [_srow("t_ok", "naive", "GOOD", REJECT),
+            _srow("t_ok", "naive", "BAD", REJECT),
+            _srow("t_good_only", "naive", "GOOD", ACCEPT, single_label="GOOD"),
+            _srow("t_good_only", "naive", "GOOD", ACCEPT, single_label="GOOD")]
+    assert single_label_tasks(rows) == {"t_good_only": "GOOD"}
+    text = report(rows, title="x")
+    # Listed, with the reason.
+    assert "t_good_only" in text
+    assert "every candidate is GOOD" in text
+    # ...and excluded: ARM N rejected its only comparable GOOD candidate, so GAR is 0%.
+    naive_line = [ln for ln in text.splitlines()
+                  if ln.startswith("| ARM N (naive LLM) |")][0]
+    assert "| 1 |" in naive_line, naive_line     # n GOOD counted, not 3
+    assert "| 0% |" in naive_line
+
+
+def test_a_report_with_no_single_label_tasks_says_nothing_about_them():
+    """Fails if the exclusion banner is emitted unconditionally, which would make every
+    clean report look like it had unusable fixtures."""
+    from additional_datasets.score import report
+    text = report([_srow("t_ok", "naive", "GOOD", ACCEPT),
+                   _srow("t_ok", "naive", "BAD", REJECT)], title="x")
+    assert "UNUSABLE" not in text
+
+
+def test_the_matched_arms_are_labelled_and_ordered_ahead_of_the_raw_ones():
+    """The matched comparison is the headline, so it must be legible as such.
+
+    Fails if `*_matched` arms fall through to the raw arm name (both pairs would render as
+    "mutation_matched" with no explanation of what they are), or if they are ordered after
+    the raw pair.
+    """
+    from additional_datasets.score import ARM_LABEL, ARMS, MATCHED_ARMS, report
+    assert set(MATCHED_ARMS) <= set(ARM_LABEL)
+    assert ARMS.index("mutation_matched") < ARMS.index("mutation")
+    text = report([_srow("t", "mutation_matched", "GOOD", ACCEPT),
+                   _srow("t", "mutation_matched", "BAD", REJECT),
+                   _srow("t", "mutation", "GOOD", ACCEPT),
+                   _srow("t", "mutation", "BAD", REJECT)], title="x")
+    body = text.splitlines()
+    first = [i for i, ln in enumerate(body) if "ARM M (mutation-guided, matched count)" in ln]
+    later = [i for i, ln in enumerate(body) if ln.startswith("| ARM M (mutation-guided) |")]
+    assert first and later and first[0] < later[0]

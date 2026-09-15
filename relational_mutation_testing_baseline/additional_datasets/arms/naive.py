@@ -92,7 +92,13 @@ def generate(task, sources, adapter, workspace, import_line, framework="vitest",
 
     suite_text, kept, res, meta = assemble(kept, task, adapter, workspace)
     return suite_text, {"suite": suite_text, "n_draws": n_draws, "n_kept": len(kept),
-                        "kept": [k["index"] for k in kept], "rejected": rejected,
+                        "kept": [k["index"] for k in kept],
+                        # See `mutation.generate`: the surviving contributors WITH their
+                        # text, so the caller can truncate both arms to a matched count
+                        # and re-assemble through the same shared helper.
+                        "contributors": [{"index": k["index"], "suite": k["suite"]}
+                                         for k in kept],
+                        "rejected": rejected,
                         "compiles": bool(kept),
                         "on_p0": res.as_row() if res else None,
                         "admissible": res.passed if res else [], **meta}
