@@ -260,7 +260,32 @@ buys no additional scientific claim.
 GOOD candidates are refactorings that pass the holdout suite; BAD are (N) refactorings
 that run but fail it, and (S) seeded faults confirmed by it.
 
-### 4.4 The oracle split, which is required for correctness
+### 4.4 SUPERSEDED — the oracle is the whole developer suite
+
+> **Decision, 2026-09-15 (user-directed).** The developer test suite is **the oracle**, used
+> whole and unsplit. It labels every candidate GOOD or BAD, and the experiment is then the
+> comparison of ARM M against ARM N **on those labelled implementations**.
+>
+> Baseline A is consequently **the oracle itself**: its GAR and its BRR are both 1.0 by
+> construction. It is reported as definitional and excluded from every comparison, rather
+> than engineered around. This supersedes the split described below, on both benchmarks.
+>
+> What this gains: the full suite is a strictly stronger labeller than half of it, and the
+> §3.6 asymmetry — where Baseline A's GAR was definitional but its BRR was claimed honest —
+> disappears, because both are now acknowledged as definitional rather than one being
+> quietly wrong. On MigrationBench the developer suite both labels and is Baseline A, which
+> made that claim false there; this resolves it.
+>
+> What this costs: the §14 "combined" baseline and the RQ2 column lose their independent
+> Baseline A. `combined_tests_pass` is retained but is `None` throughout, since combining an
+> arm with the oracle that defined the labels answers nothing.
+>
+> The splitting machinery (`js_split.py`, and the verification in `js_oracle.py`) is kept —
+> it is correct, tested, and the verification pass is still what proves a fixture's holdout
+> is green on P0 before anything is scored against it — but the split halves are no longer
+> used to manufacture an independent Baseline A.
+
+#### The superseded design, retained for the record
 
 Here Baseline A and the hidden oracle would be the same file, so Baseline A would score a
 rejection rate of 1.0 by construction and the Baseline A column would be a tautology. The
