@@ -10,6 +10,20 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-14-additional-datasets-design.md`
 
+> **Which artifact is authoritative.** Tasks 1–12 are implemented and reviewed. Each went
+> through at least one fix round, and those fixes landed in the code; a dozen of them were
+> not mirrored back here. **For an already-implemented task, the shipped code is
+> authoritative** — it is what passed review. The code blocks below are the argument that
+> produced it, not a current description of it. For a task not yet implemented, this plan
+> is still the specification.
+>
+> `scripts/plan_drift.py` reports which functions differ, so the gap is measurable rather
+> than assumed. Run it before regenerating any brief:
+>
+> ```bash
+> .venv/bin/python scripts/plan_drift.py
+> ```
+
 ## Global Constraints
 
 - **Working dir** is `relational_mutation_testing_baseline/`. All paths below are relative to it unless they start with `docs/` or `datasets/`, which are relative to the repo root `/nas/CRUST-bench-COLM/CRUST-bench`.
@@ -696,9 +710,21 @@ def freeze(task: Task, suites: dict) -> dict:
         raise LeakageError(
             f"{task.task_id}: candidates already exist -- suites must be frozen before "
             f"any candidate is on disk (spec §7)")
-    ext = EXT.get(task.language, "txt")
+    try:
+        ext = EXT[task.language]
+    except KeyError:
+        raise LeakageError(
+            f"{task.task_id}: unknown language {task.language!r}; known: "
+            f"{', '.join(sorted(EXT))}") from None
     hashes = {}
     for arm, text in sorted(suites.items()):
+        # A None suite means generation failed and the caller registered it anyway.
+        # Without this the failure surfaces as `write_text(None)` raising TypeError deep
+        # inside the freeze, which reads like a harness bug rather than a missing suite.
+        if not isinstance(text, str):
+            raise LeakageError(f"{task.task_id}/{arm}: suite is {type(text).__name__}, "
+                               f"not text -- generation failed and the arm should have "
+                               f"been omitted rather than frozen")
         d = task.generated_tests_dir / arm
         d.mkdir(parents=True, exist_ok=True)
         (d / f"suite.{ext}").write_text(text)
@@ -2722,7 +2748,18 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
     suites, admissible, records = {}, {}, {}
     imp = f"import * as mod from '{JS.import_path(name)}';"
     n_suite, rec = naive.generate(task, sources, JS, p0_ws, imp, tag=f"{name}_naive")
-    suites["naive"], admissible["naive"], records["naive"] = n_suite, rec["admissible"], rec
+    records["naive"] = rec
+    # Same omission rule as ARM M below, and it matters MORE here because ARM N is the
+    # primary arm. `naive.generate`'s repair is build-errors-only, so a suite that compiles
+    # but fails every assertion on P0 comes back with an empty admissible set -- which
+    # `score_task` refuses, discarding the ENTIRE task's rows including every paid call
+    # already spent on its candidates. Omit the arm and keep the rest of the task.
+    if n_suite and rec["admissible"]:
+        suites["naive"], admissible["naive"] = n_suite, rec["admissible"]
+    else:
+        log(f"{name}: ARM N produced no scorable suite "
+            f"(compiles={rec['compiles']}, admissible={len(rec['admissible'])}) "
+            f"-- omitted from scoring")
     m_suite, rec = mutation.generate(task, sources, JS, ws / "mut", imp,
                                      tag=f"{name}_mut")
     m_run = JS.run_suite(p0_ws, m_suite, "mut_p0") if m_suite else None
