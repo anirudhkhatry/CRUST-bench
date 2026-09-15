@@ -1263,7 +1263,7 @@ def parse_vitest_json(blob):
     unscorable. Conflating them corrupts the structural-vs-behavioural split the design
     requires, and it is the most likely misreading of this report format.
     """
-    cases, skipped = {}, 0
+    cases = {}
     files = blob.get("testResults") or []
     for f in files:
         for a in f.get("assertionResults") or []:
@@ -1273,8 +1273,8 @@ def parse_vitest_json(blob):
                 cases[name] = "ok"
             elif st == "failed":
                 cases[name] = "FAILED"
-            else:
-                skipped += 1
+            # A skipped case simply does not enter `cases`: the oracle split masks half
+            # the suite with .skip, and those must not be scored either way.
     if not cases:
         file_failed = any(f.get("status") == "failed" for f in files)
         return ("build_error" if file_failed else "no_tests"), cases
@@ -1282,30 +1282,44 @@ def parse_vitest_json(blob):
 
 
 def run_suite(workspace, suite_text, suite_name):
-    """Run one suite against a staged workspace. The suite is written in, then removed."""
+    """Run one suite against a staged workspace. The suite is written in, then removed.
+
+    Callers stage a workspace once and run several suites against it, so both the test
+    file and the report are cleaned up on every exit path. Deleting the report BEFORE
+    running matters most: the build-error check below is `not out_file.exists()`, so a
+    stale report from an earlier run of the same suite_name would be indistinguishable
+    from this run's output and a crashed vitest would silently return the PREVIOUS
+    result as if it were current.
+    """
     workspace = Path(workspace)
     test_file = workspace / f"{suite_name}.test.jsx"
     test_file.write_text(suite_text)
     out_file = workspace / f"{suite_name}.results.json"
+    out_file.unlink(missing_ok=True)
     env = {**os.environ, "AD_WORKSPACE": str(workspace), "CI": "1",
            "AD_SRC_PREFIX": staged_prefix(workspace)}
     t0 = time.time()
     try:
-        p = subprocess.run(
-            [str(VITEST), "run", "--config", str(CONFIG), "--reporter=json",
-             f"--outputFile={out_file}", test_file.name],
-            cwd=workspace, env=env, capture_output=True, text=True, timeout=TIMEOUT)
-        rc, out = p.returncode, (p.stdout + p.stderr)
-    except subprocess.TimeoutExpired as e:
-        return SuiteResult(status="timeout", cases={}, rc=124,
-                           seconds=round(time.time() - t0, 1), out=str(e)[-3000:])
-    secs = round(time.time() - t0, 1)
-    if not out_file.exists():
-        # vitest never produced a report: the suite did not build or load.
-        return SuiteResult(status="build_error", cases={}, rc=rc, seconds=secs,
+        try:
+            p = subprocess.run(
+                [str(VITEST), "run", "--config", str(CONFIG), "--reporter=json",
+                 f"--outputFile={out_file}", test_file.name],
+                cwd=workspace, env=env, capture_output=True, text=True, timeout=TIMEOUT)
+            rc, out = p.returncode, (p.stdout + p.stderr)
+        except subprocess.TimeoutExpired as e:
+            return SuiteResult(status="timeout", cases={}, rc=124,
+                               seconds=round(time.time() - t0, 1), out=str(e)[-3000:])
+        secs = round(time.time() - t0, 1)
+        if not out_file.exists():
+            # vitest never produced a report: the suite did not build or load.
+            return SuiteResult(status="build_error", cases={}, rc=rc, seconds=secs,
+                               out=out[-4000:])
+        status, cases = parse_vitest_json(json.loads(out_file.read_text()))
+        return SuiteResult(status=status, cases=cases, rc=rc, seconds=secs,
                            out=out[-4000:])
-    status, cases = parse_vitest_json(json.loads(out_file.read_text()))
-    return SuiteResult(status=status, cases=cases, rc=rc, seconds=secs, out=out[-4000:])
+    finally:
+        test_file.unlink(missing_ok=True)
+        out_file.unlink(missing_ok=True)
 ```
 
 - [ ] **Step 7: Run the tests and make sure they pass**
