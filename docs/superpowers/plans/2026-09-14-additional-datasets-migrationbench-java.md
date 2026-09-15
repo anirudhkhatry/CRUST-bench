@@ -1055,7 +1055,10 @@ from ..seed import seed_faults
 from ..spec import Candidate, Task, write_metadata
 from .java_candidates import TRANSFORMATION, admit, anchor_migration, propose_migration
 
-MODELS = [("claude-opus-5", 1.0), ("claude-haiku-4-5-20251001", 1.0)]
+# Arm N is the PRIMARY bad population (spec §5): a spread of model strength and
+# temperature is what makes the candidate set contain both correct and incorrect work.
+MODELS = [("claude-haiku-4-5-20251001", 1.0), ("claude-haiku-4-5-20251001", 1.0),
+          ("claude-opus-5", 1.0), ("claude-haiku-4-5-20251001", 0.3)]
 SOURCE_GLOBS = ("pom.xml", "src/main/java/**/*.java")
 MAX_SOURCE_CHARS = 180_000
 
@@ -1130,9 +1133,13 @@ def run_task(row, results_root, n_good=3, n_bad=3, workspace=None, log=print):
     else:
         log(f"{task.task_id}: no minimal-diff anchor -- the repo may not migrate cleanly")
 
+    # Runs until BOTH labels are satisfied: a task that collected only GOOD candidates has
+    # nothing to measure detection against.
     for i, (model, temp) in enumerate(MODELS * 3):
         n_g = sum(1 for c, _ in candidates.values() if c.label == "GOOD")
-        if n_g >= n_good:
+        n_b = sum(1 for c, _ in candidates.values()
+                  if c.label == "BAD" and c.bad_arm == "N")
+        if n_g >= n_good and n_b >= n_bad:
             break
         cand = propose_migration(task, sources, model, temp, f"{task.task_id}_c{i}")
         if not cand:
@@ -1177,10 +1184,25 @@ def run_task(row, results_root, n_good=3, n_bad=3, workspace=None, log=print):
                           "arms": {k: {x: v[x] for x in v if x != "suite"}
                                    for k, v in records.items()}})
 
-    # 5. Score. ARM A is the repository's own suite, run per candidate by the adapter.
+    # 5. Score. ARM A here is the repository's own Maven suite, which cannot be handed to
+    # score_task as suite TEXT -- it is run by the build tool, not injected. So it is scored
+    # separately below and its rows are appended, and `combined_tests_pass` is filled in
+    # afterwards from those rows rather than inside score_task.
     rows = score_task(task, candidates, suites, admissible, adapter, ws / "score",
                       existing_text=None, existing_admissible=())
-    rows += _score_existing(task, candidates, adapter, ws / "existing", origin)
+    existing_rows = _score_existing(task, candidates, adapter, ws / "existing", origin)
+    rows += existing_rows
+    # Design §14's combined baseline. On this benchmark Baseline A runs through Maven
+    # rather than as injected suite text, so the AND is applied here instead of inside
+    # score_task; the column means exactly the same thing either way.
+    a_accepts = {r["candidate_id"]: r["existing_tests_pass"] for r in existing_rows}
+    for r in rows:
+        if r["arm"] == "existing":
+            r["combined_tests_pass"] = None
+        else:
+            acc = a_accepts.get(r["candidate_id"])
+            r["combined_tests_pass"] = (None if acc is None
+                                        else acc and r["generated_tests_pass"])
     if good_sources:
         rows += ceiling.score_ceiling(task, candidates, adapter, ws / "ceiling",
                                       good_sources, imp)

@@ -144,7 +144,8 @@ across models is deliberate, following the brief's §8 step 3 and the same reaso
 enough spread to contain both correct and incorrect work.
 
 **BAD, from two independent arms.** Reporting them separately is a requirement, not a
-presentation choice — see §5.
+presentation choice — see §5. Arm N is primary and Arm S diagnostic, for the measured
+reasons in §5's "Which BAD population is primary".
 
 *Arm S (seeded).* A fault-injection role — separate model instance, separate prompt,
 never shown any generated test — takes a verified-GOOD migration and injects one fault
@@ -320,7 +321,31 @@ Also required:
   faults but not on harvested ones, *that is the finding* — it would say the advantage is
   an artifact of mutation-family resemblance. Pooling would hide the single most important
   thing these benchmarks can tell us.
+* **Combined (existing + generated).** A team already has a test suite, so the question
+  that decides adoption is not "do generated tests catch bad migrations?" but "do they
+  catch ones the developer tests miss?" `combined_tests_pass` is `existing accepts AND
+  this arm accepts`, costing no extra execution since every arm already runs against every
+  candidate. It is `None` where Baseline A is unavailable, and `None` on the Baseline A row
+  itself, which *is* the baseline. This is the column that answers RQ2; without it we can
+  say a generated arm beats developer tests 84 to 46 but not whether the 84 subsumes the 46.
 * False rejection rate, accuracy, balanced accuracy, precision, recall, F1 (§12).
+
+### Which BAD population is primary
+
+**Arm N is the primary BAD population; Arm S is secondary and diagnostic.** This reverses
+the original framing, on pilot evidence measured during implementation:
+
+| subject scale | seeded faults (Arm S) | consequence |
+|---|---|---|
+| 47–139 LOC algorithmic fixtures | real faults, but the naive arm catches **15/15 (100%)** | no headroom — a strong model writes 30–50 exact-value assertions for a small total function, which is near-exhaustive characterisation, after which every fault is caught regardless of provenance |
+| 1000–1600 LOC React fixtures | **11 of 12 were equivalent mutants** the oracle could not see | seeding at this scale mostly misses the behaviour the tests observe, so it yields ~8% usable faults per attempt |
+
+So seeding works where it cannot discriminate, and mostly misfires where it could. A real
+transformation attempt, by contrast, touches the code the tests exercise, so its failures
+are reachable by construction — which is what Arm N collects. Arm S is retained because it
+is the only population with a controlled per-fault-category label (§16), but it is reported
+as a diagnostic arm and never as the headline population, and a task whose Arm S yield is
+zero is not treated as a failure.
 
 ## 6. Code layout
 

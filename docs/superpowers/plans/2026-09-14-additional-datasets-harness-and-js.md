@@ -2324,14 +2324,18 @@ git commit -m "feat(ad): arm N candidates, hidden-oracle labelling, equivalent-f
 
 **Interfaces:**
 - Consumes: everything above.
-- Produces: `score_task(task, candidates, suites, admissible, adapter, workspace, existing_text=None, existing_admissible=()) -> list[dict]`. Each row carries the spec §19 columns plus `arm`, `bad_arm`, `label`, `verdict`, `rejection_kind`.
+- Produces: `score_task(task, candidates, suites, admissible, adapter, workspace, existing_text=None, existing_admissible=()) -> list[dict]`. Each row carries the spec §19 columns — including `combined_tests_pass` — plus `arm`, `bad_arm`, `label`, `verdict`, `rejection_kind`.
+
+Three properties this function is responsible for, each with a test: Baseline A's suite goes through the SAME freeze gate as the generated arms; an arm with no admissible set is refused rather than silently accepting every candidate; and `number_generated_tests` is the suite's real size, not the admissible subset (which is filtered to cases passing P0 and would under-report every suite while disagreeing with the ceiling arm).
 
 - [ ] **Step 1: Write the failing test**
 
 Create `tests/test_runner_score.py`:
 
 ```python
-from additional_datasets.runner import score_task
+import pytest
+
+from additional_datasets.runner import LeakageError, freeze, score_task
 from additional_datasets.score import ACCEPT, REJECT
 from additional_datasets.spec import Candidate, SuiteResult, Task, write_metadata
 
@@ -2366,6 +2370,7 @@ def test_score_task_emits_a_row_per_arm_per_candidate(tmp_path):
     bad = Candidate("bad_01", t.task_id, "BAD", "S", "ordering difference", "m", "m", {},
                     "ok", "oracle failed")
     cands = {"good_01": (good, {}), "bad_01": (bad, {})}
+    freeze(t, {"mutation": "M", "naive": "N"})
     adapter = ScriptedAdapter({"mutation@good_01": GREEN, "mutation@bad_01": RED,
                                "naive@good_01": GREEN, "naive@bad_01": GREEN})
     rows = score_task(t, cands, suites={"mutation": "M", "naive": "N"},
@@ -2383,18 +2388,74 @@ def test_rows_carry_every_spec_19_column(tmp_path):
     write_metadata(t, [])
     bad = Candidate("bad_01", t.task_id, "BAD", "N", "ordering difference", "m", "m", {},
                     "ok", "oracle failed")
+    freeze(t, {"mutation": "M"})
     rows = score_task(t, {"bad_01": (bad, {})}, suites={"mutation": "M"},
                       admissible={"mutation": ["t1"]},
                       adapter=ScriptedAdapter({"mutation@bad_01": RED}),
                       workspace=tmp_path / "ws")
     r = rows[0]
     for col in ("task_id", "candidate_id", "ground_truth", "compiles",
-                "existing_tests_pass", "generated_tests_pass", "number_generated_tests",
-                "tests_failed", "fault_category", "execution_time", "arm", "bad_arm"):
+                "existing_tests_pass", "generated_tests_pass", "combined_tests_pass",
+                "number_generated_tests", "tests_failed", "fault_category",
+                "execution_time", "arm", "bad_arm"):
         assert col in r, col
     assert r["ground_truth"] == "BAD"
     assert r["generated_tests_pass"] is False
     assert r["bad_arm"] == "N"
+    # None, not False: "this generated suite is not Baseline A" is a different claim from
+    # "Baseline A failed". A regression to `else False` would pass a key-presence check.
+    assert r["existing_tests_pass"] is None
+    # No Baseline A in this run, so there is nothing to combine with.
+    assert r["combined_tests_pass"] is None
+    # The suite's real size, not the admissible subset.
+    assert r["number_generated_tests"] == 1
+
+
+def test_combined_is_the_and_of_baseline_a_and_the_generated_arm(tmp_path):
+    """Design §14's fifth baseline: existing + generated, the RQ2 column.
+
+    A candidate the developer suite already catches is not new evidence for the generated
+    arm; a candidate only the generated arm catches is exactly the incremental value the
+    experiment exists to measure.
+    """
+    t = _task(tmp_path)
+    write_metadata(t, [])
+    bad = Candidate("bad_01", t.task_id, "BAD", "S", "ordering difference", "m", "m", {},
+                    "ok", "oracle failed")
+    freeze(t, {"mutation": "M", "existing": "E"})
+
+    # Baseline A accepts, the generated arm rejects -> combined rejects: the generated arm
+    # found something the developer suite missed.
+    rows = score_task(t, {"bad_01": (bad, {})}, suites={"mutation": "M"},
+                      admissible={"mutation": ["t1"]},
+                      adapter=ScriptedAdapter({"mutation@bad_01": RED,
+                                               "existing@bad_01": GREEN}),
+                      workspace=tmp_path / "ws",
+                      existing_text="E", existing_admissible=["t1"])
+    by = {r["arm"]: r for r in rows}
+    assert by["mutation"]["combined_tests_pass"] is False
+    assert by["existing"]["combined_tests_pass"] is None, "the baseline row IS the baseline"
+
+    # Both accept -> combined accepts.
+    rows = score_task(t, {"bad_01": (bad, {})}, suites={"mutation": "M"},
+                      admissible={"mutation": ["t1"]},
+                      adapter=ScriptedAdapter({"mutation@bad_01": GREEN,
+                                               "existing@bad_01": GREEN}),
+                      workspace=tmp_path / "ws2",
+                      existing_text="E", existing_admissible=["t1"])
+    assert {r["arm"]: r for r in rows}["mutation"]["combined_tests_pass"] is True
+
+
+def test_an_arm_with_no_admissible_set_is_refused(tmp_path):
+    """An arm that cannot reject would silently accept everything and look like a result."""
+    t = _task(tmp_path)
+    write_metadata(t, [])
+    bad = Candidate("bad_01", t.task_id, "BAD", "S", None, "m", "m", {}, "ok", "why")
+    freeze(t, {"mutation": "M", "naive": "N"})
+    with pytest.raises(LeakageError, match="no admissible set"):
+        score_task(t, {"bad_01": (bad, {})}, suites={"mutation": "M", "naive": "N"},
+                   admissible={"mutation": ["t1"]},          # "naive" omitted
+                   adapter=ScriptedAdapter({}), workspace=tmp_path / "ws")
 
 
 def test_existing_tests_are_scored_as_their_own_arm(tmp_path):
@@ -2402,6 +2463,7 @@ def test_existing_tests_are_scored_as_their_own_arm(tmp_path):
     write_metadata(t, [])
     bad = Candidate("bad_01", t.task_id, "BAD", "S", "ordering difference", "m", "m", {},
                     "ok", "oracle failed")
+    freeze(t, {"mutation": "M", "existing": "E"})
     rows = score_task(t, {"bad_01": (bad, {})}, suites={"mutation": "M"},
                       admissible={"mutation": ["t1"]},
                       adapter=ScriptedAdapter({"mutation@bad_01": RED,
@@ -2424,10 +2486,17 @@ Expected: FAIL — `ImportError: cannot import name 'score_task'`
 
 ```python
 # --- scoring ---------------------------------------------------------------------
-from .score import ACCEPT, REJECT, verdict   # noqa: E402  (kept next to its use)
+from .score import ACCEPT, verdict          # noqa: E402  (kept next to its use)
 
 
-def _row(task, cand, arm, res, v, kind, n_tests):
+def _row(task, cand, arm, res, v, kind, combined):
+    """One §19 row. `combined` is the existing+generated verdict, or None.
+
+    `number_generated_tests` is the size of the suite as actually RUN, not the admissible
+    subset -- the admissible set is filtered to cases that passed the trusted P0, so using
+    it here would under-report every suite's size and disagree with the ceiling arm, which
+    counts the same column from its executed suite.
+    """
     return {"task_id": task.task_id, "benchmark": task.benchmark,
             "candidate_id": cand.candidate_id, "ground_truth": cand.label,
             "label": cand.label, "bad_arm": cand.bad_arm,
@@ -2435,7 +2504,8 @@ def _row(task, cand, arm, res, v, kind, n_tests):
             "compiles": cand.build_status == "ok",
             "existing_tests_pass": (v == ACCEPT) if arm == "existing" else None,
             "generated_tests_pass": v == ACCEPT,
-            "number_generated_tests": n_tests, "tests_failed": len(res.failed),
+            "combined_tests_pass": combined,
+            "number_generated_tests": len(res.cases), "tests_failed": len(res.failed),
             "verdict": v, "rejection_kind": kind, "status": res.status,
             "execution_time": res.seconds,
             "model": cand.model, "model_version": cand.model_version,
@@ -2449,20 +2519,44 @@ def score_task(task, candidates, suites, admissible, adapter, workspace,
     `candidates` is {candidate_id: (Candidate, sources)}. The suites are the frozen ones;
     `assert_frozen` is called first so a suite edited after the freeze cannot be scored.
     """
-    assert_frozen(task, suites)
     arms = dict(suites)
     if existing_text:
         arms["existing"] = existing_text
+    # Baseline A's suite is frozen and hash-checked like every other arm. Validating only
+    # `suites` would leave the one arm whose text comes from the fixture outside the gate
+    # that is supposed to be a mechanical guarantee rather than a promise.
+    assert_frozen(task, arms)
+
     adm = {**{a: list(v) for a, v in admissible.items()},
            **({"existing": list(existing_admissible)} if existing_text else {})}
+    # An arm with no admissible set can never fire a behavioural rejection, so every
+    # candidate would be silently ACCEPTed and the run would produce plausible, wrong
+    # numbers. That is a caller bug; fail loudly rather than scoring it.
+    missing = set(arms) - set(adm)
+    if missing:
+        raise LeakageError(f"{task.task_id}: no admissible set for arm(s) "
+                           f"{', '.join(sorted(missing))} -- every candidate would be "
+                           f"accepted by default")
 
     rows = []
     for cid, (cand, sources) in sorted(candidates.items()):
+        # Baseline A's verdict is needed by every other arm's `combined` column, so it is
+        # resolved first rather than in dict order.
+        results = {}
         for arm, text in sorted(arms.items()):
             ws = adapter.stage(task.task_id, workspace / f"{arm}_{cid}", sources=sources)
             res = adapter.run_suite(ws, text, f"{arm}@{cid}")
-            v, kind = verdict(res, set(adm.get(arm, [])))
-            rows.append(_row(task, cand, arm, res, v, kind, len(adm.get(arm, []))))
+            results[arm] = (res, *verdict(res, set(adm.get(arm, []))))
+        existing_accepts = (results["existing"][1] == ACCEPT) if "existing" in results else None
+
+        for arm, (res, v, kind) in sorted(results.items()):
+            # Combined = existing tests + this generated suite, the design's §14 fifth
+            # baseline: it answers "do generated tests catch what the developer suite
+            # misses", which is the question that decides adoption. None on the Baseline A
+            # row itself (it IS the baseline) and wherever Baseline A is unavailable.
+            combined = (None if arm == "existing" or existing_accepts is None
+                        else existing_accepts and v == ACCEPT)
+            rows.append(_row(task, cand, arm, res, v, kind, combined))
     return rows
 ```
 
@@ -2547,7 +2641,12 @@ from ..runner import freeze, score_task
 from ..seed import seed_faults
 from ..spec import Candidate, Task, write_metadata
 
-MODELS = [("claude-opus-5", 1.0), ("claude-haiku-4-5-20251001", 1.0)]
+# Arm N is the PRIMARY bad population (spec §5). A spread of model strength and
+# temperature is what makes the candidate set contain both correct and incorrect work: a
+# single strong model at temperature 0 produces near-identical candidates that are almost
+# all GOOD, and yields no BADs to measure against.
+MODELS = [("claude-haiku-4-5-20251001", 1.0), ("claude-haiku-4-5-20251001", 1.0),
+          ("claude-opus-5", 1.0), ("claude-haiku-4-5-20251001", 0.3)]
 TRANSFORMATION = ("Decompose the target file into smaller, well-structured modules while "
                   "preserving all externally observable behaviour.")
 
@@ -2603,14 +2702,23 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
     admissible["mutation"] = m_run.passed if m_run else []
     records["mutation"] = rec
 
-    # 3. Freeze. Candidates must not exist yet.
-    hashes = freeze(task, suites)
+    # 3. Freeze. Candidates must not exist yet. Baseline A's half of the holdout is frozen
+    # alongside the generated arms so it passes through the same gate they do.
+    to_freeze = dict(suites)
+    if oracle["arm_a_usable"]:
+        to_freeze["existing"] = oracle["existing_text"]
+    hashes = freeze(task, to_freeze)
     log(f"{name}: froze {list(hashes)}")
 
-    # 4. Candidates.
+    # 4. Candidates. Arm N is the primary BAD population, so this loop runs until it has
+    # enough of BOTH labels rather than stopping at n_good: a run that collected only GOOD
+    # candidates has nothing to measure detection against.
     candidates, good_sources = {}, None
     for i, (model, temp) in enumerate(MODELS * 3):
-        if sum(1 for c, _ in candidates.values() if c.label == "GOOD") >= n_good:
+        n_g = sum(1 for c, _ in candidates.values() if c.label == "GOOD")
+        n_b = sum(1 for c, _ in candidates.values()
+                  if c.label == "BAD" and c.bad_arm == "N")
+        if n_g >= n_good and n_b >= n_bad:
             break
         cand = propose_candidate(task, sources, target, model, temp, f"{name}_c{i}")
         if not cand:
@@ -2628,6 +2736,10 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
                            cand["sources"])
 
     # 5. Arm S: seeded faults in a verified-GOOD migration, confirmed by the oracle.
+    # DIAGNOSTIC, not primary (spec §5): measured yield is ~8% on complex subjects, since
+    # a blind snippet edit usually lands where the tests do not look. Its value is the
+    # per-fault-category label, which Arm N cannot supply. A task whose Arm S yield is zero
+    # is not a failed task.
     for j, f in enumerate(seed_faults(task, good_sources or sources, n_bad,
                                       f"{name}_seed") if (good_sources or sources) else []):
         lbl, why = label(JS, task, f["sources"], oracle["oracle_text"], ws / f"s{j}")
