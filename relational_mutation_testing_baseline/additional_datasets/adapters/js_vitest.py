@@ -112,7 +112,7 @@ def parse_vitest_json(blob):
     unscorable. Conflating them corrupts the structural-vs-behavioural split the design
     requires, and it is the most likely misreading of this report format.
     """
-    cases, skipped = {}, 0
+    cases = {}
     files = blob.get("testResults") or []
     for f in files:
         for a in f.get("assertionResults") or []:
@@ -122,8 +122,6 @@ def parse_vitest_json(blob):
                 cases[name] = "ok"
             elif st == "failed":
                 cases[name] = "FAILED"
-            else:
-                skipped += 1
     if not cases:
         file_failed = any(f.get("status") == "failed" for f in files)
         return ("build_error" if file_failed else "no_tests"), cases
@@ -136,22 +134,34 @@ def run_suite(workspace, suite_text, suite_name):
     test_file = workspace / f"{suite_name}.test.jsx"
     test_file.write_text(suite_text)
     out_file = workspace / f"{suite_name}.results.json"
+    # A stale report from an earlier run of the same suite_name would be indistinguishable
+    # from this run's output: the failure check below is `not out_file.exists()`, so a
+    # crashed vitest would silently return the PREVIOUS run's result as if it were current.
+    out_file.unlink(missing_ok=True)
     env = {**os.environ, "AD_WORKSPACE": str(workspace), "CI": "1",
            "AD_SRC_PREFIX": staged_prefix(workspace)}
     t0 = time.time()
     try:
-        p = subprocess.run(
-            [str(VITEST), "run", "--config", str(CONFIG), "--reporter=json",
-             f"--outputFile={out_file}", test_file.name],
-            cwd=workspace, env=env, capture_output=True, text=True, timeout=TIMEOUT)
-        rc, out = p.returncode, (p.stdout + p.stderr)
-    except subprocess.TimeoutExpired as e:
-        return SuiteResult(status="timeout", cases={}, rc=124,
-                           seconds=round(time.time() - t0, 1), out=str(e)[-3000:])
-    secs = round(time.time() - t0, 1)
-    if not out_file.exists():
-        # vitest never produced a report: the suite did not build or load.
-        return SuiteResult(status="build_error", cases={}, rc=rc, seconds=secs,
-                           out=out[-4000:])
-    status, cases = parse_vitest_json(json.loads(out_file.read_text()))
-    return SuiteResult(status=status, cases=cases, rc=rc, seconds=secs, out=out[-4000:])
+        try:
+            p = subprocess.run(
+                [str(VITEST), "run", "--config", str(CONFIG), "--reporter=json",
+                 f"--outputFile={out_file}", test_file.name],
+                cwd=workspace, env=env, capture_output=True, text=True, timeout=TIMEOUT)
+            rc, out = p.returncode, (p.stdout + p.stderr)
+        except subprocess.TimeoutExpired as e:
+            return SuiteResult(status="timeout", cases={}, rc=124,
+                               seconds=round(time.time() - t0, 1), out=str(e)[-3000:])
+        secs = round(time.time() - t0, 1)
+        if not out_file.exists():
+            # vitest never produced a report: the suite did not build or load.
+            return SuiteResult(status="build_error", cases={}, rc=rc, seconds=secs,
+                               out=out[-4000:])
+        status, cases = parse_vitest_json(json.loads(out_file.read_text()))
+        return SuiteResult(status=status, cases=cases, rc=rc, seconds=secs, out=out[-4000:])
+    finally:
+        # The suite is written in, then removed -- both the test file and its report --
+        # so a later run_suite call against the same workspace never sees this call's
+        # leftovers, and so repeated calls with the same suite_name (Task 7 stages once
+        # and runs "whole"/"oracle"/"existing" against it) do not collide.
+        test_file.unlink(missing_ok=True)
+        out_file.unlink(missing_ok=True)

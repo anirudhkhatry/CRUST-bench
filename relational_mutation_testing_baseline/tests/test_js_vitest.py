@@ -50,6 +50,13 @@ def test_src_prefix_detects_both_corpus_layouts():
     assert JS.src_prefix("seo_content_data") == "src"
 
 
+def test_src_prefix_matches_a_dynamic_only_import():
+    # basic_web_with_auth reaches its target only through `await import('./src/auth.js')`.
+    # A `from`-only pattern classifies it as flat and then fails to resolve every import.
+    assert "import(" in JS.holdout_text("basic_web_with_auth")
+    assert JS.src_prefix("basic_web_with_auth") == "src"
+
+
 def test_import_path_carries_the_prefix():
     # Handing an arm `targetFile` alone yields './app/page.jsx' for an src-prefixed
     # fixture, which never resolves. The arms are told this string verbatim.
@@ -95,3 +102,28 @@ def test_the_holdout_suite_runs_green_against_the_untouched_fixture(tmp_path):
     res = JS.run_suite(ws, suite, "oracle")
     assert res.status == "green", res.out[-2000:]
     assert len(res.cases) == 19
+
+
+def test_two_suites_can_run_against_one_workspace_without_interference(tmp_path):
+    """Task 7 stages once and runs several suites against that workspace."""
+    ws = JS.stage("binary_search", tmp_path / "ws")
+    whole = JS.holdout_text("binary_search")
+    first = JS.run_suite(ws, whole, "whole")
+    assert first.status == "green" and len(first.cases) == 19
+
+    tiny = ("import { describe, test, expect } from 'vitest';\n"
+            "import { binarySearchIterative } from './app/index.js';\n"
+            "describe('tiny', () => {\n"
+            "  test('finds it', () => { expect(binarySearchIterative([1, 3, 5], 3)).toBe(1); });\n"
+            "});\n")
+    second = JS.run_suite(ws, tiny, "tiny")
+    # The second run must see ONLY its own case, not the 19 from the first.
+    assert second.status == "green", second.out[-1500:]
+    assert len(second.cases) == 1
+
+
+def test_run_suite_leaves_no_files_behind(tmp_path):
+    ws = JS.stage("binary_search", tmp_path / "ws")
+    JS.run_suite(ws, JS.holdout_text("binary_search"), "whole")
+    assert not list(ws.glob("*.test.jsx"))
+    assert not list(ws.glob("*.results.json"))
