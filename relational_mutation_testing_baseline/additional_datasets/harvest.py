@@ -5,8 +5,6 @@ defence against the criticism that a mutation-guided test suite catches seeded m
 because both are mutants, so its candidates are generated from P0 and the migration spec
 alone, with no sight of any test, and labelled only by the held-out oracle.
 """
-import json
-
 from rmt.llm import ask, json_block
 
 from .arms.naive import _bundle
@@ -22,7 +20,7 @@ def propose_candidate(task, sources, target, model_tag, temperature, tag):
                 temperature=temperature, tag=f"{tag}_{model_tag}")
     try:
         files = json_block(reply)
-    except (ValueError, json.JSONDecodeError):
+    except ValueError:
         return None
     if not isinstance(files, dict) or not files:
         return None
@@ -40,8 +38,3 @@ def label(adapter, task, sources, oracle_text, workspace):
     if res.status == "timeout":
         return "BAD", "hidden oracle timed out"
     return "BAD", f"hidden oracle failed: {', '.join(res.failed[:6])}"
-
-
-def confirm_bad(adapter, task, sources, oracle_text, workspace):
-    """Does the hidden oracle actually see a difference? Guards against equivalent faults."""
-    return label(adapter, task, sources, oracle_text, workspace)[0] == "BAD"
