@@ -83,3 +83,17 @@ def test_freeze_refuses_an_unknown_language(tmp_path):
     with pytest.raises(LeakageError, match="unknown language"):
         freeze(t, {"naive": "test('a', () => {})"})
 
+
+def test_freeze_refuses_a_none_suite(tmp_path):
+    """An arm that produced no suite (e.g. `n_suite is None`) must not reach `write_text`.
+
+    Without this guard, `(d / "suite.js").write_text(None)` raises `TypeError` from deep
+    inside the freeze gate -- a crash that reads like a harness bug rather than "this arm
+    has no suite". `freeze` must reject it explicitly, as a `LeakageError`, before it ever
+    reaches `write_text`.
+    """
+    t = _task(tmp_path)
+    write_metadata(t, [])
+    with pytest.raises(LeakageError, match="not text"):
+        freeze(t, {"naive": None})
+

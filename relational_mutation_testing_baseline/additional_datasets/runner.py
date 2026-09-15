@@ -36,6 +36,15 @@ def freeze(task: Task, suites: dict) -> dict:
             f"{', '.join(sorted(EXT))}") from None
     hashes = {}
     for arm, text in sorted(suites.items()):
+        # An arm that produced no suite (e.g. `naive.generate` returning `None` after
+        # every repair attempt build-errors) must be omitted by the caller, not passed
+        # here. Writing `None` would otherwise reach `Path.write_text` and raise a bare
+        # `TypeError` deep inside the freeze gate -- a crash that reads like a harness
+        # bug rather than "this arm has no suite".
+        if not isinstance(text, str):
+            raise LeakageError(
+                f"{task.task_id}/{arm}: suite is not text ({type(text).__name__}) -- "
+                f"omit arms with no suite rather than freezing one")
         d = task.generated_tests_dir / arm
         d.mkdir(parents=True, exist_ok=True)
         (d / f"suite.{ext}").write_text(text)

@@ -66,7 +66,19 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
     suites, admissible, records = {}, {}, {}
     imp = f"import * as mod from '{JS.import_path(name)}';"
     n_suite, rec = naive.generate(task, sources, JS, p0_ws, imp, tag=f"{name}_naive")
-    suites["naive"], admissible["naive"], records["naive"] = n_suite, rec["admissible"], rec
+    records["naive"] = rec
+    # Mirrors the ARM M guard below. `naive.generate`'s repair is build-errors-only, so a
+    # suite that COMPILES but fails every assertion on P0 (or never built at all, leaving
+    # `n_suite` `None`) comes back with an empty `admissible` list. Registering it
+    # unconditionally would hand `score_task` an arm with an empty admissible set, which
+    # it refuses outright -- discarding this task's rows, and every paid call already
+    # spent on its candidates, for an arm that was never scorable to begin with.
+    if n_suite and rec["admissible"]:
+        suites["naive"], admissible["naive"] = n_suite, rec["admissible"]
+    else:
+        log(f"{name}: ARM N produced no scorable suite "
+            f"(compiles={rec.get('compiles')}, n_admissible={len(rec.get('admissible') or [])}) "
+            f"-- omitted from scoring")
     m_suite, rec = mutation.generate(task, sources, JS, ws / "mut", imp,
                                      tag=f"{name}_mut")
     m_run = JS.run_suite(p0_ws, m_suite, "mut_p0") if m_suite else None
