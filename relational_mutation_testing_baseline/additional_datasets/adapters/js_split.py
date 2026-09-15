@@ -115,6 +115,33 @@ def _mask(text, drop):
     return out
 
 
+def cap_cases(text, k):
+    """(capped_text, n_kept) -- keep the first `k` leaf cases, skip-mask the surplus.
+
+    `(None, 0)` means REFUSED, and the caller must use `text` uncapped: either the suite is
+    not confidently parseable (`test.each`, a multi-line template title, an existing
+    `.skip` -- masking would then miss cases and the cap would be a lie about how many
+    tests ran), or `k` is not a positive target. Refusal is deliberately distinguishable
+    from a successful no-op cap, which returns the text itself.
+
+    Capping MASKS rather than cuts, for the reason in this module's docstring: the surplus
+    cases' `test(`/`it(` becomes `test.skip(`/`it.skip(`, so imports, `beforeEach` and
+    shared fixture constants still exist for the cases that remain live. A masked case can
+    nonetheless have been load-bearing for a neighbour (it populated a shared mutable
+    fixture), so a caller matching two suites by case count must RE-RUN the capped text and
+    check it still admits `k` cases rather than trusting `n_kept`.
+
+    `k >= len(cases)` is a no-op returning the original text unchanged -- capping to at
+    least what is present must not rewrite anything.
+    """
+    cases = find_leaf_cases(text)
+    if k <= 0 or not _confidently_complete(text, cases):
+        return None, 0
+    if k >= len(cases):
+        return text, len(cases)
+    return _mask(text, cases[k:]), k
+
+
 def split_suite(text, seed):
     """(half_a, half_b, {title: "A"|"B"}). An unsplittable suite returns (text, text, {})."""
     cases = find_leaf_cases(text)

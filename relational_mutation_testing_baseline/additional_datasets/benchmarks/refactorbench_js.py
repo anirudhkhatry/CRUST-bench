@@ -9,7 +9,7 @@ import json
 
 from rmt import llm
 
-from ..adapters import js_oracle, js_vitest as JS
+from ..adapters import js_oracle, js_split, js_vitest as JS
 from ..arms import ceiling, mutation, naive
 from ..arms.assemble import N_DRAWS, assemble
 from ..harvest import label, propose_candidate
@@ -37,6 +37,9 @@ MODELS = [(CANDIDATE_MODEL, t) for t in (0.0, 0.3, 0.7, 1.0, 1.0, 1.0)]
 CANDIDATE_SWEEP = MODELS * 2
 TRANSFORMATION = ("Decompose the target file into smaller, well-structured modules while "
                   "preserving all externally observable behaviour.")
+# How the two generating arms are named in the log and in `matched_skipped`. The keys are
+# the record/arm keys used throughout `run_task`.
+ARM_NAMES = {"naive": "ARM N", "mutation": "ARM M"}
 
 
 def task_pool():
@@ -153,8 +156,9 @@ def run_task(name, results_root, n_good=3, n_bad=3, draws=N_DRAWS, workspace=Non
     # neither can adapt to it. Both variants are scored and reported: the raw arms under
     # their own names, the truncated ones as `*_matched`, which is the headline.
     n_match = min(len(nrec.get("contributors") or []), len(mrec.get("contributors") or []))
+    recs = {"naive": nrec, "mutation": mrec}
     matched = {}
-    for arm, rec in (("naive", nrec), ("mutation", mrec)):
+    for arm, rec in recs.items():
         contributors = (rec.get("contributors") or [])[:n_match]
         text, kept, res, meta = assemble(contributors, task, JS, ws / f"matched_{arm}",
                                          tag=f"matched_{arm}")
@@ -173,6 +177,70 @@ def run_task(name, results_root, n_good=3, n_bad=3, draws=N_DRAWS, workspace=Non
         f"(cases on P0: raw N={nrec['n_cases_p0_raw']} M={mrec['n_cases_p0_raw']}, "
         f"matched N={nrec['n_cases_p0_matched']} M={mrec['n_cases_p0_matched']})")
 
+    # 2c. MATCHED CASE COUNT (user-directed, 2026-09-15). Matching CONTRIBUTORS is not
+    # enough. Measured on analytics_dashboard: ARM N kept one contributor holding 39 leaf
+    # cases and ARM M kept one holding 1, so the "matched" pair still differed 39x in the
+    # number of tests that actually ran -- the same confound as the budget asymmetry, just
+    # pointing the other way. The unit that matters is the LEAF CASE, so each arm's
+    # contributor-matched composite is additionally capped to the first
+    # k = min(cases_M, cases_N) of its admissible-on-P0 cases.
+    #
+    # The cap SKIP-MASKS the surplus instead of cutting it (`js_split.cap_cases`), so
+    # imports, `beforeEach` and shared fixture constants survive for the cases that stay
+    # live. Masking can still break a neighbour that depended on a masked case, so the
+    # capped suite is RE-RUN on P0 and its admissible set is taken from that run -- never
+    # inherited from the uncapped one. An arm that comes back below k, or whose suite
+    # `cap_cases` refuses to parse, falls back to its uncapped composite with the reason
+    # recorded: a mismatched pair that SAYS it is mismatched is honest, a silently
+    # mismatched one is not.
+    cases_by_arm = {arm: len(adm) for arm, (_, adm) in matched.items()}
+    k_cases = min(cases_by_arm.values())
+    matched_skipped = None
+    if not k_cases:
+        # Capping both arms to zero cases would convert a ONE-ARM failure into a NO-DATA
+        # fixture: travel_itinerary_planner (ARM N kept nothing, ARM M kept one case) came
+        # out as `matched to 0 -> N=0 M=0`, destroying the surviving arm's real result too.
+        # The matched pair simply does not exist for such a fixture, so it is skipped and
+        # said so, and the raw arms are still scored.
+        empty = [ARM_NAMES[a] for a in sorted(cases_by_arm) if not cases_by_arm[a]]
+        matched_skipped = f"{' and '.join(empty)} kept nothing"
+        log(f"{name}: matched pair SKIPPED -- {matched_skipped} (admissible cases on P0: "
+            f"N={cases_by_arm['naive']} M={cases_by_arm['mutation']}); the raw arms are "
+            f"still scored, and no *_matched arm is")
+        for rec in recs.values():
+            rec["matched"]["cap"] = {"skipped": matched_skipped}
+        matched = {}
+    else:
+        for arm, (text, adm) in sorted(matched.items()):
+            capped, n_kept = js_split.cap_cases(text, k_cases)
+            why = None
+            if capped is None:
+                why = "cap_cases refused (unparseable call form)"
+            elif n_kept < k_cases:
+                why = f"only {n_kept} leaf case(s) are parseable, need {k_cases}"
+            else:
+                res = JS.run_suite(JS.stage(name, ws / f"capped_{arm}"), capped,
+                                   f"capped_{arm}")
+                new_adm = res.passed
+                if len(new_adm) < k_cases:
+                    why = (f"capping to {k_cases} left only {len(new_adm)} admissible "
+                           f"case(s) on P0 (status {res.status}) -- a masked case was "
+                           f"load-bearing for a neighbour")
+                else:
+                    matched[arm] = (capped, new_adm)
+                    recs[arm]["n_cases_p0_matched"] = len(new_adm)
+                    recs[arm]["matched"]["n_cases_p0"] = len(new_adm)
+                    recs[arm]["matched"]["cap"] = {"n_cases": k_cases, "capped": True}
+            if why:
+                log(f"{name}: {ARM_NAMES[arm]} NOT capped to {k_cases} case(s) -- {why}; "
+                    f"falling back to its uncapped matched suite ({len(adm)} case(s)), so "
+                    f"this fixture's matched pair is NOT case-matched")
+                recs[arm]["matched"]["cap"] = {"n_cases": k_cases, "capped": False,
+                                               "fallback": why}
+        log(f"{name}: matched cases -> k={k_cases} from N={cases_by_arm['naive']} "
+            f"M={cases_by_arm['mutation']}; scored N={len(matched['naive'][1])} "
+            f"M={len(matched['mutation'][1])}")
+
     # An arm with an empty admissible set is OMITTED, not registered empty. `score_task`
     # refuses such an arm outright, because a suite that can fire no behavioural rejection
     # silently ACCEPTS every candidate -- and that refusal would discard this task's rows
@@ -188,8 +256,11 @@ def run_task(name, results_root, n_good=3, n_bad=3, draws=N_DRAWS, workspace=Non
 
     register("naive", n_suite, nrec.get("admissible"), "ARM N")
     register("mutation", m_suite, mrec.get("admissible"), "ARM M")
-    register("naive_matched", *matched["naive"], "ARM N (matched count)")
-    register("mutation_matched", *matched["mutation"], "ARM M (matched count)")
+    # `matched` is emptied above when the pair is skipped, so neither `*_matched` arm is
+    # registered -- not even the arm that did keep cases. Half a matched pair is not a
+    # matched comparison, and scoring it alone would put an arm's suite up against nothing.
+    for arm in sorted(matched):
+        register(f"{arm}_matched", *matched[arm], f"{ARM_NAMES[arm]} (matched count)")
 
     # 3. Freeze. Candidates must not exist yet. ARM A -- the whole holdout, i.e. the
     # oracle itself -- is frozen alongside the generated arms so it passes through the
@@ -317,6 +388,12 @@ def run_task(name, results_root, n_good=3, n_bad=3, draws=N_DRAWS, workspace=Non
                        # A fixture with only one label measures nothing; recorded here so
                        # the artifact says so even if nobody reads the log.
                        "single_label": single_label,
+                       # Why this fixture has no matched pair, if it has none (None when
+                       # it does). Recorded so the artifact distinguishes "the matched
+                       # comparison does not exist here" from "both matched arms scored
+                       # zero", which is what zeroing both arms used to look like.
+                       "matched_skipped": matched_skipped,
+                       "matched_cases": {"k": k_cases, "per_arm": cases_by_arm},
                        "candidate_routes": {"harvested_good": n_harvested_good,
                                             "harvested_bad": n_harvested_bad,
                                             "seeded_bad": n_seeded_bad,
@@ -345,6 +422,10 @@ def run_task(name, results_root, n_good=3, n_bad=3, draws=N_DRAWS, workspace=Non
     # (and without it being lost when rows from several runs are concatenated).
     for r in rows:
         r["single_label"] = single_label
+        # Carried per row for the same reason as `single_label`: `score.report` must be able
+        # to say which fixtures have no matched comparison even when rows from several runs
+        # are concatenated and no metadata.json is at hand.
+        r["matched_skipped"] = matched_skipped
     (task.root / "rows.json").write_text(json.dumps(rows, indent=2))
     log(f"{name}: {len(candidates)} candidates, {len(rows)} rows")
     return rows

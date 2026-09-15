@@ -256,3 +256,35 @@ def test_the_matched_arms_are_labelled_and_ordered_ahead_of_the_raw_ones():
     first = [i for i, ln in enumerate(body) if "ARM M (mutation-guided, matched count)" in ln]
     later = [i for i, ln in enumerate(body) if ln.startswith("| ARM M (mutation-guided) |")]
     assert first and later and first[0] < later[0]
+
+
+def test_report_lists_fixtures_that_have_no_matched_comparison():
+    """A fixture where one arm admitted nothing has no matched pair, and the report must
+    say which fixture and why -- otherwise the `*_matched` rows silently cover fewer
+    fixtures than the raw rows.
+
+    Fails if `matched_skipped` is not surfaced: `t_one_arm` would be absent from the text
+    even though only its raw ARM N rows exist. The reason string is checked too, so a
+    report that merely names the fixture (it already appears in the coverage lines) does
+    not pass.
+    """
+    from additional_datasets.score import matched_skipped_tasks, report
+    rows = [_srow("t_ok", "naive_matched", "GOOD", ACCEPT),
+            _srow("t_ok", "naive_matched", "BAD", REJECT),
+            {**_srow("t_one_arm", "naive", "GOOD", ACCEPT),
+             "matched_skipped": "ARM N kept nothing"},
+            {**_srow("t_one_arm", "naive", "BAD", REJECT),
+             "matched_skipped": "ARM N kept nothing"}]
+    assert matched_skipped_tasks(rows) == {"t_one_arm": "ARM N kept nothing"}
+    text = report(rows, title="x")
+    assert "NO matched comparison" in text
+    assert "`t_one_arm`: ARM N kept nothing." in text
+
+
+def test_a_report_with_no_skipped_matched_pairs_says_nothing_about_them():
+    """Fails if the banner is unconditional, which would make every clean report claim a
+    missing matched comparison."""
+    from additional_datasets.score import report
+    text = report([_srow("t_ok", "naive_matched", "GOOD", ACCEPT),
+                   _srow("t_ok", "naive_matched", "BAD", REJECT)], title="x")
+    assert "NO matched comparison" not in text

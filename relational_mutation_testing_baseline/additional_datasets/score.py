@@ -129,8 +129,9 @@ ARM_LABEL = {"mutation": "ARM M (mutation-guided)", "naive": "ARM N (naive LLM)"
 # The comparison the user asked for: "at the same number of generated tests". The `*_raw`
 # arms keep everything each arm's own gate admitted, so ARM M's and ARM N's suites differ
 # in SIZE as well as in how they were selected; the `*_matched` arms truncate both to
-# min(kept_M, kept_N) before assembling. Both are reported; the matched pair is the
-# headline.
+# min(kept_M, kept_N) contributors before assembling AND then cap the composites to
+# min(cases_M, cases_N) leaf cases, because a contributor count is not a test count. Both
+# are reported; the matched pair is the headline.
 MATCHED_ARMS = ("mutation_matched", "naive_matched")
 
 
@@ -259,6 +260,30 @@ def single_label_tasks(rows):
     return {r["task_id"]: r["single_label"] for r in rows if r.get("single_label")}
 
 
+def matched_skipped_tasks(rows):
+    """{task_id: reason} for fixtures that have NO matched comparison.
+
+    A fixture where one arm admitted no case on P0 cannot have a matched pair: capping both
+    arms to min(cases) = 0 would silently turn a one-arm failure into a no-data fixture and
+    throw away the surviving arm's real result too. `run_task` skips the pair instead, so
+    the `*_matched` arms below are measured over FEWER fixtures than the raw arms -- which
+    has to be stated, not inferred from the coverage table.
+    """
+    return {r["task_id"]: r["matched_skipped"] for r in rows if r.get("matched_skipped")}
+
+
+def _matched_skipped_lines(rows):
+    skipped = matched_skipped_tasks(rows)
+    if not skipped:
+        return []
+    out = [f"> **{len(skipped)} fixture(s) have NO matched comparison** (their raw arms are "
+           "still scored below). One arm admitted no test case on P0, so there is no "
+           "common case count to match at:", ""]
+    for task, why in sorted(skipped.items()):
+        out.append(f"> - `{task}`: {why}.")
+    return out + [""]
+
+
 def comparable(rows):
     """The rows that can enter a table: everything from a task with BOTH labels."""
     return [r for r in rows if not r.get("single_label")]
@@ -290,6 +315,7 @@ def report(rows, title, failures=()):
     per = by_arm(rows)
     lines = [f"# Good-vs-bad classification: {title}", ""]
     lines += _single_label_lines(all_rows)
+    lines += _matched_skipped_lines(all_rows)
     if failures:
         # A run with failed tasks must not render as a clean report: the arms below were
         # measured over the tasks that survived, which is a different population.
@@ -303,7 +329,11 @@ def report(rows, title, failures=()):
               "as well as in selection. The matched arms truncate both to the same number of",
               "kept contributors -- min(kept_M, kept_N), earliest first -- and re-assemble",
               "through the same shared helper, which is the comparison 'at the same number",
-              "of generated tests'. The unmatched `ARM M`/`ARM N` rows are reported beside",
+              "of generated tests'. Matching CONTRIBUTORS alone was not enough -- one",
+              "contributor held 39 leaf cases against another's 1 -- so each matched suite",
+              "is additionally capped to the first min(cases_M, cases_N) of its cases that",
+              "pass on P0, by skip-masking the surplus, and is re-run on P0 to confirm the",
+              "cap held. The unmatched `ARM M`/`ARM N` rows are reported beside",
               "them: if the two comparisons disagree, the raw advantage was suite size.",
               "",
               "The headline is BRR at matched GAR -- an arm that rejects more BAD while also",

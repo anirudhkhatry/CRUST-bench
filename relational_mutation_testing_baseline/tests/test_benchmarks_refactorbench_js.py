@@ -372,3 +372,168 @@ def test_the_candidate_sweep_is_one_model_at_several_temperatures():
     assert {m for m, _ in rjs.MODELS} == {rjs.CANDIDATE_MODEL}
     assert "haiku" in rjs.CANDIDATE_MODEL
     assert len({t for _, t in rjs.MODELS}) >= 3
+
+
+# --- matched CASE count (the leaf case, not the contributor) ---------------------------
+
+def _wire_case_run_suite(monkeypatch, load_bearing=None):
+    """A fake `run_suite` that responds to skip-masking -- which is what the cap does.
+
+    The live cases are the ones `find_leaf_cases` still sees, and a skip-masked case is not
+    one, so a capped suite really does report fewer cases here; a fake with a fixed case
+    list could not fail the tests below. A case titled `fail_*` fails on P0 (so it is
+    inadmissible), and `load_bearing = {case: prerequisite}` makes `case` fail whenever
+    `prerequisite` is no longer live -- the neighbour breakage the re-run must catch.
+    """
+    from additional_datasets.adapters.js_split import find_leaf_cases
+    from additional_datasets.spec import SuiteResult
+
+    def run_suite(ws, text, name):
+        live = [c["title"] for c in find_leaf_cases(text)]
+        cases = {}
+        for t in live:
+            need = (load_bearing or {}).get(t)
+            cases[t] = "ok" if not t.startswith("fail_") and (
+                need is None or need in live) else "FAILED"
+        status = ("no_tests" if not cases
+                  else "test_failed" if "FAILED" in cases.values() else "green")
+        return SuiteResult(status=status, cases=cases, rc=0, seconds=0.1)
+
+    monkeypatch.setattr(rjs.JS, "run_suite", run_suite)
+
+
+def _multi(index, titles):
+    """One contributor holding several leaf cases -- the shape that broke contributor
+    matching (one ARM N file held 39 cases against ARM M's 1)."""
+    body = "\n".join(f"  test('{t}', () => {{ expect(1).toBe(1); }});" for t in titles)
+    return {"index": index, "suite": f"describe('d{index}', () => {{\n{body}\n}});"}
+
+
+def _wire_two_arms(monkeypatch, n_contribs, m_contribs):
+    monkeypatch.setattr(rjs.naive, "generate", lambda *a, **k: (
+        "N_SUITE", _nrec("N_SUITE", admissible=["a"], contributors=n_contribs)))
+    monkeypatch.setattr(rjs.mutation, "generate", lambda *a, **k: (
+        "M_SUITE", _mrec("M_SUITE", admissible=["a"], contributors=m_contribs)))
+
+
+def test_the_matched_arms_are_capped_to_the_same_number_of_leaf_cases(
+        tmp_path, monkeypatch):
+    """The user's requirement, at the level that matters: the same number of TESTS.
+
+    Both arms keep one contributor, so contributor matching is already satisfied and
+    changes nothing -- but ARM N's single file holds three leaf cases against ARM M's one.
+    Fails on contributor-only matching: `naive_matched` would be shipped with all three
+    cases live, `.skip(` would not appear, and `n_cases_p0_matched` would be 3 against
+    ARM M's 1 -- the 39-vs-1 confound in miniature.
+    """
+    frozen, scored = _wire_common(monkeypatch)
+    _wire_case_run_suite(monkeypatch)
+    _wire_two_arms(monkeypatch, [_multi(0, ["n_one", "n_two", "n_three"])],
+                   [_multi(9, ["m_one"])])
+
+    rjs.run_task("fake_fixture", tmp_path, n_good=1, n_bad=1, log=lambda *a: None)
+
+    capped = scored["suites"]["naive_matched"]
+    # The first case in source order survives; the surplus is masked, not deleted.
+    assert "test('n_one'" in capped
+    assert "test.skip('n_two'" in capped and "test.skip('n_three'" in capped
+    assert capped.count(".skip(") == 2
+    assert "describe('d0'" in capped
+    # ARM M was already at k, so its suite is untouched.
+    assert scored["suites"]["mutation_matched"].count(".skip(") == 0
+    # The admissible set comes from the RE-RUN of the capped suite, not inherited from the
+    # uncapped one (which admitted all three).
+    assert scored["admissible"]["naive_matched"] == ["n_one"]
+    assert scored["admissible"]["mutation_matched"] == ["m_one"]
+    arms = _meta(tmp_path)["arms"]
+    assert arms["naive"]["n_cases_p0_matched"] == arms["mutation"]["n_cases_p0_matched"] == 1
+    assert arms["naive"]["matched"]["cap"] == {"n_cases": 1, "capped": True}
+    assert _meta(tmp_path)["matched_cases"] == {"k": 1, "per_arm": {"naive": 3,
+                                                                   "mutation": 1}}
+    assert _meta(tmp_path)["matched_skipped"] is None
+
+
+def test_an_arm_whose_cap_breaks_a_neighbour_falls_back_to_its_uncapped_suite(
+        tmp_path, monkeypatch):
+    """Masking a case can break a case that depended on it, and then the cap has not
+    produced k admissible cases -- it has produced fewer.
+
+    Here `n_one` only passes while `n_three` is live, so capping ARM N to one case leaves
+    it admitting nothing. Fails on an implementation that trusts `cap_cases`' own count
+    without re-running: the capped suite would be scored with an EMPTY admissible set,
+    which accepts every candidate, and nothing in the artifact would say so.
+    """
+    frozen, scored = _wire_common(monkeypatch)
+    _wire_case_run_suite(monkeypatch, load_bearing={"n_one": "n_three"})
+    _wire_two_arms(monkeypatch, [_multi(0, ["n_one", "n_two", "n_three"])],
+                   [_multi(9, ["m_one"])])
+    logged = []
+
+    rjs.run_task("fake_fixture", tmp_path, n_good=1, n_bad=1, log=logged.append)
+
+    naive_suite = scored["suites"]["naive_matched"]
+    assert naive_suite.count(".skip(") == 0, "the broken capped suite must not be shipped"
+    assert scored["admissible"]["naive_matched"] == ["n_one", "n_three", "n_two"]
+    cap = _meta(tmp_path)["arms"]["naive"]["matched"]["cap"]
+    assert cap["capped"] is False
+    assert "load-bearing" in cap["fallback"]
+    assert any("NOT capped" in ln for ln in logged)
+    # ARM M is unaffected and still scored -- one arm's fallback is not the other's.
+    assert scored["admissible"]["mutation_matched"] == ["m_one"]
+
+
+def test_an_unparseable_arm_suite_is_not_capped_and_says_so(tmp_path, monkeypatch):
+    """`cap_cases` refuses a suite containing a call form it cannot mask, because the cap
+    would then claim a case count the suite does not have.
+
+    ARM N's contributor adds a `test.each` block. Fails if the refusal is ignored: the
+    suite would be masked anyway and reported as capped to 1 while `test.each` still ran.
+    """
+    frozen, scored = _wire_common(monkeypatch)
+    _wire_case_run_suite(monkeypatch)
+    each = {"index": 0,
+            "suite": ("describe('d0', () => {\n"
+                      "  test('n_one', () => { expect(1).toBe(1); });\n"
+                      "  test('n_two', () => { expect(1).toBe(1); });\n"
+                      "  test.each([1, 2])('p %i', (n) => { expect(n).toBeTruthy(); });\n"
+                      "});\n")}
+    _wire_two_arms(monkeypatch, [each], [_multi(9, ["m_one"])])
+    logged = []
+
+    rjs.run_task("fake_fixture", tmp_path, n_good=1, n_bad=1, log=logged.append)
+
+    assert scored["suites"]["naive_matched"].count(".skip(") == 0
+    assert scored["admissible"]["naive_matched"] == ["n_one", "n_two"]
+    cap = _meta(tmp_path)["arms"]["naive"]["matched"]["cap"]
+    assert cap["capped"] is False and "refused" in cap["fallback"]
+    assert any("NOT capped" in ln for ln in logged)
+
+
+def test_an_arm_admitting_no_case_skips_the_matched_pair_instead_of_zeroing_both(
+        tmp_path, monkeypatch):
+    """The travel_itinerary_planner outcome: `matched to 0 -> N=0 M=0`.
+
+    ARM N keeps a contributor whose only case FAILS on P0, so it admits nothing; ARM M
+    admits one case. Capping both to min(0, 1) = 0 would convert a one-arm failure into a
+    no-data fixture. Fails if the pair is still built: `mutation_matched` would be scored
+    against an empty ARM N suite, or both would be registered with empty admissible sets,
+    and `matched_skipped` would be None so the report would not mention it.
+    """
+    frozen, scored = _wire_common(monkeypatch)
+    _wire_case_run_suite(monkeypatch)
+    _wire_two_arms(monkeypatch, [_multi(0, ["fail_n_one"])], [_multi(9, ["m_one"])])
+    logged = []
+
+    rjs.run_task("fake_fixture", tmp_path, n_good=1, n_bad=1, log=logged.append)
+
+    assert "naive_matched" not in scored["suites"]
+    assert "mutation_matched" not in scored["suites"]
+    assert "naive_matched" not in frozen and "mutation_matched" not in frozen
+    # The raw arms are untouched by the skip: a missing matched pair is not a dead fixture.
+    assert scored["suites"] == {"naive": "N_SUITE", "mutation": "M_SUITE"}
+    meta = _meta(tmp_path)
+    # ARM N is the arm that kept nothing, and the reason names it -- not ARM M, which did
+    # keep a case, and not a generic "no matched pair".
+    assert meta["matched_skipped"] == "ARM N kept nothing"
+    assert meta["matched_cases"] == {"k": 0, "per_arm": {"naive": 0, "mutation": 1}}
+    assert any("matched pair SKIPPED" in ln for ln in logged)

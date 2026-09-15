@@ -1,4 +1,4 @@
-from additional_datasets.adapters.js_split import find_leaf_cases, split_suite
+from additional_datasets.adapters.js_split import cap_cases, find_leaf_cases, split_suite
 
 SUITE = """import { describe, test, expect } from 'vitest';
 import { search } from './app/index.js';
@@ -141,3 +141,62 @@ def test_a_commented_out_case_does_not_block_the_split():
              "});\n")
     assert len(find_leaf_cases(suite)) == 2
     assert split_suite(suite, seed="x")[2], "a commented-out case must not block the split"
+
+
+# --- cap_cases: matching two suites by LEAF CASE count --------------------------------
+
+def test_cap_cases_keeps_the_first_k_and_skip_masks_the_surplus():
+    """Capping to 2 of 3 must keep the first two IN SOURCE ORDER and mask only the third.
+
+    Each assertion names a concrete failure: an implementation that masked the first `k`
+    instead of the surplus would leave `test('finds an element'` absent (it would read
+    `test.skip('finds an element'`), one that masked `cases[k - 1:]` would leave
+    `test('misses an absent element'` absent, and one that masked nothing at all would
+    leave `it.skip('handles the empty array'` absent and `.skip(` count at 0.
+    """
+    capped, n_kept = cap_cases(SUITE, 2)
+    assert n_kept == 2
+    assert "test('finds an element'" in capped
+    assert "test('misses an absent element'" in capped
+    assert "it.skip('handles the empty array'" in capped
+    assert capped.count(".skip(") == 1
+    # Masking, not cutting: the shared fixture the live cases read still exists.
+    assert "const sorted = [1, 3, 5];" in capped
+
+
+def test_cap_cases_to_exactly_the_number_present_is_a_no_op():
+    """Fails on an off-by-one cap (`cases[k - 1:]`), which would mask the last case and
+    return text != SUITE with n_kept == 2."""
+    assert cap_cases(SUITE, 3) == (SUITE, 3)
+
+
+def test_cap_cases_to_more_than_present_is_a_no_op_not_a_refusal():
+    """A cap larger than the suite is satisfied by the whole suite.
+
+    Fails if the k > len(cases) branch refuses (returning `(None, 0)`, which the caller
+    reads as "unparseable" and would make it discard a perfectly usable suite), or if it
+    masks anything.
+    """
+    assert cap_cases(SUITE, 10) == (SUITE, 3)
+
+
+def test_cap_cases_refuses_a_suite_it_cannot_parse():
+    """`test.each` is a call form the strict pattern cannot see, so masking would leave
+    cases live that the cap claims are gone -- the count would be a lie.
+
+    Fails if the refusal is dropped: `capped` would be a real string with the one plain
+    case kept and the `test.each` block still live, i.e. 3 running cases under a cap of 1.
+    """
+    suite = ("describe('d', () => {\n"
+             "  test('plain', () => { expect(1).toBe(1); });\n"
+             "  test.each([1, 2])('param %i', (n) => { expect(n).toBeTruthy(); });\n"
+             "});\n")
+    assert cap_cases(suite, 1) == (None, 0)
+
+
+def test_cap_cases_refuses_a_non_positive_target():
+    """There is no such thing as a suite capped to zero cases: it runs nothing and can
+    reject nothing. Fails if k <= 0 returns `("", 0)` or a suite with every case masked,
+    either of which the caller would go on to score as an arm."""
+    assert cap_cases(SUITE, 0) == (None, 0)
+    assert cap_cases(SUITE, -1) == (None, 0)
