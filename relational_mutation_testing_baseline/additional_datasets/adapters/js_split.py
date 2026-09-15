@@ -49,14 +49,58 @@ def _side(seed, index):
     return "A" if (index + off) % 2 == 0 else "B"
 
 
+def _code_only(text):
+    """`text` with the CONTENTS of strings, template literals and comments blanked.
+
+    Length and newlines are preserved so anchors and offsets behave identically. Only
+    LOOSE_RE runs over this: it has no way to tell code from prose, and a title containing
+    `, test(` would otherwise manufacture a phantom call site and declare a perfectly
+    parseable suite unsplittable. CASE_RE still runs over the original text -- it has to
+    read the titles, and its statement anchor already rejects in-string matches.
+    """
+    out = list(text)
+    i, n = 0, len(text)
+    while i < n:
+        ch = text[i]
+        if ch in "'\"`":
+            quote, j = ch, i + 1
+            while j < n and text[j] != quote:
+                if text[j] == "\\":
+                    j += 1
+                if j < n and text[j] != "\n":
+                    out[j] = " "
+                j += 1
+            i = j + 1
+            continue
+        if ch == "/" and i + 1 < n and text[i + 1] == "/":
+            j = i
+            while j < n and text[j] != "\n":
+                out[j] = " "
+                j += 1
+            i = j
+            continue
+        if ch == "/" and i + 1 < n and text[i + 1] == "*":
+            j = i
+            while j < n and not (text[j] == "*" and j + 1 < n and text[j + 1] == "/"):
+                if text[j] != "\n":
+                    out[j] = " "
+                j += 1
+            i = min(j + 2, n)
+            continue
+        i += 1
+    return "".join(out)
+
+
 def _confidently_complete(text, cases):
     """True iff the strict pattern found all the call sites the loose pattern sees.
 
     If they disagree, the strict pattern cannot parse some form (test.each, multi-line
     template literals, etc.) and masking would fail silently, leaving some cases live
-    in both halves.
+    in both halves. We run LOOSE_RE over code-only text (strings/comments blanked) to
+    avoid phantom matches from prose containing anchor chars followed by "test(", while
+    CASE_RE runs over the original text so it can read actual titles.
     """
-    return len(LOOSE_RE.findall(text)) == len(cases)
+    return len(LOOSE_RE.findall(_code_only(text))) == len(cases)
 
 
 def _mask(text, drop):

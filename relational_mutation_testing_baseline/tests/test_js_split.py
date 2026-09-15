@@ -94,3 +94,31 @@ def test_a_describe_title_that_looks_like_a_case_is_not_one():
              "  test('real two', () => { expect(2).toBe(2); });\n"
              "});\n")
     assert [c["title"] for c in find_leaf_cases(suite)] == ['real one', 'real two']
+
+
+def test_a_title_containing_a_call_shape_does_not_block_the_split():
+    # The title's prose contains ", test(" -- a phantom call site for any guard that
+    # cannot tell code from string content. The suite is perfectly parseable and must
+    # still split.
+    suite = ("describe('d', () => {\n"
+             "  test('should reject calls like foo(1, test(2))', () => {\n"
+             "    expect(1).toBe(1);\n"
+             "  });\n"
+             "  test('second case', () => {\n"
+             "    expect(2).toBe(2);\n"
+             "  });\n"
+             "});\n")
+    assert len(find_leaf_cases(suite)) == 2
+    a, b, assign = split_suite(suite, seed="x")
+    assert assign, "a parseable two-case suite must not be reported unsplittable"
+    assert a.count(".skip(") + b.count(".skip(") == 2
+
+
+def test_a_commented_out_case_does_not_block_the_split():
+    suite = ("describe('d', () => {\n"
+             "  // test('disabled', () => { expect(0).toBe(0); });\n"
+             "  test('one', () => { expect(1).toBe(1); });\n"
+             "  test('two', () => { expect(2).toBe(2); });\n"
+             "});\n")
+    assert len(find_leaf_cases(suite)) == 2
+    assert split_suite(suite, seed="x")[2], "a commented-out case must not block the split"
