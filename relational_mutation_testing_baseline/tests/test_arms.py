@@ -151,7 +151,9 @@ def test_both_arms_reach_ask_with_identical_generation_parameters(tmp_path, monk
     n_gen, m_gen = gen_calls[0], gen_calls[1]
     for key in ("effort", "max_tokens"):
         assert n_gen[key] == m_gen[key], f"arms diverged on {key}"
-    assert n_gen.get("temperature") == m_gen.get("temperature")
+    # `temperature` is deliberately not compared here: neither arm passes it, and
+    # `rmt.llm.ask` discards it, so the comparison would be `None == None` no matter what
+    # either arm's code does -- it can never fail and so proves nothing.
     assert n_gen["system"] == m_gen["system"], "arms diverged on the system prompt"
 
 

@@ -9,8 +9,8 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path("/nas/CRUST-bench-COLM/CRUST-bench/.claude/worktrees/additional-datasets")
-PKG = ROOT / "relational_mutation_testing_baseline"
+PKG = Path(__file__).resolve().parent.parent
+ROOT = PKG.parent
 PLANS = [ROOT / "docs/superpowers/plans/2026-09-14-additional-datasets-harness-and-js.md"]
 
 
@@ -53,7 +53,8 @@ for p in PLANS:
             plan_funcs.setdefault(name, body)
 
 code_funcs = {}
-for f in sorted(PKG.glob("additional_datasets/**/*.py")):
+code_files = sorted(PKG.glob("additional_datasets/**/*.py")) + [PKG / "run_additional_datasets.py"]
+for f in code_files:
     for name, body in funcs_of(f.read_text()).items():
         code_funcs[name] = (body, str(f.relative_to(PKG)))
 

@@ -31,24 +31,43 @@ def test_find_leaf_cases_finds_test_and_it_but_not_describe():
 
 
 def test_split_masks_each_half_with_skip_and_keeps_everything_else():
+    # The count-sum invariant this test used to assert (live calls + `.skip(` calls >= 3)
+    # is constant at exactly 3 regardless of what `_mask` does, because masking only ever
+    # rewrites `test(`/`it(` into `test.skip(`/`it.skip(` -- it can never change the sum.
+    # The real property -- that each half skips exactly the cases assigned to the OTHER
+    # half -- is covered by `test_every_case_lands_in_exactly_one_half` below (extended to
+    # check both halves), so it is not duplicated here.
     a, b, assign = split_suite(SUITE, seed="binary_search")
     for half in (a, b):
         # Shared setup survives in both halves -- this is why we mask instead of extract.
         assert "import { search } from './app/index.js';" in half
         assert "const sorted = [1, 3, 5];" in half
         assert "describe('Binary Search'" in half
-        assert half.count("test(") + half.count("it(") + half.count(".skip(") >= 3
     assert set(assign.values()) == {"A", "B"}
 
 
 def test_every_case_lands_in_exactly_one_half():
+    # `f"'{title}'" in live and f"'{title}'" in masked` used to stand in for "the case is
+    # live in one half and masked in the other", but it is true by construction: `_mask`
+    # only ever INSERTS `.skip`, never deletes text, so every title's quoted string is
+    # present in both halves regardless of which side it was assigned to. Checking the
+    # actual call shape -- `kind('title'` unmasked vs. `kind.skip('title'` masked -- is the
+    # assertion that can actually fail, e.g. if `_mask` skipped the wrong case's cases.
+    cases = find_leaf_cases(SUITE)
+    kind_by_title = {c["title"]: c["kind"] for c in cases}
     a, b, assign = split_suite(SUITE, seed="binary_search")
     for title, side in assign.items():
         live, masked = (a, b) if side == "A" else (b, a)
-        assert f"'{title}'" in live and f"'{title}'" in masked
-    # Counting skips: each half skips exactly the cases assigned to the other.
+        kind = kind_by_title[title]
+        assert f"{kind}('{title}'" in live
+        assert f"{kind}.skip('{title}'" in masked
+    # Counting skips: each half skips exactly the cases assigned to the other. Checked for
+    # both halves (extended from the original, which only checked `a`) so it also covers
+    # the count-sum invariant removed from the previous test.
+    n_a = sum(1 for v in assign.values() if v == "A")
     n_b = sum(1 for v in assign.values() if v == "B")
     assert a.count(".skip(") == n_b
+    assert b.count(".skip(") == n_a
 
 
 def test_the_split_is_deterministic_for_a_given_seed():

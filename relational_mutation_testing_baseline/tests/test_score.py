@@ -150,12 +150,18 @@ def test_report_never_emits_a_pooled_bad_figure():
     text = report(rows, title="t")
     # The "all" row is gone; S and N rows show 100% and 0% BRR respectively.
     assert "| all |" not in text
-    # Verify the individual BRR values appear correctly without pooling
+    # Verify the individual BRR values appear correctly without pooling. Substring
+    # matching the whole line is not enough: "0%" is a substring of "100%", so a table
+    # where N's BRR cell wrongly read "100%" (the S/N figures swapped) would still pass
+    # `"0%" in n_line`. Parse the BRR cell out by position instead.
     lines = text.split('\n')
     s_line = [l for l in lines if 'seeded' in l and 'ARM M' in l][0]
     n_line = [l for l in lines if 'harvested' in l and 'ARM M' in l][0]
-    assert "100%" in s_line  # S BRR
-    assert "0%" in n_line    # N BRR
+    brr_s = s_line.split('|')[7].strip()
+    brr_n = n_line.split('|')[7].strip()
+    # Fails if the S/N BRR figures were ever swapped or pooled, e.g. brr_s == "0%".
+    assert brr_s == "100%"
+    assert brr_n == "0%"
 
 
 def test_by_fault_class_does_not_blend_arms():

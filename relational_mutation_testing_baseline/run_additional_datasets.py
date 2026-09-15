@@ -12,6 +12,8 @@ import json
 import sys
 from pathlib import Path
 
+from additional_datasets.runner import LeakageError
+
 # Runs are namespaced, matching the existing `results/<run>/<project>/` convention in
 # rmt/ and pmb/, so a task's tree is results/additional_datasets/<run>/<benchmark>/<task>.
 RESULTS = Path(__file__).resolve().parent / "results/additional_datasets"
@@ -26,7 +28,6 @@ def _module(name):
 
 
 def cmd_select(a):
-    _module(a.benchmark)
     from additional_datasets.adapters import js_vitest as JS
     names = JS.pure_logic_fixtures()
     print(f"{len(names)} pilot fixtures")
@@ -40,22 +41,33 @@ def cmd_run(a):
     names = (a.fixtures or JS.pure_logic_fixtures())[:a.tasks]
     root = RESULTS / a.run if a.run else RESULTS
     rows = []
+    failures = []
     for n in names:
         try:
             rows += mod.run_task(n, root, n_good=a.good, n_bad=a.bad)
+        except LeakageError as e:
+            # A leakage control fired: the run is not scoreable, full stop (spec §15).
+            # It must not be caught with the per-task handler below, dropped to a
+            # stdout line, and then have rows.json/REPORT.md written as if nothing
+            # happened -- so it aborts the whole run rather than sinking one task.
+            sys.exit(f"ABORT: leakage control fired on {n}: {e}\n"
+                     f"This run is not scoreable. No rows.json was written.")
         except Exception as e:  # noqa: BLE001 - one task must not sink the run
             print(f"  {n}: ERROR {type(e).__name__}: {e}", flush=True)
+            failures.append({"task": n, "error": f"{type(e).__name__}: {e}"})
     out = root / "rows.json"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(rows, indent=2))
-    print(f"wrote {out} ({len(rows)} rows)")
+    out.write_text(json.dumps({"rows": rows, "failures": failures}, indent=2))
+    print(f"wrote {out} ({len(rows)} rows, {len(failures)} failure(s))")
 
 
 def cmd_report(a):
     from additional_datasets.score import report
     root = RESULTS / a.run if a.run else RESULTS
-    rows = json.loads((root / "rows.json").read_text())
-    text = report(rows, title=a.run or "pilot")
+    blob = json.loads((root / "rows.json").read_text())
+    # Older rows.json files (before failures were tracked) were a bare list of rows.
+    rows, failures = (blob["rows"], blob.get("failures", [])) if isinstance(blob, dict) else (blob, [])
+    text = report(rows, title=a.run or "pilot", failures=failures)
     (root / "REPORT.md").write_text(text)
     print(text)
 

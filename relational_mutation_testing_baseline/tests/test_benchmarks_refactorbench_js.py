@@ -63,7 +63,9 @@ def test_arm_n_is_omitted_when_it_compiles_but_admits_nothing(tmp_path, monkeypa
     assert "naive" not in frozen
     assert "naive" not in scored["suites"]
     assert "naive" not in scored["admissible"]
-    assert rows == []
+    # `rows == []` was dropped: it only confirmed that the faked `score_task`'s return
+    # value ([]) is forwarded unchanged, which is true no matter what run_task's own logic
+    # does -- the fake makes it impossible for this assertion to fail.
 
 
 def test_arm_n_is_registered_when_it_admits_at_least_one_case(tmp_path, monkeypatch):
