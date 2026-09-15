@@ -2002,14 +2002,42 @@ def test_every_language_has_hazard_prose():
     assert "Locale" in seed.HAZARDS["java"]
 
 
+ROOT = Path(__file__).resolve().parent.parent
+
+
 def test_seed_does_not_import_the_mutation_arms_operators():
-    """Spec §7.4: sharing a taxonomy with stage1_mutate would make Arm S circular."""
-    src = Path("additional_datasets/seed.py").read_text()
-    assert "stage1_mutate" not in src
-    assert "from rmt import" not in src or "stage1" not in src
-    prompt = Path("additional_datasets/prompts/seed_fault.md").read_text()
-    rmt_prompt = Path("rmt/prompts/mutate.md").read_text()
-    # No long verbatim span shared between the two prompts.
+    """Spec §7.4, the import route.
+
+    If Arm S drew on the C mutation arm's taxonomy, "the mutation arm catches Arm S
+    faults" would prove only that two halves of this repository share a vocabulary.
+    This checks the import route; the taxonomy route is checked separately below,
+    because a paraphrase leaves no import and no shared span.
+    """
+    src = (ROOT / "additional_datasets" / "seed.py").read_text()
+    for forbidden in ("stage1_mutate", "rmt.stage1", "from rmt import"):
+        assert forbidden not in src, f"seed.py reaches the mutation arm via {forbidden!r}"
+
+
+def test_the_two_fault_taxonomies_are_disjoint():
+    """Spec §7.4, the taxonomy route -- the property that actually matters.
+
+    A verbatim-span check cannot see a taxonomy that was paraphrased rather than copied.
+    This can: the two category sets must not overlap at all.
+    """
+    from rmt.stage1_mutate import FAULT_CLASSES
+
+    shared = {c.lower() for c in seed.FAULT_CATEGORIES} & {c.lower() for c in FAULT_CLASSES}
+    assert not shared, f"Arm S shares fault vocabulary with the mutation arm: {shared}"
+
+
+def test_the_two_prompts_share_no_verbatim_span():
+    """Catches literal copy-paste between the prompts, and nothing more than that.
+
+    Deliberately narrow: this says nothing about paraphrase, which is why the taxonomy
+    test above exists.
+    """
+    prompt = (ROOT / "additional_datasets" / "prompts" / "seed_fault.md").read_text()
+    rmt_prompt = (ROOT / "rmt" / "prompts" / "mutate.md").read_text()
     for i in range(0, len(rmt_prompt) - 120, 60):
         assert rmt_prompt[i:i + 120] not in prompt
 ```
