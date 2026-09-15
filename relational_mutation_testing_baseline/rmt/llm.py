@@ -168,14 +168,23 @@ def _retryable(e):
     return isinstance(err, dict) and err.get("type") in RETRYABLE
 
 
-def _call_anthropic(system, user, effort, max_tokens):
+def _call_anthropic(system, user, effort, max_tokens, model=None, temperature=None):
     # Adaptive thinking and the effort dial are Claude 5 features; Haiku 4.5 rejects
     # both with a 400. It is in the panel as the weaker migration arm, and asking it to
     # think harder is not what that arm is for, so it simply runs without them.
+    model = model or MODEL
+    thinks = not model.startswith("claude-haiku")
     extra = ({"thinking": {"type": "adaptive"}, "output_config": {"effort": effort}}
-             if not MODEL.startswith("claude-haiku") else {})
+             if thinks else {})
+    # `temperature` is incompatible with adaptive thinking, so it is forwarded only for
+    # models that run without it. That is exactly the case it is wanted for: sampling a
+    # spread of candidate implementations from a weaker model. Silently dropping it --
+    # which this function did until now -- makes a temperature sweep a no-op that still
+    # looks like it ran.
+    if temperature is not None and not thinks:
+        extra["temperature"] = temperature
     with client().messages.stream(
-            model=MODEL, max_tokens=max_tokens, system=system,
+            model=model, max_tokens=max_tokens, system=system,
             messages=[{"role": "user", "content": user}], **extra) as s:
         msg = s.get_final_message()
     return ("".join(b.text for b in msg.content if b.type == "text"),
@@ -224,10 +233,18 @@ def _call_openai(system, user, effort, max_tokens):
     }, getattr(final, "status", None)
 
 
-def ask(system, user, effort="high", max_tokens=16000, temperature=None, tag="x"):
-    """One turn. Returns the concatenated text blocks (thinking blocks dropped)."""
-    payload = {"model": MODEL, "system": system, "user": user, "effort": effort,
+def ask(system, user, effort="high", max_tokens=16000, temperature=None, tag="x",
+        model=None):
+    """One turn. Returns the concatenated text blocks (thinking blocks dropped).
+
+    `model` overrides the module default for this call only; `temperature` is forwarded
+    for models that run without adaptive thinking. Both enter the cache key ONLY when
+    given, so every previously cached call keeps its key and the existing cache stays warm.
+    """
+    payload = {"model": model or MODEL, "system": system, "user": user, "effort": effort,
                "max_tokens": max_tokens}
+    if temperature is not None:
+        payload["temperature"] = temperature
     h = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:24]
     CACHE.mkdir(parents=True, exist_ok=True)
     hit = CACHE / f"{tag}_{h}.json"
@@ -241,7 +258,10 @@ def ask(system, user, effort="high", max_tokens=16000, temperature=None, tag="x"
     for attempt in range(5):
         try:
             with _gate:
-                text, usage, stop = call(system, user, effort, max_tokens)
+                text, usage, stop = (
+                    call(system, user, effort, max_tokens, model, temperature)
+                    if PROVIDER != "openai" else
+                    call(system, user, effort, max_tokens))
             break
         except Exception as e:
             # Overload, rate limit, transport: back off and retry. Anything else --
