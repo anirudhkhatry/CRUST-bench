@@ -1695,6 +1695,14 @@ def test_mutation_kill_gate_rejects_a_test_that_passes_both():
     assert mutation.kills(green, green) is False
 
 
+def test_a_mutant_that_does_not_build_is_not_a_kill():
+    # A broken program is not a detected fault (spec §20); crediting it would bank kills
+    # for tests that never observed a behavioural difference.
+    green = SuiteResult(status="green", cases={"a": "ok"}, rc=0, seconds=0.1)
+    broken = SuiteResult(status="build_error", cases={}, rc=1, seconds=0.1)
+    assert mutation.kills(green, broken) is False
+
+
 def test_apply_mutant_requires_a_unique_snippet():
     sources = {"app/index.js": "const a = 1;\nconst b = 2;\n"}
     out = mutation.apply_mutant(sources, {"file": "app/index.js",
@@ -1834,11 +1842,15 @@ def apply_mutant(sources, rec):
 
 
 def kills(on_p0, on_mutant):
-    """The gate: green on the trusted program, red on the mutated one."""
+    """The gate: green on the trusted program, and BEHAVIOURALLY red on the mutated one.
+
+    A mutant that fails to build is not a detection -- it is a broken program, which the
+    design excludes rather than credits (spec §20). Counting it would let this arm bank
+    kills for tests that never observed a behavioural difference at all.
+    """
     if on_p0.status != "green":
         return False
-    return on_mutant.status in ("test_failed", "timeout") or (
-        on_mutant.status == "build_error")
+    return on_mutant.status in ("test_failed", "timeout")
 
 
 def generate(task, sources, adapter, workspace, import_line, framework="vitest",
@@ -1874,11 +1886,27 @@ def generate(task, sources, adapter, workspace, import_line, framework="vitest",
         else:
             rejected.append({"index": k, "why": "test did not kill the mutant",
                              "on_p0": on_p0.status, "on_mutant": on_mutant.status})
-    suite_text = "\n\n".join(k["suite"] for k in kept)
+    # Each contributor proved its kill in isolation; the CONCATENATION is a different
+    # program. Two kept files declaring the same top-level identifier produce a composite
+    # that will not build, and this arm would then lose cases for reasons unrelated to test
+    # quality -- a bias against the arm under test, which is the worst direction for a bias
+    # to run. Validate it, and if it collides drop the most recent contributors until it
+    # builds rather than forfeiting the whole suite.
+    dropped, res = [], None
+    while kept:
+        suite_text = "\n\n".join(k["suite"] for k in kept)
+        probe = adapter.stage(task.task_id, workspace / "composite")
+        res = adapter.run_suite(probe, suite_text, "composite")
+        if res.status != "build_error":
+            break
+        dropped.append(kept.pop()["index"])
+    suite_text = "\n\n".join(k["suite"] for k in kept) if kept else ""
     return suite_text, {"suite": suite_text, "n_mutants": len(mutants),
                         "n_kept": len(kept), "kept": [
                             {x: k[x] for x in ("index", "fault_class", "semantic_change")}
                             for k in kept],
+                        "composite_status": res.status if kept else "empty",
+                        "dropped_for_collision": dropped,
                         "rejected": rejected}
 ```
 
