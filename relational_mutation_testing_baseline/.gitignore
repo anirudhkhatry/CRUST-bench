@@ -2,3 +2,4 @@
 __pycache__/
 *.pyc
 results/.llm_cache/
+additional_datasets/adapters/js_runtime/node_modules/
