@@ -14,14 +14,29 @@ split would quietly go wrong.
 import hashlib
 import re
 
-# A leaf case opens with `test(` or `it(` followed by a quoted title. `describe(` is
-# deliberately absent, and `.skip`/`.only`/`.each` are excluded by the `(` right after
-# the token, so an already-masked file is never double-masked.
-CASE_RE = re.compile(r"""\b(?P<kind>test|it)\(\s*(?P<q>['"`])(?P<title>(?:\\.|(?!(?P=q)).)*)(?P=q)""")
+# A leaf case opens with `test(` or `it(` followed by a quoted title, at a statement position
+# (after newline, semicolon, brace, paren, or start of string). Anchoring prevents matching
+# inside string literals like describe("test('title')"). The pattern cannot parse `test.each(`
+# (next char is `.`) or multi-line template-literal titles (no DOTALL). If loose and strict
+# patterns disagree, we have an unsupported form and refuse to split.
+CASE_RE = re.compile(
+    r"""(?:^|[;{}()\n,])\s*(?P<kind>test|it)\(\s*(?P<q>['"`])(?P<title>(?:\\.|(?!(?P=q)).)*)(?P=q)""",
+    re.M)
+
+# A looser pattern that matches every leaf-call SHAPE, including chained forms
+# (`test.each(`, `it.only(`) and titles the strict pattern cannot parse. If the loose
+# and strict patterns disagree on how many call sites exist, some form is present that
+# we cannot mask correctly -- and a case we fail to mask stays live in BOTH halves,
+# silently breaking disjointness. Refuse to split rather than guess.
+LOOSE_RE = re.compile(r"(?:^|[;{}()\n,])\s*(?:test|it)\s*(?:\.\s*\w+\s*)?\(", re.M)
 
 
 def find_leaf_cases(text):
-    """Every leaf `test`/`it` call, in source order."""
+    """Every leaf `test`/`it` call at a statement position, in source order.
+
+    Uses the named group positions for start/end, which correctly identify the callee token
+    regardless of what anchor precedes it.
+    """
     return [{"title": m.group("title"), "kind": m.group("kind"),
              "start": m.start("kind"), "end": m.start("kind") + len(m.group("kind"))}
             for m in CASE_RE.finditer(text)]
@@ -34,25 +49,37 @@ def _side(seed, index):
     return "A" if (index + off) % 2 == 0 else "B"
 
 
-def _mask(text, cases, drop):
-    """Rewrite the named cases' callee token to `<kind>.skip`, right to left."""
+def _confidently_complete(text, cases):
+    """True iff the strict pattern found all the call sites the loose pattern sees.
+
+    If they disagree, the strict pattern cannot parse some form (test.each, multi-line
+    template literals, etc.) and masking would fail silently, leaving some cases live
+    in both halves.
+    """
+    return len(LOOSE_RE.findall(text)) == len(cases)
+
+
+def _mask(text, drop):
+    """Rewrite the given cases' callee token to `<kind>.skip`, right to left.
+
+    Right-to-left so inserting `.skip` never invalidates the offsets of cases still to
+    be processed.
+    """
     out = text
-    for c in sorted(cases, key=lambda c: -c["start"]):
-        if c["title"] in drop:
-            out = out[:c["end"]] + ".skip" + out[c["end"]:]
+    for c in sorted(drop, key=lambda c: -c["start"]):
+        out = out[:c["end"]] + ".skip" + out[c["end"]:]
     return out
 
 
 def split_suite(text, seed):
-    """(half_a, half_b, {title: "A"|"B"}). An unsplittable suite returns ({}, text, text)."""
+    """(half_a, half_b, {title: "A"|"B"}). An unsplittable suite returns (text, text, {})."""
     cases = find_leaf_cases(text)
-    if len(cases) < 2:
+    if len(cases) < 2 or not _confidently_complete(text, cases):
         return text, text, {}
-    assignment = {}
-    for i, c in enumerate(cases):
-        assignment.setdefault(c["title"], _side(seed, i))
-    a_titles = {t for t, s in assignment.items() if s == "A"}
-    b_titles = {t for t, s in assignment.items() if s == "B"}
-    if not a_titles or not b_titles:          # degenerate after de-duplicating titles
+    sides = [_side(seed, i) for i in range(len(cases))]
+    if not ({"A", "B"} <= set(sides)):
         return text, text, {}
-    return _mask(text, cases, b_titles), _mask(text, cases, a_titles), assignment
+    a_cases = [c for c, s in zip(cases, sides) if s == "A"]
+    b_cases = [c for c, s in zip(cases, sides) if s == "B"]
+    assignment = {c["title"]: s for c, s in zip(cases, sides)}
+    return _mask(text, b_cases), _mask(text, a_cases), assignment

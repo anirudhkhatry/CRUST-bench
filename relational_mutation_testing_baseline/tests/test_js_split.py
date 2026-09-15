@@ -65,3 +65,32 @@ def test_a_single_case_suite_is_reported_as_unsplittable():
     a, b, assign = split_suite(one, seed="x")
     assert assign == {}      # caller marks ARM A n/a rather than scoring a corrupt half
     assert a == b == one
+
+
+def test_duplicate_titles_are_split_independently():
+    suite = ("describe('d', () => {\n"
+             "  test('dup', () => { expect(1).toBe(1); });\n"
+             "  test('other', () => { expect(2).toBe(2); });\n"
+             "  test('dup', () => { expect(3).toBe(3); });\n"
+             "});\n")
+    cases = find_leaf_cases(suite)
+    assert len(cases) == 3            # three physical cases, two distinct titles
+    a, b, assign = split_suite(suite, seed="x")
+    # Every physical case is masked in exactly one half.
+    assert a.count(".skip(") + b.count(".skip(") == 3
+
+
+def test_a_suite_using_test_each_is_unsplittable():
+    suite = ("describe('d', () => {\n"
+             "  test('plain', () => { expect(1).toBe(1); });\n"
+             "  test.each([1, 2])('param %i', (n) => { expect(n).toBeTruthy(); });\n"
+             "});\n")
+    assert split_suite(suite, seed="x")[2] == {}
+
+
+def test_a_describe_title_that_looks_like_a_case_is_not_one():
+    suite = ("describe(\"outer test('sub') case\", () => {\n"
+             "  test('real one', () => { expect(1).toBe(1); });\n"
+             "  test('real two', () => { expect(2).toBe(2); });\n"
+             "});\n")
+    assert [c["title"] for c in find_leaf_cases(suite)] == ['real one', 'real two']
