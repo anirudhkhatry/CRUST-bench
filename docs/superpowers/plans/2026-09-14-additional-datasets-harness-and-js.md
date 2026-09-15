@@ -2517,6 +2517,18 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
     (task.hidden_oracle_dir / "oracle.test.jsx").write_text(oracle["oracle_text"])
     log(f"{name}: arm_a_usable={oracle['arm_a_usable']} {oracle['reason']}")
 
+    # `prepare_oracle` always PRESERVES the oracle, but preserved is not the same as
+    # populated: a fixture whose holdout does not build reports zero admissible cases.
+    # Such a fixture can label nothing, so every candidate would come back GOOD by
+    # default and the task would be silently meaningless -- while still paying for a full
+    # set of LLM calls. Bail before spending any of them. Measured: 4 of the 18 pure-logic
+    # fixtures fail this way (their holdouts import modules the fixture does not ship).
+    if not oracle["admissible_oracle"]:
+        log(f"{name}: SKIPPED -- oracle has no admissible case ({oracle['reason']})")
+        write_metadata(task, [], extra={"skipped": "oracle has no admissible case",
+                                        "oracle_reason": oracle["reason"]})
+        return []
+
     # 2. Every arm's suite, from P0 and the transformation only.
     p0_ws = JS.stage(name, ws / "p0")
     suites, admissible, records = {}, {}, {}
