@@ -78,10 +78,17 @@ def assert_no_leak(prompt: str, forbidden) -> None:
             raise LeakageError(f"leaked into a test-generation prompt: {frag[:60]!r}...")
 
 # --- scoring ---------------------------------------------------------------------
-from .score import ACCEPT, REJECT, verdict   # noqa: E402  (kept next to its use)
+from .score import ACCEPT, verdict          # noqa: E402  (kept next to its use)
 
 
-def _row(task, cand, arm, res, v, kind, n_tests):
+def _row(task, cand, arm, res, v, kind, combined):
+    """One §19 row. `combined` is the existing+generated verdict, or None.
+
+    `number_generated_tests` is the size of the suite as actually RUN, not the admissible
+    subset -- the admissible set is filtered to cases that passed the trusted P0, so using
+    it here would under-report every suite's size and disagree with the ceiling arm, which
+    counts the same column from its executed suite.
+    """
     return {"task_id": task.task_id, "benchmark": task.benchmark,
             "candidate_id": cand.candidate_id, "ground_truth": cand.label,
             "label": cand.label, "bad_arm": cand.bad_arm,
@@ -89,7 +96,8 @@ def _row(task, cand, arm, res, v, kind, n_tests):
             "compiles": cand.build_status == "ok",
             "existing_tests_pass": (v == ACCEPT) if arm == "existing" else None,
             "generated_tests_pass": v == ACCEPT,
-            "number_generated_tests": n_tests, "tests_failed": len(res.failed),
+            "combined_tests_pass": combined,
+            "number_generated_tests": len(res.cases), "tests_failed": len(res.failed),
             "verdict": v, "rejection_kind": kind, "status": res.status,
             "execution_time": res.seconds,
             "model": cand.model, "model_version": cand.model_version,
@@ -103,18 +111,42 @@ def score_task(task, candidates, suites, admissible, adapter, workspace,
     `candidates` is {candidate_id: (Candidate, sources)}. The suites are the frozen ones;
     `assert_frozen` is called first so a suite edited after the freeze cannot be scored.
     """
-    assert_frozen(task, suites)
     arms = dict(suites)
     if existing_text:
         arms["existing"] = existing_text
+    # Baseline A's suite is frozen and hash-checked like every other arm. Validating only
+    # `suites` would leave the one arm whose text comes from the fixture outside the gate
+    # that is supposed to be a mechanical guarantee rather than a promise.
+    assert_frozen(task, arms)
+
     adm = {**{a: list(v) for a, v in admissible.items()},
            **({"existing": list(existing_admissible)} if existing_text else {})}
+    # An arm with no admissible set can never fire a behavioural rejection, so every
+    # candidate would be silently ACCEPTed and the run would produce plausible, wrong
+    # numbers. That is a caller bug; fail loudly rather than scoring it.
+    missing = set(arms) - set(adm)
+    if missing:
+        raise LeakageError(f"{task.task_id}: no admissible set for arm(s) "
+                           f"{', '.join(sorted(missing))} -- every candidate would be "
+                           f"accepted by default")
 
     rows = []
     for cid, (cand, sources) in sorted(candidates.items()):
+        # Baseline A's verdict is needed by every other arm's `combined` column, so it is
+        # resolved first rather than in dict order.
+        results = {}
         for arm, text in sorted(arms.items()):
             ws = adapter.stage(task.task_id, workspace / f"{arm}_{cid}", sources=sources)
             res = adapter.run_suite(ws, text, f"{arm}@{cid}")
-            v, kind = verdict(res, set(adm.get(arm, [])))
-            rows.append(_row(task, cand, arm, res, v, kind, len(adm.get(arm, []))))
+            results[arm] = (res, *verdict(res, set(adm.get(arm, []))))
+        existing_accepts = (results["existing"][1] == ACCEPT) if "existing" in results else None
+
+        for arm, (res, v, kind) in sorted(results.items()):
+            # Combined = existing tests + this generated suite, the design's §14 fifth
+            # baseline: it answers "do generated tests catch what the developer suite
+            # misses", which is the question that decides adoption. None on the Baseline A
+            # row itself (it IS the baseline) and wherever Baseline A is unavailable.
+            combined = (None if arm == "existing" or existing_accepts is None
+                        else existing_accepts and v == ACCEPT)
+            rows.append(_row(task, cand, arm, res, v, kind, combined))
     return rows
