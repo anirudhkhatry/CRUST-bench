@@ -921,7 +921,9 @@ git commit -m "feat(ad): split a vitest suite by leaf case via skip-masking"
 
 **Interfaces:**
 - Consumes: `SuiteResult` from Task 1.
-- Produces: `FIXTURES` (Path to the cloned corpus), `fixture_config(name) -> dict` with keys `targetFile`, `testFile`; `pure_logic_fixtures() -> list[str]`; `stage(name, dest, sources=None) -> Path`; `run_suite(workspace, suite_text, suite_name) -> SuiteResult`; `parse_vitest_json(blob) -> (status, cases)`.
+- Produces: `FIXTURES` (Path to the corpus), `fixture_config(name) -> dict` with keys `targetFile`, `testFile`; `holdout_text(name) -> str`; `src_prefix(name) -> str` (`""` or `"src"`); `import_path(name) -> str`; `pure_logic_fixtures() -> list[str]`; `stage(name, dest, sources=None) -> Path`; `staged_prefix(workspace) -> str`; `run_suite(workspace, suite_text, suite_name) -> SuiteResult`; `parse_vitest_json(blob) -> (status, cases)`.
+
+The adapter protocol every benchmark must satisfy is exactly `stage(name, dest, sources=None)` and `run_suite(workspace, suite_text, suite_name)`. The per-fixture source prefix is deliberately NOT a parameter of `run_suite` — it is recorded into the staged workspace by `stage` and read back — so that the Java adapter can satisfy the same two signatures.
 
 The benchmark ships no `package.json` — its `HARNESS_INTERFACE.md` says evaluators bring their own package installation — so this task builds that runtime once and reuses it for all 123 fixtures.
 
@@ -966,25 +968,54 @@ above makes the step a no-op in that case.
 }
 ```
 
+`additional_datasets/adapters/js_runtime/vitest.setup.mjs`:
+
+```javascript
+// Registers the jest-dom matchers (toBeInTheDocument, toHaveValue, ...) that the
+// RefactorBench-JS holdout suites assume are available. Without this, a React fixture
+// fails with "Invalid Chai property: toBeInTheDocument" on nearly every case —
+// 89 of travel_itinerary_planner's 105 failures were exactly this.
+import '@testing-library/jest-dom/vitest';
+```
+
 `additional_datasets/adapters/js_runtime/vitest.config.mjs`:
+
+Every line of this config was forced by a measured failure. Do not simplify it.
 
 ```javascript
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// The workspace is passed in per run; `@` is the alias every fixture's tests use for src/.
+const here = path.dirname(fileURLToPath(import.meta.url));
 const root = process.env.AD_WORKSPACE || process.cwd();
 
-// `@` points at the workspace ROOT, not <root>/src. A fixture's holdout test sits at the
-// fixture root and imports `./app/index.js`, while `refactoring_eval.config.json` gives
-// targetFile relative to `src/` — so the two agree only if `src/`'s CONTENTS are staged at
-// the workspace root. Staging `src/` as a subdirectory makes every holdout test fail with
-// `Failed to resolve import "./app/index.js"`. Verified against binary_search: 19/19 green
-// with this layout, 0/19 with `src/` nested.
+// The corpus is NOT uniform about where a holdout test expects its sources, so the adapter
+// detects the layout per fixture and passes it in AD_SRC_PREFIX:
+//   ''    — sources flat at the workspace root; the test imports `./app/index.js`
+//   'src' — sources under src/;                the test imports `./src/app/route.js`
+// `@` must follow the same prefix, because `@/app/api/utils/sql` is relative to the SOURCE
+// root, not the workspace root. Measured over the 18 pure-logic fixtures: 7 flat,
+// 4 src-prefixed, 7 unusable for unrelated reasons. Guessing one layout for all gives
+// "Failed to resolve import" on whichever group you guessed against.
+const srcRoot = path.join(root, process.env.AD_SRC_PREFIX || '');
+
 export default defineConfig({
   root,
-  resolve: { alias: { '@': root } },
-  test: { environment: 'jsdom', globals: false, include: ['*.test.js', '*.test.jsx'] },
+  // The automatic JSX runtime. Fixture components and holdout tests use JSX without
+  // importing React, so the classic runtime fails every case with
+  // "ReferenceError: React is not defined".
+  esbuild: { jsx: 'automatic' },
+  resolve: { alias: { '@': srcRoot } },
+  test: {
+    environment: 'jsdom',
+    // `globals: true` is required, not a convenience: several holdout suites call
+    // `beforeEach`/`vi` without importing them from 'vitest'. With globals off,
+    // dijkstra_shortest_path dies with "beforeEach is not defined" and reports zero cases.
+    globals: true,
+    include: ['*.test.js', '*.test.jsx'],
+    setupFiles: [path.join(here, 'vitest.setup.mjs')],
+  },
 });
 ```
 
@@ -1048,11 +1079,45 @@ def test_parse_vitest_json_no_tests_when_everything_is_skipped():
     assert JS.parse_vitest_json(blob)[0] == "no_tests"
 
 
+def test_parse_vitest_json_reports_a_load_failure_as_build_error():
+    # A file that will not load reports status "failed" with ZERO assertions. That is a
+    # structural rejection, not "this suite has no tests" -- conflating them corrupts the
+    # structural-vs-behavioural split the design depends on.
+    blob = {"testResults": [{"status": "failed", "assertionResults": [],
+                             "message": 'Failed to resolve import "./app/index.js"'}]}
+    assert JS.parse_vitest_json(blob)[0] == "build_error"
+
+
+def test_src_prefix_detects_both_corpus_layouts():
+    # Measured: 7 of the 18 pure-logic fixtures are flat, 4 reach sources through src/.
+    assert JS.src_prefix("binary_search") == ""
+    assert JS.src_prefix("seo_content_data") == "src"
+
+
+def test_import_path_carries_the_prefix():
+    # Handing an arm `targetFile` alone yields './app/page.jsx' for an src-prefixed
+    # fixture, which never resolves. The arms are told this string verbatim.
+    assert JS.import_path("binary_search") == "./app/index.js"
+    assert JS.import_path("seo_content_data").startswith("./src/")
+
+
+def test_stage_records_the_prefix_for_run_suite(tmp_path):
+    ws = JS.stage("seo_content_data", tmp_path / "ws")
+    assert JS.staged_prefix(ws) == "src"
+    assert (ws / "src").is_dir()
+    flat = JS.stage("binary_search", tmp_path / "flat")
+    assert JS.staged_prefix(flat) == ""
+    assert (flat / "app").is_dir()
+
+
 def test_pure_logic_fixtures_is_the_18_fixture_pilot_corpus():
+    # 18 is the SYNTACTIC count -- fixtures whose holdout needs no DOM. Only 11 of them
+    # actually verify end to end (holdout green on P0, split disjoint and complete); the
+    # other 7 are corpus defects, and Task 7's verification is what discovers that.
+    # Do not hardcode 11 here; this function does not run anything.
     names = JS.pure_logic_fixtures()
     assert len(names) == 18
     assert "binary_search" in names and "merge_sort" in names
-    assert not any("react" in n for n in names)
 
 
 def test_fixture_config_names_the_target_and_the_holdout_suite():
@@ -1093,6 +1158,7 @@ run stages a throwaway copy of the fixture so the corpus is never mutated.
 """
 import json
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -1130,30 +1196,76 @@ def pure_logic_fixtures():
     return out
 
 
+SRC_IMPORT = re.compile(r"""(?:from|import)\s*\(?\s*['"]\./src/""")
+PREFIX_MARKER = ".ad_src_prefix"
+
+
+def src_prefix(name):
+    """"src" if this fixture's holdout reaches sources through src/, else "" (flat).
+
+    The corpus is not uniform and there is no metadata field for this, so it is read off
+    the holdout's own imports. The pattern deliberately matches DYNAMIC imports too
+    (`await import('./src/auth.js')`) -- basic_web_with_auth has no static import of its
+    target at all, and a `from`-only pattern silently classifies it as flat and then fails
+    to resolve every import.
+    """
+    return "src" if SRC_IMPORT.search(holdout_text(name)) else ""
+
+
+def import_path(name):
+    """How a suite at the workspace root reaches the target file, prefix included.
+
+    The arms must be told this verbatim. Handing a model `targetFile` alone makes it write
+    `./app/page.jsx` for an src-prefixed fixture, which never resolves.
+    """
+    pre = src_prefix(name)
+    rel = fixture_config(name)["targetFile"]
+    return f"./{pre}/{rel}" if pre else f"./{rel}"
+
+
 def stage(name, dest, sources=None):
     """Copy a fixture into a writable workspace. `sources` overrides files by relpath.
 
-    The CONTENTS of `src/` land at the workspace root, not in a `src/` subdirectory. The
-    holdout test sits at the fixture root and imports `./app/index.js`, so `app/` has to be
-    a sibling of the test file; nesting it under `src/` makes every holdout suite fail to
-    resolve its import. Source paths are therefore relative to `src/`, matching the
-    `targetFile` field in `refactoring_eval.config.json`.
+    Where `src/` lands depends on the fixture: flat fixtures get its CONTENTS at the
+    workspace root (their holdout imports `./app/index.js`, so `app/` must be a sibling of
+    the test file); src-prefixed fixtures keep it at `src/`. Override paths are always
+    relative to `src/`, matching `targetFile` in `refactoring_eval.config.json`.
     """
     dest = Path(dest)
     if dest.exists():
         shutil.rmtree(dest)
-    shutil.copytree(FIXTURES / name / "src", dest, dirs_exist_ok=True)
+    pre = src_prefix(name)
+    target = dest / pre if pre else dest
+    shutil.copytree(FIXTURES / name / "src", target, dirs_exist_ok=True)
     for rel, text in (sources or {}).items():
-        p = dest / rel
+        p = target / rel
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(text)
+    # The prefix is a property of the staged workspace, so record it here rather than
+    # threading the fixture name through run_suite. That keeps the adapter protocol
+    # -- stage(name, dest, sources) / run_suite(workspace, text, suite_name) -- identical
+    # for every benchmark, which the Java adapter also has to satisfy.
+    (dest / PREFIX_MARKER).write_text(pre)
     return dest
 
 
+def staged_prefix(workspace):
+    """The source prefix recorded by `stage` for this workspace."""
+    marker = Path(workspace) / PREFIX_MARKER
+    return marker.read_text().strip() if marker.exists() else ""
+
+
 def parse_vitest_json(blob):
-    """(status, {case name: "ok"|"FAILED"}). Skipped cases are not scored either way."""
+    """(status, {case name: "ok"|"FAILED"}). Skipped cases are not scored either way.
+
+    A file that fails to LOAD reports `status: "failed"` with zero assertionResults. That
+    is a build error -- a structural rejection -- not "this suite has no tests", which is
+    unscorable. Conflating them corrupts the structural-vs-behavioural split the design
+    requires, and it is the most likely misreading of this report format.
+    """
     cases, skipped = {}, 0
-    for f in blob.get("testResults") or []:
+    files = blob.get("testResults") or []
+    for f in files:
         for a in f.get("assertionResults") or []:
             name = a.get("fullName") or a.get("title") or ""
             st = a.get("status")
@@ -1164,7 +1276,8 @@ def parse_vitest_json(blob):
             else:
                 skipped += 1
     if not cases:
-        return "no_tests", cases
+        file_failed = any(f.get("status") == "failed" for f in files)
+        return ("build_error" if file_failed else "no_tests"), cases
     return ("test_failed" if any(v == "FAILED" for v in cases.values()) else "green"), cases
 
 
@@ -1174,7 +1287,8 @@ def run_suite(workspace, suite_text, suite_name):
     test_file = workspace / f"{suite_name}.test.jsx"
     test_file.write_text(suite_text)
     out_file = workspace / f"{suite_name}.results.json"
-    env = {**os.environ, "AD_WORKSPACE": str(workspace), "CI": "1"}
+    env = {**os.environ, "AD_WORKSPACE": str(workspace), "CI": "1",
+           "AD_SRC_PREFIX": staged_prefix(workspace)}
     t0 = time.time()
     try:
         p = subprocess.run(
