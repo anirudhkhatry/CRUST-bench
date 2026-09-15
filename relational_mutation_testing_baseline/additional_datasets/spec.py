@@ -4,9 +4,22 @@ One benchmark instance is a Task (a trusted P0 plus the migration spec M) and a 
 Candidates (compiling post-migration implementations, each labelled GOOD or BAD by a
 hidden oracle the test-generating arms never see).
 """
+import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
+
+
+def sources_hash(sources) -> str:
+    """Content hash of a candidate's file set -- the analogue of `candidate_commit`.
+
+    Candidates are generated file sets, never commits, so §9's commit field is filled with
+    something that identifies the same thing: sha256 over the sorted {path: text} mapping.
+    Path-sensitive on purpose -- moving a function between two files is a distinct
+    candidate even when the concatenated text is unchanged.
+    """
+    return hashlib.sha256(
+        json.dumps(sources, sort_keys=True).encode()).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -52,9 +65,11 @@ class Candidate:
     generation_parameters: dict
     build_status: str               # "ok" | "build_error"
     hidden_oracle_failure: str | None   # why the oracle called it BAD; None for GOOD
-    # Candidates here are generated file sets, not commits, so the analogue of a commit
-    # is a content hash of the candidate's sources. Defaulted so later tasks that build
-    # a Candidate positionally are unaffected.
+    # Candidates here are generated file sets, not commits, so the analogue of a commit is
+    # a content hash of the candidate's sources -- `sources_hash(sources)`, set by the
+    # benchmark when the candidate is built. Defaulted so a Candidate built positionally is
+    # unaffected; `None` means the producer did not identify its sources, which is a gap in
+    # the artifact rather than a valid value.
     candidate_commit: str | None = None
 
     def dir(self, task: Task) -> Path:

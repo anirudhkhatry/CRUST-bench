@@ -47,11 +47,16 @@ def test_naive_prompt_carries_the_program_the_transformation_and_the_import():
     assert "<<" not in text
 
 
-def test_mutation_prompt_carries_the_fault_and_the_import():
+def test_mutation_prompt_carries_the_fault_the_transformation_and_the_import():
+    # The transformation is here because ARM N's prompt has always carried it and ARM M's
+    # did not -- an uncontrolled variable in the direction of withholding information from
+    # ARM M. Both arms are now told a transformation is coming; only ARM M is told a fault.
     text = load("mutation_testgen", sources="SRC_HERE", semantic_change="FAULT_HERE",
+                transformation="MIGRATE_HERE",
                 import_line="import * as mod from './app/index.js';",
                 language="JavaScript", framework="vitest")
     assert "SRC_HERE" in text and "FAULT_HERE" in text
+    assert "MIGRATE_HERE" in text
     assert "./app/index.js" in text
     assert "<<" not in text
 

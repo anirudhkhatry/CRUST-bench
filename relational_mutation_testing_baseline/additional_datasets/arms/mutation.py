@@ -10,15 +10,20 @@ import json
 from rmt.llm import ask, fenced, json_block
 
 from ..prompts import load
-from .naive import SYSTEM, _bundle, _generate_with_repair
+from ..runner import assert_no_leak
+from .naive import _bundle, _generate_with_repair
 
 MUTATE_SYSTEM = ("You are a precise programmer producing mutation-testing fixtures. You "
                  "follow output formats exactly and never invent code you have not read.")
 
 
-def propose_mutants(sources, n, tag, retries=2):
-    """Ask for n faults. Returns raw records; validity is decided by `apply_mutant`."""
+def propose_mutants(sources, n, tag, retries=2, forbidden=()):
+    """Ask for n faults. Returns raw records; validity is decided by `apply_mutant`.
+
+    This is an ARM M prompt too, so it passes the same §7.2 gate as the test-writing one.
+    """
     user = load("mutate", sources=_bundle(sources), n=n)
+    assert_no_leak(user, forbidden)
     for i in range(retries + 1):
         reply = ask(MUTATE_SYSTEM, user, effort="high", max_tokens=48000, tag=f"{tag}_m{i}")
         try:
@@ -54,24 +59,30 @@ def kills(on_p0, on_mutant):
 
 
 def generate(task, sources, adapter, workspace, import_line, framework="vitest",
-             n_mutants=6, retries=3, tag="mut"):
+             n_mutants=6, retries=3, tag="mut", forbidden=()):
     """(suite_text, record). Concatenates every test that passed its kill gate.
 
     `import_line` is the exact import statement the suite must use -- see naive.generate.
     Both arms are given it identically, so neither is advantaged by knowing where the code
-    lives.
+    lives. `forbidden` is the §7.2 leak list, checked identically to ARM N's -- see
+    `naive.generate` for why it holds the oracle text and not the candidate sources.
     """
-    mutants = propose_mutants(sources, n_mutants, tag)
+    mutants = propose_mutants(sources, n_mutants, tag, forbidden=forbidden)
     kept, rejected = [], []
     for k, rec in enumerate(mutants):
         mutated = apply_mutant(sources, rec)
         if mutated is None:
             rejected.append({"index": k, "why": "snippet not unique or file unknown"})
             continue
+        # The migration spec M goes to BOTH generating arms (design §2): ARM N is told a
+        # transformation is coming, so ARM M must be too, or the arms differ in what they
+        # know as well as in the kill gate and the comparison measures both at once.
         base = load("mutation_testgen", sources=_bundle(sources),
+                    transformation=task.transformation,
                     semantic_change=rec.get("semantic_change", ""),
                     import_line=import_line,
                     language=task.language.capitalize(), framework=framework)
+        assert_no_leak(base, forbidden)
         p0_ws = adapter.stage(task.task_id, workspace / f"p0_{k}")
         suite, srec = _generate_with_repair(base, adapter, p0_ws, retries, f"{tag}_{k}")
         if not srec["compiles"]:

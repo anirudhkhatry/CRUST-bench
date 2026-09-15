@@ -11,8 +11,11 @@ Two refinements matter, both learned from `pmb/validate.py` and the 2026-09-08 a
   in the C<->Rust study; it is not optional.
 """
 ACCEPT, REJECT, LOAD_FAILED, ERROR = "accept", "reject", "load_failed", "error"
-# LOAD_FAILED is never returned by `verdict()`; the runner assigns it directly when a
-# suite could not be loaded against a candidate at all. It is unscorable, like ERROR.
+# LOAD_FAILED is RESERVED and currently unproduced: neither `verdict()` nor the runner
+# assigns it, because the adapters report a suite that will not load as `build_error`,
+# which `verdict()` turns into a STRUCTURAL rejection. It is kept in the vocabulary (and
+# out of `_scorable`) so that a row carrying it -- from an older rows.json, or from an
+# adapter that does distinguish the two -- is excluded rather than silently counted.
 BEHAVIOURAL, STRUCTURAL = "behavioural", "structural"
 
 
@@ -40,13 +43,42 @@ def _scorable(rows):
     return [r for r in rows if r["verdict"] in (ACCEPT, REJECT)]
 
 
-def confusion(rows):
-    """REJECT is the positive class: the suite claims the candidate is wrong."""
+def is_structural(row):
+    """A rejection driven by shape rather than behaviour."""
+    return row["verdict"] == REJECT and row.get("rejection_kind") == STRUCTURAL
+
+
+def _rejects(row, behavioural_only):
+    """Does this row count as a rejection under the requested reading?
+
+    Under `behavioural_only`, a STRUCTURAL rejection is counted as an ACCEPT rather than
+    dropped. Dropping it would move the row into `unscorable` and shrink the denominator,
+    which silently changes GAR and AP as well -- the point of the mode is to change what
+    counts as *evidence of misbehaviour*, not what counts as a scored candidate.
+    """
+    if row["verdict"] != REJECT:
+        return False
+    return not (behavioural_only and row.get("rejection_kind") == STRUCTURAL)
+
+
+def n_structural(rows):
+    """How many of these rows are structural rejections (spec §5's separated count)."""
+    return sum(1 for r in _scorable(rows) if is_structural(r))
+
+
+def confusion(rows, behavioural_only=False):
+    """REJECT is the positive class: the suite claims the candidate is wrong.
+
+    With `behavioural_only`, a structural rejection ("the suite would not load against
+    this candidate") is not evidence about behaviour and is counted as an acceptance.
+    """
     s = _scorable(rows)
-    return {"tp": sum(1 for r in s if r["label"] == "BAD" and r["verdict"] == REJECT),
-            "fp": sum(1 for r in s if r["label"] == "GOOD" and r["verdict"] == REJECT),
-            "fn": sum(1 for r in s if r["label"] == "BAD" and r["verdict"] == ACCEPT),
-            "tn": sum(1 for r in s if r["label"] == "GOOD" and r["verdict"] == ACCEPT),
+    rej = [r for r in s if _rejects(r, behavioural_only)]
+    acc = [r for r in s if not _rejects(r, behavioural_only)]
+    return {"tp": sum(1 for r in rej if r["label"] == "BAD"),
+            "fp": sum(1 for r in rej if r["label"] == "GOOD"),
+            "fn": sum(1 for r in acc if r["label"] == "BAD"),
+            "tn": sum(1 for r in acc if r["label"] == "GOOD"),
             "unscorable": len(rows) - len(s)}
 
 
@@ -54,8 +86,8 @@ def _ratio(num, den):
     return None if not den else num / den
 
 
-def metrics(rows):
-    c = confusion(rows)
+def metrics(rows, behavioural_only=False):
+    c = confusion(rows, behavioural_only)
     tp, fp, fn, tn = c["tp"], c["fp"], c["fn"], c["tn"]
     n_good, n_bad, n = tn + fp, tp + fn, tp + fp + fn + tn
     gar, brr = _ratio(tn, n_good), _ratio(tp, n_bad)
@@ -71,6 +103,9 @@ def metrics(rows):
     else:
         f1 = 2 * prec * rec / (prec + rec)
     return {**c, "n_good": n_good, "n_bad": n_bad, "n": n,
+            "n_structural": n_structural(rows),
+            "n_tasks": len({r.get("task_id") for r in rows}),
+            "behavioural_only": behavioural_only,
             "gar": gar, "brr": brr, "ap": _ratio(tn, tn + fn),
             "frr": None if gar is None else 1 - gar,
             "accuracy": _ratio(tp + tn, n), "balanced_accuracy": bal,
@@ -87,8 +122,15 @@ ARM_LABEL = {"mutation": "ARM M (mutation-guided)", "naive": "ARM N (naive LLM)"
              "existing": "ARM A (developer tests)", "ceiling": "ARM C (sees the diff)"}
 
 
-def by_arm(rows):
-    """{arm: {"S": metrics, "N": metrics, "overall": metrics}}."""
+def by_arm(rows, behavioural_only=False):
+    """{arm: {"S": metrics, "N": metrics, "overall": {...}}}.
+
+    `overall` also carries the arm's task coverage. Arms are omitted PER TASK when they
+    produced no scorable suite, and that omission is not random -- ARM N's suite is one
+    monolithic file while ARM M assembles independently-compiled fragments -- so two arms
+    in this table may be measured over different task sets. The count is reported so that
+    comparison is visible rather than implicit (see `report`).
+    """
     out = {}
     for arm in sorted({r["arm"] for r in rows}):
         mine = [r for r in rows if r["arm"] == arm]
@@ -97,18 +139,21 @@ def by_arm(rows):
         # depend on which BAD population is scored beside it. Every BAD-derived figure is
         # deliberately absent here -- pooling seeded and harvested BADs into one BRR would
         # hide the divergence this benchmark exists to measure (design §5).
-        arm_wide = metrics(good)
+        arm_wide = metrics(good, behavioural_only)
         entry = {"overall": {"n_good": arm_wide["n_good"], "gar": arm_wide["gar"],
-                             "frr": arm_wide["frr"]}}
+                             "frr": arm_wide["frr"],
+                             "n_tasks": len({r.get("task_id") for r in mine}),
+                             "tasks": sorted({str(r.get("task_id")) for r in mine}),
+                             "n_structural": n_structural(mine)}}
         for pop in ("S", "N"):
             bad = [r for r in mine if r["label"] == "BAD" and r.get("bad_arm") == pop]
             if bad:
-                entry[pop] = metrics(bad + good)
+                entry[pop] = metrics(bad + good, behavioural_only)
         out[arm] = entry
     return out
 
 
-def by_fault_class(rows):
+def by_fault_class(rows, behavioural_only=False):
     """Design §16: detection rate per fault category, split by arm and BAD population.
 
     Nothing is pooled on either axis. Blending arms would hide which arm detects a class,
@@ -121,7 +166,7 @@ def by_fault_class(rows):
                       key=lambda k: (k[0], str(k[1]), k[2])):
         arm, pop, cat = key
         mine = [r for r in bad if (r["arm"], r.get("bad_arm"), r["fault_category"]) == key]
-        hit = [r for r in mine if r["verdict"] == REJECT]
+        hit = [r for r in mine if _rejects(r, behavioural_only)]
         out.append({"arm": arm, "bad_arm": pop, "fault_category": cat,
                     "number": len(mine), "detected": len(hit),
                     "detection_rate": _ratio(len(hit), len(mine))})
@@ -132,16 +177,19 @@ def _pct(x):
     return "n/a" if x is None else f"{100 * x:.0f}%"
 
 
-def report(rows, title):
-    per = by_arm(rows)
-    lines = [f"# Good-vs-bad classification: {title}", "",
-             "The headline is BRR at matched GAR -- an arm that rejects more BAD while also",
-             "rejecting more GOOD has not won anything. ARM A is excluded from GAR",
-             "comparison: its GAR is definitional, since GOOD admission required its suite",
-             "to pass (spec §3.6).", "",
-             "| arm | population | n GOOD | n BAD | GAR | BRR | AP | precision | F1 |",
-             "|---|---|---:|---:|---:|---:|---:|---:|---:|"]
-    for arm in [a for a in ARMS if a in per] + [a for a in per if a not in ARMS]:
+def _ordered_arms(per):
+    return [a for a in ARMS if a in per] + [a for a in per if a not in ARMS]
+
+
+HEADER = ("| arm | population | n tasks | n GOOD | n BAD | GAR | BRR | AP | precision "
+          "| F1 |")
+RULE = "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|"
+
+
+def _table(rows, behavioural_only):
+    per = by_arm(rows, behavioural_only)
+    lines = [HEADER, RULE]
+    for arm in _ordered_arms(per):
         for pop in ("S", "N"):
             m = per[arm].get(pop)
             if not m:
@@ -149,10 +197,71 @@ def report(rows, title):
             name = {"S": "seeded", "N": "harvested"}[pop]
             arm_wide = per[arm]["overall"]
             gar = "definitional" if arm == "existing" else _pct(arm_wide["gar"])
-            lines.append(f"| {ARM_LABEL.get(arm, arm)} | {name} | {m['n_good']} | "
+            lines.append(f"| {ARM_LABEL.get(arm, arm)} | {name} | "
+                         f"{arm_wide['n_tasks']} | {m['n_good']} | "
                          f"{m['n_bad']} | {gar} | {_pct(m['brr'])} | {_pct(m['ap'])} | "
                          f"{_pct(m['precision'])} | {_pct(m['f1'])} |")
-    lines += ["", "## Detection rate by fault category (spec §16)", "",
+    return lines
+
+
+def _coverage_lines(per):
+    """State plainly whether the arms in the table were measured over the same tasks."""
+    cover = {arm: per[arm]["overall"]["tasks"] for arm in _ordered_arms(per)}
+    counts = ", ".join(f"{ARM_LABEL.get(a, a)}: {len(v)}" for a, v in cover.items())
+    if len({tuple(v) for v in cover.values()}) <= 1:
+        return [f"All arms cover the same {len(next(iter(cover.values()), []))} task(s) "
+                f"({counts}).", ""]
+    out = [f"**The arms do NOT cover the same tasks** ({counts}). An arm is omitted from a "
+           "task when it produced no scorable suite, and that omission is not random -- so "
+           "the rows below are not a like-for-like comparison and the per-arm task sets "
+           "must be read first.", ""]
+    for arm, tasks in cover.items():
+        missing = sorted(set().union(*cover.values()) - set(tasks))
+        if missing:
+            out.append(f"- {ARM_LABEL.get(arm, arm)} is absent from: {', '.join(missing)}")
+    return out + [""]
+
+
+def _structural_lines(per):
+    counts = {arm: per[arm]["overall"]["n_structural"] for arm in _ordered_arms(per)}
+    body = ", ".join(f"{ARM_LABEL.get(a, a)}: {n}" for a, n in counts.items())
+    return [f"Structural rejections (the suite would not load against the candidate), "
+            f"per arm -- counted in the first table, not in the second: {body}.", ""]
+
+
+def report(rows, title, failures=()):
+    """The spec §5 tables. `failures` are tasks that errored and produced no rows.
+
+    Two tables are emitted, not one. A rejection because the suite would not load against
+    a candidate is a claim about the candidate's SHAPE; a failed assertion is a claim about
+    its BEHAVIOUR. The 2026-09-08 analysis moved recall from 0.74 to 0.23 on exactly this
+    distinction, so reporting only the first table would overstate every arm, and reporting
+    only the second would hide how much of each arm's detection was structural.
+    """
+    per = by_arm(rows)
+    lines = [f"# Good-vs-bad classification: {title}", ""]
+    if failures:
+        # A run with failed tasks must not render as a clean report: the arms below were
+        # measured over the tasks that survived, which is a different population.
+        lines += [f"> **{len(failures)} task(s) failed and contributed no rows.** The "
+                  "tables below describe only the tasks that completed.", ""]
+        for f in failures:
+            lines.append(f"> - `{f.get('task')}`: {f.get('error')}")
+        lines.append("")
+    lines += ["The headline is BRR at matched GAR -- an arm that rejects more BAD while also",
+              "rejecting more GOOD has not won anything. ARM A is excluded from GAR",
+              "comparison: its GAR is definitional, since GOOD admission required its suite",
+              "to pass (spec §3.6).", ""]
+    lines += _coverage_lines(per)
+    lines += _structural_lines(per)
+    lines += ["## All rejections", ""]
+    lines += _table(rows, behavioural_only=False)
+    lines += ["", "## Behavioural rejections only", "",
+              "A structural rejection is counted here as an acceptance, not dropped: the "
+              "candidate was still scored, so the denominators -- and therefore GAR and AP "
+              "-- are the same as above (spec §5).", ""]
+    lines += _table(rows, behavioural_only=True)
+    lines += ["", "## Detection rate by fault category (spec §16), all rejections", "",
               "| arm | population | fault category | number | detected | detection rate |",
               "|---|---|---|---:|---:|---:|"]
     for r in by_fault_class(rows):

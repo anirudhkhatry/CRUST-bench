@@ -6,27 +6,61 @@ reorder these steps -- `freeze` refuses once candidates exist.
 """
 import json
 
+from rmt import llm
+
 from ..adapters import js_oracle, js_vitest as JS
 from ..arms import ceiling, mutation, naive
 from ..harvest import label, propose_candidate
 from ..runner import freeze, score_task
 from ..seed import seed_faults
-from ..spec import Candidate, Task, write_metadata
+from ..spec import Candidate, Task, sources_hash, write_metadata
 
-# Arm N is the PRIMARY bad population (spec §5). A spread of model strength and
-# temperature is what makes the candidate set contain both correct and incorrect work: a
-# single strong model at temperature 0 produces near-identical candidates that are almost
-# all GOOD, and yields no BADs to measure against.
+# Arm N is the PRIMARY bad population (spec §5), so the candidate set has to contain both
+# correct and incorrect work.
+#
+# WHAT THIS LIST ACTUALLY DOES, which is less than it looks: `rmt.llm.ask` takes a
+# `temperature` argument and never forwards it, and has no `model` argument at all -- it
+# always calls `rmt.llm.MODEL`. `rmt/llm.py` is shared with two other pipelines and is out
+# of scope to change here. So every entry below produces a call to the SAME model at the
+# SAME temperature, and the only thing the entries vary is the cache tag, which is enough
+# to make each attempt a fresh sample rather than a cache hit. The candidate spread is
+# therefore sampling noise at whatever temperature the API defaults to, and nothing that
+# is recorded on a Candidate may claim otherwise (see `_candidate_provenance`).
+# The strings are kept verbatim because they are part of the LLM cache key (`ask` names
+# its cache entry `<tag>_<hash>.json`): renaming them would re-pay for every candidate
+# already generated. They are attempt LABELS, not a model selection.
 MODELS = [("claude-haiku-4-5-20251001", 1.0), ("claude-haiku-4-5-20251001", 1.0),
           ("claude-opus-5", 1.0), ("claude-haiku-4-5-20251001", 0.3)]
 TRANSFORMATION = ("Decompose the target file into smaller, well-structured modules while "
                   "preserving all externally observable behaviour.")
 
 
+def task_pool():
+    """The benchmark's task pool. The entrypoint asks the BENCHMARK for this rather than
+    reaching into a JS adapter, so `select` and `run` cannot drift apart per benchmark."""
+    return JS.pure_logic_fixtures()
+
+
 def build_task(name, results_root):
     return Task(task_id=name, benchmark="refactorbench_js", language="javascript",
                 repository="Create-Inc/refactor-bench", source_commit="main",
                 transformation=TRANSFORMATION, results_root=results_root)
+
+
+def _candidate_provenance():
+    """What a Candidate may honestly claim about how it was produced (spec §9).
+
+    `rmt.llm.ask` neither forwards a temperature nor accepts a model, so the only true
+    statement available is the module-level model it really calls. `temperature` is
+    recorded as an explicit null rather than the number we asked for and did not get: a
+    metadata field that names a temperature nobody applied is worse than an absent one,
+    because it is indistinguishable from a real setting when the artifact is read later.
+    `llm.MODEL` is read at call time, not import time, so it reflects RMT_MODEL for the
+    run that actually produced the candidate.
+    """
+    return llm.MODEL, {"temperature": None,
+                       "temperature_note": "rmt.llm.ask does not forward a temperature; "
+                                           "candidate spread is sampling noise only"}
 
 
 def _sources(name):
@@ -65,7 +99,14 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
     p0_ws = JS.stage(name, ws / "p0")
     suites, admissible, records = {}, {}, {}
     imp = f"import * as mod from '{JS.import_path(name)}';"
-    n_suite, rec = naive.generate(task, sources, JS, p0_ws, imp, tag=f"{name}_naive")
+    # §7.2: the held-out developer tests are the only text that exists at this point and
+    # must not reach a generating arm's prompt. P0's own sources are in both prompts by
+    # design and so are deliberately NOT forbidden; no candidate exists yet (the freeze
+    # below enforces that), and a candidate is mostly P0 verbatim, so passing candidate
+    # text here would fire on files nobody changed.
+    forbidden = [oracle["oracle_text"], oracle["existing_text"]]
+    n_suite, rec = naive.generate(task, sources, JS, p0_ws, imp, tag=f"{name}_naive",
+                                  forbidden=forbidden)
     records["naive"] = rec
     # Mirrors the ARM M guard below. `naive.generate`'s repair is build-errors-only, so a
     # suite that COMPILES but fails every assertion on P0 (or never built at all, leaving
@@ -80,7 +121,7 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
             f"(compiles={rec.get('compiles')}, n_admissible={len(rec.get('admissible') or [])}) "
             f"-- omitted from scoring")
     m_suite, rec = mutation.generate(task, sources, JS, ws / "mut", imp,
-                                     tag=f"{name}_mut")
+                                     tag=f"{name}_mut", forbidden=forbidden)
     m_run = JS.run_suite(p0_ws, m_suite, "mut_p0") if m_suite else None
     records["mutation"] = rec
     # An arm that produced NO suite is omitted rather than registered empty. `score_task`
@@ -126,8 +167,10 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
             good_sources = good_sources or cand["sources"]
         else:
             cid = f"bad_{sum(1 for c, _ in candidates.values() if c.label == 'BAD') + 1:02d}"
+        used_model, gen_params = _candidate_provenance()
         candidates[cid] = (Candidate(cid, name, lbl, None if lbl == "GOOD" else "N",
-                                     None, model, model, {"temperature": temp}, "ok", why),
+                                     None, used_model, used_model, gen_params, "ok", why,
+                                     candidate_commit=sources_hash(cand["sources"])),
                            cand["sources"])
 
     # 5. Arm S: seeded faults in a verified-GOOD migration, confirmed by the oracle.
@@ -135,14 +178,27 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
     # a blind snippet edit usually lands where the tests do not look. Its value is the
     # per-fault-category label, which Arm N cannot supply. A task whose Arm S yield is zero
     # is not a failed task.
-    for j, f in enumerate(seed_faults(task, good_sources or sources, n_bad,
-                                      f"{name}_seed") if (good_sources or sources) else []):
+    #
+    # With no verified-GOOD migration there is nothing to seed INTO. Falling back to P0
+    # would seed faults into the pre-migration program -- not a migration at all, so not an
+    # Arm S candidate -- and would reintroduce the circularity `seed.py` exists to prevent,
+    # since ARM M's tests were built to kill mutants in that very P0.
+    if good_sources is None:
+        seeded = []
+        log(f"{name}: no verified-GOOD migration -- Arm S skipped (seeding into P0 would "
+            f"score faults in the pre-migration program as a migration, and ARM M's tests "
+            f"were built against that same P0)")
+    else:
+        seeded = seed_faults(task, good_sources, n_bad, f"{name}_seed")
+    seed_model, _ = _candidate_provenance()
+    for j, f in enumerate(seeded):
         lbl, why = label(JS, task, f["sources"], oracle["oracle_text"], ws / f"s{j}")
         if lbl != "BAD":
             continue          # equivalent fault, or it broke the build: excluded (§3.5)
         cid = f"bad_{sum(1 for c, _ in candidates.values() if c.label == 'BAD') + 1:02d}"
         candidates[cid] = (Candidate(cid, name, "BAD", "S", f["fault_category"],
-                                     "claude-opus-5", "claude-opus-5", {}, "ok", why),
+                                     seed_model, seed_model, {}, "ok", why,
+                                     candidate_commit=sources_hash(f["sources"])),
                            f["sources"])
 
     for cid, (cand, src) in candidates.items():

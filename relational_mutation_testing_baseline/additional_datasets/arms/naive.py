@@ -8,6 +8,7 @@ force its assertions to prove they discriminate.
 from rmt.llm import ask, fenced
 
 from ..prompts import load
+from ..runner import assert_no_leak
 
 SYSTEM = ("You are a precise programmer writing tests. You assert exact values, you use "
           "only APIs you have been shown, and you never write a test that could fail a "
@@ -15,17 +16,27 @@ SYSTEM = ("You are a precise programmer writing tests. You assert exact values, 
 
 
 def generate(task, sources, adapter, workspace, import_line, framework="vitest",
-             retries=3, tag="naive"):
+             retries=3, tag="naive", forbidden=()):
     """(suite_text, record). Repair is build-errors-only; assertions may not weaken.
 
     `import_line` is the exact import statement the suite must use to reach the code under
     test. It is passed in rather than derived, because only the adapter knows where the
     file lands in a staged workspace -- handing a model the target's path relative to the
     fixture makes it write an import that does not resolve, and every suite build-errors.
+
+    `forbidden` arms spec §7.2: the caller passes the text that must NOT reach this prompt,
+    and the composed prompt is checked before a single token is paid for. What belongs in
+    it is decided by what the prompt legitimately contains -- P0's own sources, which is
+    the whole point of the arm -- so the list must hold only text that is NOT in P0: the
+    hidden oracle's suite and Baseline A's half of it. Candidate sources cannot be passed
+    and must not be: a candidate is mostly P0 verbatim, so any unchanged file would match
+    itself and fire the gate on nothing, and at this point in the protocol no candidate
+    exists yet (the freeze in `runner.freeze` enforces that ordering separately).
     """
     base = load("naive_testgen", sources=_bundle(sources),
                 transformation=task.transformation, import_line=import_line,
                 language=task.language.capitalize(), framework=framework)
+    assert_no_leak(base, forbidden)
     return _generate_with_repair(base, adapter, workspace, retries, tag)
 
 

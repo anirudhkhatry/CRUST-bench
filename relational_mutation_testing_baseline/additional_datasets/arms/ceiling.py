@@ -11,7 +11,7 @@ is scored per candidate rather than once per task, so it does not go through `sc
 import difflib
 
 from ..prompts import load
-from .naive import SYSTEM, _bundle, _generate_with_repair
+from .naive import _bundle, _generate_with_repair
 
 
 def diff_of(good_sources, bad_sources):
@@ -31,10 +31,21 @@ def is_unreachable(suite_text):
 
 
 def outcome(on_good, on_bad):
-    """KILLED | F_UNSOUND_ON_GOOD | F_NOT_DISCRIMINATING."""
+    """KILLED | F_UNSOUND_ON_GOOD | F_BAD_DID_NOT_BUILD | F_NOT_DISCRIMINATING.
+
+    A suite that will not BUILD against the candidate has observed no behaviour at all: it
+    reports that the candidate is shaped differently (a renamed export, a moved module),
+    which is exactly the structural/behavioural confusion `score.py` separates and
+    `mutation.kills` already refuses to bank (spec §20). Crediting it here would be worse
+    than elsewhere, because ARM C is the ceiling -- `1 - its BRR` is the floor under every
+    other arm's miss rate, so an inflated ARM C makes every other arm look worse by
+    construction. It is therefore a MISS for the ceiling, not a kill.
+    """
     if on_good.status != "green":
         return "F_UNSOUND_ON_GOOD"
-    if on_bad.status in ("test_failed", "timeout", "build_error"):
+    if on_bad.status == "build_error":
+        return "F_BAD_DID_NOT_BUILD"
+    if on_bad.status in ("test_failed", "timeout"):
         return "KILLED"
     return "F_NOT_DISCRIMINATING"
 
@@ -52,7 +63,7 @@ def generate(task, good_sources, bad_sources, adapter, workspace, import_line,
 
 def score_ceiling(task, candidates, adapter, workspace, good_sources, import_line):
     """One row per BAD candidate. GOOD candidates are not scored: ARM C has no GAR."""
-    from ..score import ACCEPT, BEHAVIOURAL, REJECT
+    from ..score import ACCEPT, BEHAVIOURAL, REJECT, STRUCTURAL
 
     rows = []
     for cid, (cand, sources) in sorted(candidates.items()):
@@ -67,6 +78,7 @@ def score_ceiling(task, candidates, adapter, workspace, good_sources, import_lin
                          "bad_arm": cand.bad_arm, "fault_category": cand.fault_category,
                          "arm": "ceiling", "compiles": True,
                          "existing_tests_pass": None, "generated_tests_pass": True,
+                         "combined_tests_pass": None,
                          "number_generated_tests": 0, "tests_failed": 0,
                          "verdict": ACCEPT, "rejection_kind": "",
                          "status": "no_suite", "execution_time": 0.0,
@@ -80,15 +92,24 @@ def score_ceiling(task, candidates, adapter, workspace, good_sources, import_lin
         on_bad = adapter.run_suite(bad_ws, suite, f"ceiling@{cid}")
         oc = outcome(on_good, on_bad)
         killed = oc == "KILLED"
+        # Only a KILLED row is a rejection now, and it is behavioural by construction: the
+        # suite was green on GOOD and red on BAD through an assertion or a timeout. The
+        # structurally-driven row is an ACCEPT (a ceiling MISS) and still carries
+        # `structural` so the reason is legible in rows.json -- no ARM C row can any longer
+        # claim `behavioural` for a difference in shape, which is the mislabel
+        # `score.py`'s behavioural/structural split could not have undone afterwards.
+        kind = BEHAVIOURAL if killed else (
+            STRUCTURAL if oc == "F_BAD_DID_NOT_BUILD" else "")
         rows.append({"task_id": task.task_id, "benchmark": task.benchmark,
                      "candidate_id": cid, "ground_truth": "BAD", "label": "BAD",
                      "bad_arm": cand.bad_arm, "fault_category": cand.fault_category,
                      "arm": "ceiling", "compiles": True, "existing_tests_pass": None,
                      "generated_tests_pass": not killed,
+                     "combined_tests_pass": None,
                      "number_generated_tests": len(on_good.cases),
                      "tests_failed": len(on_bad.failed),
                      "verdict": REJECT if killed else ACCEPT,
-                     "rejection_kind": BEHAVIOURAL if killed else "",
+                     "rejection_kind": kind,
                      "status": on_bad.status, "execution_time": on_bad.seconds,
                      "ceiling_outcome": oc, "unreachable": rec["unreachable"],
                      "model": cand.model, "model_version": cand.model_version,
