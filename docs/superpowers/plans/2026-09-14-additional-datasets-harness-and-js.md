@@ -2234,10 +2234,14 @@ def test_a_candidate_that_does_not_build_is_excluded_not_bad(tmp_path):
     assert harvest.label(a, _task(tmp_path), {}, "suite", tmp_path)[0] == "EXCLUDE"
 
 
-def test_a_seeded_fault_the_oracle_cannot_see_is_excluded_as_equivalent(tmp_path):
-    """Spec §3.5: an equivalent mutant is unkillable and would depress every arm."""
+def test_an_equivalent_fault_is_not_labelled_bad(tmp_path):
+    """Spec §3.5: a fault the oracle cannot see is unkillable by anyone.
+
+    Leaving it in the denominator silently depresses every arm's detection rate while
+    looking like a fair difficulty increase, so it must not come back BAD.
+    """
     a = FakeAdapter(SuiteResult(status="green", cases={"a": "ok"}, rc=0, seconds=0.1))
-    assert harvest.confirm_bad(a, _task(tmp_path), {}, "suite", tmp_path) is False
+    assert harvest.label(a, _task(tmp_path), {}, "suite", tmp_path)[0] == "GOOD"
 ```
 
 - [ ] **Step 3: Run it to make sure it fails**
@@ -2255,8 +2259,6 @@ defence against the criticism that a mutation-guided test suite catches seeded m
 because both are mutants, so its candidates are generated from P0 and the migration spec
 alone, with no sight of any test, and labelled only by the held-out oracle.
 """
-import json
-
 from rmt.llm import ask, json_block
 
 from .arms.naive import _bundle
@@ -2272,7 +2274,7 @@ def propose_candidate(task, sources, target, model_tag, temperature, tag):
                 temperature=temperature, tag=f"{tag}_{model_tag}")
     try:
         files = json_block(reply)
-    except (ValueError, json.JSONDecodeError):
+    except ValueError:      # json_block catches JSONDecodeError internally
         return None
     if not isinstance(files, dict) or not files:
         return None
@@ -2292,9 +2294,12 @@ def label(adapter, task, sources, oracle_text, workspace):
     return "BAD", f"hidden oracle failed: {', '.join(res.failed[:6])}"
 
 
-def confirm_bad(adapter, task, sources, oracle_text, workspace):
-    """Does the hidden oracle actually see a difference? Guards against equivalent faults."""
-    return label(adapter, task, sources, oracle_text, workspace)[0] == "BAD"
+# There is deliberately no `confirm_bad` predicate here. It would recompute `label`'s
+# answer by RUNNING THE HIDDEN ORACLE A SECOND TIME, and the runner already calls `label`
+# once and uses its verdict inline -- so a caller who reached for the tidier-looking helper
+# would silently double the oracle cost of every candidate for no extra information, in the
+# module that is the main budget line. Callers who want a boolean write
+# `label(...)[0] == "BAD"`.
 ```
 
 - [ ] **Step 5: Run the tests and make sure they pass**
