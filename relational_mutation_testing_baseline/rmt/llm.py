@@ -176,13 +176,14 @@ def _call_anthropic(system, user, effort, max_tokens, model=None, temperature=No
     thinks = not model.startswith("claude-haiku")
     extra = ({"thinking": {"type": "adaptive"}, "output_config": {"effort": effort}}
              if thinks else {})
-    # `temperature` is incompatible with adaptive thinking, so it is forwarded only for
-    # models that run without it. That is exactly the case it is wanted for: sampling a
-    # spread of candidate implementations from a weaker model. Silently dropping it --
-    # which this function did until now -- makes a temperature sweep a no-op that still
-    # looks like it ran.
-    if temperature is not None and not thinks:
-        extra["temperature"] = temperature
+    # `temperature` CANNOT be forwarded: anthropic 1.5.0 exposes no temperature parameter
+    # on either messages.stream() or messages.create(), so passing it raises TypeError.
+    # It stays in `ask`'s signature because callers pass it and it enters the cache key
+    # (so a sweep still yields distinct draws), but it reaches no API call. Candidate
+    # diversity therefore comes from model choice and prompt variation, not temperature.
+    # Verified against the installed SDK rather than assumed -- an earlier version of this
+    # comment claimed the blocker was adaptive thinking, which was wrong.
+    _ = temperature
     with client().messages.stream(
             model=model, max_tokens=max_tokens, system=system,
             messages=[{"role": "user", "content": user}], **extra) as s:
