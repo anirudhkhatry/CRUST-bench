@@ -76,3 +76,45 @@ def assert_no_leak(prompt: str, forbidden) -> None:
         frag = (frag or "").strip()
         if len(frag) >= MIN_LEAK_FRAGMENT and frag in prompt:
             raise LeakageError(f"leaked into a test-generation prompt: {frag[:60]!r}...")
+
+# --- scoring ---------------------------------------------------------------------
+from .score import ACCEPT, REJECT, verdict   # noqa: E402  (kept next to its use)
+
+
+def _row(task, cand, arm, res, v, kind, n_tests):
+    return {"task_id": task.task_id, "benchmark": task.benchmark,
+            "candidate_id": cand.candidate_id, "ground_truth": cand.label,
+            "label": cand.label, "bad_arm": cand.bad_arm,
+            "fault_category": cand.fault_category, "arm": arm,
+            "compiles": cand.build_status == "ok",
+            "existing_tests_pass": (v == ACCEPT) if arm == "existing" else None,
+            "generated_tests_pass": v == ACCEPT,
+            "number_generated_tests": n_tests, "tests_failed": len(res.failed),
+            "verdict": v, "rejection_kind": kind, "status": res.status,
+            "execution_time": res.seconds,
+            "model": cand.model, "model_version": cand.model_version,
+            "hidden_oracle_failure": cand.hidden_oracle_failure}
+
+
+def score_task(task, candidates, suites, admissible, adapter, workspace,
+               existing_text=None, existing_admissible=()):
+    """Run every frozen suite against every candidate. Returns the spec §19 rows.
+
+    `candidates` is {candidate_id: (Candidate, sources)}. The suites are the frozen ones;
+    `assert_frozen` is called first so a suite edited after the freeze cannot be scored.
+    """
+    assert_frozen(task, suites)
+    arms = dict(suites)
+    if existing_text:
+        arms["existing"] = existing_text
+    adm = {**{a: list(v) for a, v in admissible.items()},
+           **({"existing": list(existing_admissible)} if existing_text else {})}
+
+    rows = []
+    for cid, (cand, sources) in sorted(candidates.items()):
+        for arm, text in sorted(arms.items()):
+            ws = adapter.stage(task.task_id, workspace / f"{arm}_{cid}", sources=sources)
+            res = adapter.run_suite(ws, text, f"{arm}@{cid}")
+            v, kind = verdict(res, set(adm.get(arm, [])))
+            rows.append(_row(task, cand, arm, res, v, kind, len(adm.get(arm, []))))
+    return rows
