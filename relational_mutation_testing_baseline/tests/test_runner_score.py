@@ -76,12 +76,18 @@ def test_rows_carry_every_spec_19_column(tmp_path):
     assert r["number_generated_tests"] == 1
 
 
-def test_combined_is_the_and_of_baseline_a_and_the_generated_arm(tmp_path):
-    """Design §14's fifth baseline: existing + generated, the RQ2 column.
+def test_combined_is_none_on_every_row_and_in_every_quadrant(tmp_path):
+    """Spec §4.4: `combined_tests_pass` is a retained column that is always None.
 
-    A candidate the developer suite already catches is not new evidence for the generated
-    arm; a candidate only the generated arm catches is exactly the incremental value the
-    experiment exists to measure.
+    It used to be "Baseline A accepts AND this arm accepts" (design §14's fifth
+    baseline). Baseline A is now the oracle that assigned the labels, so that conjunction
+    is a restatement of the labels and answers nothing.
+
+    This is asserted across all four Baseline-A x generated-arm quadrants, which is what
+    makes it non-vacuous: the previous implementation returned False, True and False for
+    the three quadrants below (and None only for the fourth), so any revival of that logic
+    -- or of any logic that consults a verdict at all -- fails here rather than passing on
+    a lucky quadrant.
     """
     t = _task(tmp_path)
     write_metadata(t, [])
@@ -89,37 +95,22 @@ def test_combined_is_the_and_of_baseline_a_and_the_generated_arm(tmp_path):
                     "ok", "oracle failed")
     freeze(t, {"mutation": "M", "existing": "E"})
 
-    # Baseline A accepts, the generated arm rejects -> combined rejects: the generated arm
-    # found something the developer suite missed.
-    rows = score_task(t, {"bad_01": (bad, {})}, suites={"mutation": "M"},
-                      admissible={"mutation": ["t1"]},
-                      adapter=ScriptedAdapter({"mutation@bad_01": RED,
-                                               "existing@bad_01": GREEN}),
-                      workspace=tmp_path / "ws",
-                      existing_text="E", existing_admissible=["t1"])
-    by = {r["arm"]: r for r in rows}
-    assert by["mutation"]["combined_tests_pass"] is False
-    assert by["existing"]["combined_tests_pass"] is None, "the baseline row IS the baseline"
-
-    # Both accept -> combined accepts.
-    rows = score_task(t, {"bad_01": (bad, {})}, suites={"mutation": "M"},
-                      admissible={"mutation": ["t1"]},
-                      adapter=ScriptedAdapter({"mutation@bad_01": GREEN,
-                                               "existing@bad_01": GREEN}),
-                      workspace=tmp_path / "ws2",
-                      existing_text="E", existing_admissible=["t1"])
-    assert {r["arm"]: r for r in rows}["mutation"]["combined_tests_pass"] is True
-
-    # Baseline A rejects, the generated arm accepts -> combined rejects. This is the
-    # quadrant that proves `combined` actually consults Baseline A: a regression to
-    # `combined = v == ACCEPT` passes every other case.
-    rows = score_task(t, {"bad_01": (bad, {})}, suites={"mutation": "M"},
-                      admissible={"mutation": ["t1"]},
-                      adapter=ScriptedAdapter({"mutation@bad_01": GREEN,
-                                               "existing@bad_01": RED}),
-                      workspace=tmp_path / "ws3",
-                      existing_text="E", existing_admissible=["t1"])
-    assert {r["arm"]: r for r in rows}["mutation"]["combined_tests_pass"] is False
+    for i, (m_res, e_res) in enumerate([(RED, GREEN), (GREEN, GREEN), (GREEN, RED),
+                                        (RED, RED)]):
+        rows = score_task(t, {"bad_01": (bad, {})}, suites={"mutation": "M"},
+                          admissible={"mutation": ["t1"]},
+                          adapter=ScriptedAdapter({"mutation@bad_01": m_res,
+                                                   "existing@bad_01": e_res}),
+                          workspace=tmp_path / f"ws{i}",
+                          existing_text="E", existing_admissible=["t1"])
+        by = {r["arm"]: r for r in rows}
+        assert set(by) == {"mutation", "existing"}
+        for arm, r in by.items():
+            assert r["combined_tests_pass"] is None, (i, arm)
+        # The verdicts themselves must still differ across quadrants -- otherwise this
+        # test would be asserting None over four identical, uninformative runs.
+        assert by["mutation"]["generated_tests_pass"] is (m_res is GREEN)
+        assert by["existing"]["existing_tests_pass"] is (e_res is GREEN)
 
 
 def test_baseline_a_without_an_admissible_set_is_refused(tmp_path):

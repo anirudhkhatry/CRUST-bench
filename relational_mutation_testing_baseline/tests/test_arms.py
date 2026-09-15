@@ -1,3 +1,5 @@
+import inspect
+
 from additional_datasets.arms import mutation, naive
 from additional_datasets.prompts import load
 from additional_datasets.spec import SuiteResult, Task
@@ -100,13 +102,86 @@ def test_apply_mutant_requires_a_unique_snippet():
 
 def test_naive_generate_returns_the_suite_and_its_admissible_cases(tmp_path, monkeypatch):
     calls = _script(monkeypatch, naive, [SUITE_REPLY])
-    adapter = FakeAdapter([SuiteResult(status="green", cases={"a": "ok"}, rc=0, seconds=0.1)])
+    green = SuiteResult(status="green", cases={"a": "ok"}, rc=0, seconds=0.1)
+    # One draw, then the composite validation -- the same two adapter calls ARM M makes
+    # around one kept contributor.
+    adapter = FakeAdapter([green, green])
     suite, rec = naive.generate(_task(tmp_path), {"app/index.js": "export const x = 1;"},
-                                adapter, tmp_path / "ws", "import * as mod from './app/index.js';")
+                                adapter, tmp_path / "ws",
+                                "import * as mod from './app/index.js';", n_draws=1)
     assert "expect(1).toBe(1)" in suite
     assert rec["compiles"] is True
+    # The admissible set now comes from the COMPOSITE run, not from the single draw.
     assert rec["admissible"] == ["a"]
+    assert rec["n_draws"] == 1 and rec["n_kept"] == 1
+    assert rec["composite_status"] == "green"
+    assert rec["dropped_for_collision"] == []
     assert len(calls) == 1
+
+
+def test_naive_draws_are_matched_to_arm_m_and_each_draw_gets_its_own_cache_tag(
+        tmp_path, monkeypatch):
+    """The matched control: `n_draws` really produces n draws, with n distinct ask tags.
+
+    Fails on the pre-change single-draw ARM N (`len(calls) == 1`, one tag), and fails
+    again if someone reuses one tag across draws -- `rmt.llm.ask` caches on
+    `<tag>_<hash>.json`, so identical tags would return the same suite every time and
+    collapse ARM N back to one effective draw while still charging for six.
+    """
+    calls = _script(monkeypatch, naive, [SUITE_REPLY])
+    green = SuiteResult(status="green", cases={"a": "ok"}, rc=0, seconds=0.1)
+    adapter = FakeAdapter([green] * 4)      # 3 draws + 1 composite
+    _, rec = naive.generate(_task(tmp_path), {"app/index.js": "export const x = 1;"},
+                            adapter, tmp_path / "ws",
+                            "import * as mod from './app/index.js';", n_draws=3)
+    assert len(calls) == 3, "each draw must reach ask() once"
+    tags = [c["tag"] for c in calls]
+    assert len(set(tags)) == 3, f"draws shared a cache tag: {tags}"
+    assert rec["n_kept"] == 3
+    # Matched by construction: ARM N's default draw count IS ARM M's default mutant
+    # count. Fails if either default is edited on its own (e.g. n_draws back to 1).
+    assert (inspect.signature(naive.generate).parameters["n_draws"].default
+            == inspect.signature(mutation.generate).parameters["n_mutants"].default)
+
+
+def test_naive_drops_a_draw_that_is_not_green_on_p0(tmp_path, monkeypatch):
+    """ARM N's filter is ARM M's minus the kill gate: green on P0, nothing else.
+
+    Fails if the P0 gate is dropped, which would keep the `test_failed` draw: `n_kept`
+    would be 2 and `rejected` empty.
+    """
+    _script(monkeypatch, naive, [SUITE_REPLY])
+    green = SuiteResult(status="green", cases={"a": "ok"}, rc=0, seconds=0.1)
+    red = SuiteResult(status="test_failed", cases={"a": "FAILED"}, rc=1, seconds=0.1)
+    # draw 0 contradicts P0, draw 1 is green, then the composite.
+    adapter = FakeAdapter([red, green, green])
+    _, rec = naive.generate(_task(tmp_path), {"app/index.js": "export const x = 1;"},
+                            adapter, tmp_path / "ws",
+                            "import * as mod from './app/index.js';", n_draws=2)
+    assert rec["n_kept"] == 1 and rec["kept"] == [1]
+    assert [r["why"] for r in rec["rejected"]] == ["test is not green on P0"]
+
+
+def test_naive_drops_the_newest_contributor_when_the_composite_collides(tmp_path,
+                                                                       monkeypatch):
+    """Identical assembly, exercised through ARM N: a composite that will not build loses
+    its most recent contributor and is retried.
+
+    Fails if the composite is not validated at all (`composite_status` would be the last
+    draw's "green" and `dropped_for_collision` empty), or if a collision forfeited the
+    whole suite (`n_kept` 0, empty text).
+    """
+    _script(monkeypatch, naive, [SUITE_REPLY])
+    green = SuiteResult(status="green", cases={"a": "ok"}, rc=0, seconds=0.1)
+    broken = SuiteResult(status="build_error", cases={}, rc=1, seconds=0.1)
+    # two green draws, a colliding composite, then a composite that builds
+    adapter = FakeAdapter([green, green, broken, green])
+    suite, rec = naive.generate(_task(tmp_path), {"app/index.js": "export const x = 1;"},
+                               adapter, tmp_path / "ws",
+                               "import * as mod from './app/index.js';", n_draws=2)
+    assert rec["dropped_for_collision"] == [1]
+    assert rec["n_kept"] == 1 and rec["composite_status"] == "green"
+    assert suite.count("expect(1).toBe(1)") == 1
 
 
 def test_both_arms_reach_ask_with_identical_generation_parameters(tmp_path, monkeypatch):
@@ -130,12 +205,21 @@ def test_both_arms_reach_ask_with_identical_generation_parameters(tmp_path, monk
     # naive.ask to raise and observing it still fires from inside mutation.generate.)
     # `mutation.ask` is patched separately, below, for the fault-proposal call only --
     # that step has no analogue in ARM N.
-    gen_calls = _script(monkeypatch, naive, [SUITE_REPLY, SUITE_REPLY])
-    naive.generate(_task(tmp_path), sources, FakeAdapter([green]), tmp_path / "n", imp)
+    # TWO draws per arm, not one: with n=1 the call-count assertion below could not fail
+    # against the pre-change single-draw ARM N, which also made exactly one call.
+    gen_calls = _script(monkeypatch, naive, [SUITE_REPLY] * 4)
+    # 2 draws + 1 composite validation.
+    naive.generate(_task(tmp_path), sources, FakeAdapter([green, green, green]),
+                   tmp_path / "n", imp, n_draws=2)
+    n_gen_calls = len(gen_calls)
 
-    mutate_reply = ('```json\n[{"file": "app/index.js", "original_snippet": "export const x = 1;",'
-                    ' "mutated_snippet": "export const x = 2;",'
-                    ' "semantic_change": "x is 2", "fault_class": "return_value"}]\n```')
+    mutate_reply = (
+        '```json\n[{"file": "app/index.js", "original_snippet": "export const x = 1;",'
+        ' "mutated_snippet": "export const x = 2;",'
+        ' "semantic_change": "x is 2", "fault_class": "return_value"},'
+        ' {"file": "app/index.js", "original_snippet": "const x",'
+        ' "mutated_snippet": "const y",'
+        ' "semantic_change": "renamed", "fault_class": "naming"}]\n```')
     _script(monkeypatch, mutation, [mutate_reply])
     # Adapter call order observed (empirically) in mutation.generate for one kept mutant:
     #   stage(p0) -> run_suite(p0, testgen build check) -> stage(mut) -> run_suite(mut)
@@ -143,12 +227,19 @@ def test_both_arms_reach_ask_with_identical_generation_parameters(tmp_path, monk
     # -- one more run_suite than the kill gate alone would need, because generate() also
     # build-validates the composite suite (Finding 2).
     mutation.generate(_task(tmp_path), sources,
-                      FakeAdapter([green, red, green, green]),
-                      tmp_path / "m", imp, n_mutants=1)
+                      FakeAdapter([green, red, green, green, red, green, green]),
+                      tmp_path / "m", imp, n_mutants=2)
+    m_gen_calls = len(gen_calls) - n_gen_calls
 
-    # The test-writing call in each arm -- naive's only ask() call, and the second call
-    # naive.ask recorded overall (the first was naive.generate's own).
-    n_gen, m_gen = gen_calls[0], gen_calls[1]
+    # The matched-control assertion (spec, "ARM N is a matched control"): for the same n,
+    # both arms write the same NUMBER of suites. Fails on the pre-change ARM N, which drew
+    # once (1) against ARM M's two, and fails if either arm's per-draw retry budget is
+    # changed on its own.
+    assert n_gen_calls == m_gen_calls == 2, (n_gen_calls, m_gen_calls)
+
+    # The test-writing call in each arm -- naive's first draw, and the first call
+    # mutation.generate made through naive.ask.
+    n_gen, m_gen = gen_calls[0], gen_calls[n_gen_calls]
     for key in ("effort", "max_tokens"):
         assert n_gen[key] == m_gen[key], f"arms diverged on {key}"
     # `temperature` is deliberately not compared here: neither arm passes it, and

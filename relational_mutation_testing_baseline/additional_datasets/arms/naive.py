@@ -2,13 +2,38 @@
 
 This is the arm the pipeline's claim is measured against, so everything it is denied must
 be denied for a reason. It gets the same model, the same effort, the same repair budget
-and the same output format as ARM M. The single difference is that no mutant exists to
-force its assertions to prove they discriminate.
+and the same output format as ARM M.
+
+ARM N IS A MATCHED CONTROL (decision 2026-09-15, user-directed; spec's "ARM N is a
+matched control" section). It draws `N_DRAWS` suites -- the same count ARM M draws
+mutants -- gives each the same `_generate_with_repair` budget, filters them the same way
+except for the kill gate, and assembles them through the same `assemble.assemble` helper.
+The single surviving difference is that ARM M additionally requires each draw to be RED on
+its mutant, which is the variable under test. Before this, ARM N got one suite and no
+selection while ARM M got six and best-of-six, so an ARM M win could not distinguish
+"mutation pressure works" from "six filtered samples beat one unfiltered sample".
+
+TWO RESIDUAL ASYMMETRIES ARE INTENTIONAL AND ARE DISCLOSED RATHER THAN REMOVED:
+
+1. ARM M spends ~3 extra calls proposing its faults (`mutation.propose_mutants`). That is
+   the cost of knowing a fault at all, and no version of ARM N needs it.
+2. ARM M's draws are diverse because each prompt carries a *different* fault description;
+   ARM N's draws differ only by sampling noise, because `rmt.llm.ask` does not plumb
+   `temperature` (and that module is shared with two other pipelines, so it is not changed
+   from here). Each draw therefore varies only in its cache tag -- which is load-bearing:
+   `ask` names its cache entry `<tag>_<hash>.json`, so reusing one tag would return the
+   same suite six times for free and silently collapse ARM N back to a single draw.
+   Giving ARM N fault-driven diversity would mean giving it faults, which is the thing
+   being withheld.
+
+Both residuals favour ARM M, i.e. they bias against this project's own thesis, which is
+the honest direction for a residual to run.
 """
 from rmt.llm import ask, fenced
 
 from ..prompts import load
 from ..runner import assert_no_leak
+from .assemble import N_DRAWS, assemble
 
 SYSTEM = ("You are a precise programmer writing tests. You assert exact values, you use "
           "only APIs you have been shown, and you never write a test that could fail a "
@@ -16,8 +41,12 @@ SYSTEM = ("You are a precise programmer writing tests. You assert exact values, 
 
 
 def generate(task, sources, adapter, workspace, import_line, framework="vitest",
-             retries=3, tag="naive", forbidden=()):
+             n_draws=N_DRAWS, retries=3, tag="naive", forbidden=()):
     """(suite_text, record). Repair is build-errors-only; assertions may not weaken.
+
+    `n_draws` defaults to the shared `assemble.N_DRAWS`, which is also
+    `mutation.generate`'s `n_mutants` default: the two arms draw the same number of suites
+    by construction, not by two independently-maintained literals.
 
     `import_line` is the exact import statement the suite must use to reach the code under
     test. It is passed in rather than derived, because only the adapter knows where the
@@ -28,7 +57,8 @@ def generate(task, sources, adapter, workspace, import_line, framework="vitest",
     and the composed prompt is checked before a single token is paid for. What belongs in
     it is decided by what the prompt legitimately contains -- P0's own sources, which is
     the whole point of the arm -- so the list must hold only text that is NOT in P0: the
-    hidden oracle's suite and Baseline A's half of it. Candidate sources cannot be passed
+    hidden oracle's suite -- which since spec §4.4 is the whole developer suite, and is
+    therefore also ARM A's, so one entry covers both. Candidate sources cannot be passed
     and must not be: a candidate is mostly P0 verbatim, so any unchanged file would match
     itself and fire the gate on nothing, and at this point in the protocol no candidate
     exists yet (the freeze in `runner.freeze` enforces that ordering separately).
@@ -37,7 +67,35 @@ def generate(task, sources, adapter, workspace, import_line, framework="vitest",
                 transformation=task.transformation, import_line=import_line,
                 language=task.language.capitalize(), framework=framework)
     assert_no_leak(base, forbidden)
-    return _generate_with_repair(base, adapter, workspace, retries, tag)
+
+    kept, rejected = [], []
+    for k in range(n_draws):
+        # A distinct workspace per draw, mirroring ARM M's `p0_{k}`: a suite left behind
+        # by the previous draw would otherwise be run again with the next one.
+        p0_ws = adapter.stage(task.task_id, workspace / f"p0_{k}")
+        # A distinct `ask` tag per draw. Same prompt, same model, same everything else --
+        # the tag is the ONLY thing making this a fresh sample rather than a cache hit.
+        suite, srec = _generate_with_repair(base, adapter, p0_ws, retries, f"{tag}_{k}")
+        if not srec["compiles"]:
+            rejected.append({"index": k, "why": "test never built"})
+            continue
+        # ARM M's filter is `kills(on_p0, on_mutant)`: green on P0 AND red on the mutant.
+        # ARM N's is the same minus the second clause -- green on P0 -- so a draw that
+        # builds but contradicts the trusted program is dropped by both arms alike. Its
+        # cases would be inadmissible anyway, so keeping it could only add build risk to
+        # the composite.
+        if (srec["on_p0"] or {}).get("status") != "green":
+            rejected.append({"index": k, "why": "test is not green on P0",
+                             "on_p0": (srec["on_p0"] or {}).get("status")})
+            continue
+        kept.append({"index": k, "suite": suite})
+
+    suite_text, kept, res, meta = assemble(kept, task, adapter, workspace)
+    return suite_text, {"suite": suite_text, "n_draws": n_draws, "n_kept": len(kept),
+                        "kept": [k["index"] for k in kept], "rejected": rejected,
+                        "compiles": bool(kept),
+                        "on_p0": res.as_row() if res else None,
+                        "admissible": res.passed if res else [], **meta}
 
 
 def _bundle(sources, max_chars=180_000):

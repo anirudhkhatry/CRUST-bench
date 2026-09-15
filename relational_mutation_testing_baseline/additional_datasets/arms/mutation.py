@@ -11,6 +11,7 @@ from rmt.llm import ask, fenced, json_block
 
 from ..prompts import load
 from ..runner import assert_no_leak
+from .assemble import N_DRAWS, assemble
 from .naive import _bundle, _generate_with_repair
 
 MUTATE_SYSTEM = ("You are a precise programmer producing mutation-testing fixtures. You "
@@ -59,7 +60,7 @@ def kills(on_p0, on_mutant):
 
 
 def generate(task, sources, adapter, workspace, import_line, framework="vitest",
-             n_mutants=6, retries=3, tag="mut", forbidden=()):
+             n_mutants=N_DRAWS, retries=3, tag="mut", forbidden=()):
     """(suite_text, record). Concatenates every test that passed its kill gate.
 
     `import_line` is the exact import statement the suite must use -- see naive.generate.
@@ -98,24 +99,13 @@ def generate(task, sources, adapter, workspace, import_line, framework="vitest",
             rejected.append({"index": k, "why": "test did not kill the mutant",
                              "on_p0": on_p0.status, "on_mutant": on_mutant.status})
     # Each contributor proved its kill in isolation; the CONCATENATION is a different
-    # program. Two kept files declaring the same top-level identifier produce a composite
-    # that will not build, and ARM M would then lose cases for reasons unrelated to test
-    # quality -- a bias against the arm under test. Validate it, and if it collides, drop
-    # the most recent contributors until it builds rather than forfeiting the whole suite.
-    dropped = []
-    res = None
-    while kept:
-        suite_text = "\n\n".join(k["suite"] for k in kept)
-        probe = adapter.stage(task.task_id, workspace / "composite")
-        res = adapter.run_suite(probe, suite_text, "composite")
-        if res.status != "build_error":
-            break
-        dropped.append(kept.pop()["index"])
-    suite_text = "\n\n".join(k["suite"] for k in kept) if kept else ""
+    # program, so it is validated and colliding contributors are dropped rather than the
+    # whole suite forfeited. That step is `assemble.assemble`, shared verbatim with ARM N
+    # -- "the two arms assemble identically" is then true by construction rather than by
+    # inspection of two copies of the same loop.
+    suite_text, kept, _, meta = assemble(kept, task, adapter, workspace)
     return suite_text, {"suite": suite_text, "n_mutants": len(mutants),
                         "n_kept": len(kept), "kept": [
                             {x: k[x] for x in ("index", "fault_class", "semantic_change")}
                             for k in kept],
-                        "rejected": rejected,
-                        "composite_status": res.status if kept else "empty",
-                        "dropped_for_collision": dropped}
+                        "rejected": rejected, **meta}

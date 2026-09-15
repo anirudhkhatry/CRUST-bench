@@ -1,6 +1,7 @@
 """RefactorBench-JS wired into the shared harness.
 
-The order below is the experiment: prepare and verify the oracle split, generate every
+The order below is the experiment: prepare and verify the oracle (the whole developer
+suite, which is also ARM A and whose verdicts are therefore definitional), generate every
 arm's suite from P0 alone, freeze them, and only then build candidates. Nothing may
 reorder these steps -- `freeze` refuses once candidates exist.
 """
@@ -77,11 +78,16 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
     sources = _sources(name)
     target = JS.fixture_config(name)["targetFile"]
 
-    # 1. Oracle split, verified against P0 (spec §4.4).
+    # 1. The oracle: the WHOLE developer suite, verified green against P0 (spec §4.4).
+    # It labels every candidate, and it is therefore also ARM A -- whose GAR and BRR are
+    # both 1.0 by construction. ARM A's rows are still emitted so the table is complete,
+    # and `score.report` renders both its figures as `definitional` and excludes it from
+    # comparison. The old half-and-half split is superseded (spec §4.4).
     oracle = js_oracle.prepare_oracle(name, ws / "oracle_ws")
     task.hidden_oracle_dir.mkdir(parents=True, exist_ok=True)
     (task.hidden_oracle_dir / "oracle.test.jsx").write_text(oracle["oracle_text"])
-    log(f"{name}: arm_a_usable={oracle['arm_a_usable']} {oracle['reason']}")
+    log(f"{name}: oracle admits {len(oracle['admissible_oracle'])} case(s) "
+        f"{oracle['reason']}")
 
     # `prepare_oracle` always PRESERVES the oracle, but preserved is not the same as
     # populated: a fixture whose holdout does not build reports zero admissible cases.
@@ -104,7 +110,7 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
     # design and so are deliberately NOT forbidden; no candidate exists yet (the freeze
     # below enforces that), and a candidate is mostly P0 verbatim, so passing candidate
     # text here would fire on files nobody changed.
-    forbidden = [oracle["oracle_text"], oracle["existing_text"]]
+    forbidden = [oracle["oracle_text"]]
     n_suite, rec = naive.generate(task, sources, JS, p0_ws, imp, tag=f"{name}_naive",
                                   forbidden=forbidden)
     records["naive"] = rec
@@ -118,8 +124,8 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
         suites["naive"], admissible["naive"] = n_suite, rec["admissible"]
     else:
         log(f"{name}: ARM N produced no scorable suite "
-            f"(compiles={rec.get('compiles')}, n_admissible={len(rec.get('admissible') or [])}) "
-            f"-- omitted from scoring")
+            f"(n_kept={rec.get('n_kept')}, composite={rec.get('composite_status')}, "
+            f"n_admissible={len(rec.get('admissible') or [])}) -- omitted from scoring")
     m_suite, rec = mutation.generate(task, sources, JS, ws / "mut", imp,
                                      tag=f"{name}_mut", forbidden=forbidden)
     m_run = JS.run_suite(p0_ws, m_suite, "mut_p0") if m_suite else None
@@ -138,11 +144,10 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
             f"(n_kept={rec.get('n_kept')}, composite={rec.get('composite_status')}) "
             f"-- omitted from scoring")
 
-    # 3. Freeze. Candidates must not exist yet. Baseline A's half of the holdout is frozen
-    # alongside the generated arms so it passes through the same gate they do.
-    to_freeze = dict(suites)
-    if oracle["arm_a_usable"]:
-        to_freeze["existing"] = oracle["existing_text"]
+    # 3. Freeze. Candidates must not exist yet. ARM A -- the whole holdout, i.e. the
+    # oracle itself -- is frozen alongside the generated arms so it passes through the
+    # same hash gate they do, even though its verdicts are definitional.
+    to_freeze = dict(suites, existing=oracle["oracle_text"])
     hashes = freeze(task, to_freeze)
     log(f"{name}: froze {list(hashes)}")
 
@@ -208,14 +213,17 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
 
     write_metadata(task, [c for c, _ in candidates.values()],
                    extra={"suite_hashes": hashes, "oracle": {
-                       "arm_a_usable": oracle["arm_a_usable"], "reason": oracle["reason"],
-                       "assignment": oracle["assignment"]},
+                       "reason": oracle["reason"],
+                       "n_admissible": len(oracle["admissible_oracle"]),
+                       # Recorded so a reader of the artifact cannot mistake ARM A's
+                       # perfect figures for a measurement (spec §4.4).
+                       "arm_a_is_the_oracle": True},
                        "arms": {k: {x: v[x] for x in v if x != "suite"}
                                 for k, v in records.items()}})
 
     rows = score_task(task, candidates, suites, admissible, JS, ws / "score",
-                      existing_text=oracle["existing_text"] if oracle["arm_a_usable"] else None,
-                      existing_admissible=oracle["admissible_existing"])
+                      existing_text=oracle["oracle_text"],
+                      existing_admissible=oracle["admissible_oracle"])
     # ARM C is exempt from the freeze: it is handed the GOOD->BAD diff by construction,
     # which is exactly why it is a ceiling and not a technique.
     if good_sources:

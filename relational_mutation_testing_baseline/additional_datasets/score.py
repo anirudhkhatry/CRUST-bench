@@ -118,6 +118,10 @@ def metrics(rows, behavioural_only=False):
 # the advantage would be mutation-family resemblance rather than detection power.
 
 ARMS = ("mutation", "naive", "existing", "ceiling")
+# ARM A is the developer suite, which since spec §4.4 is the hidden oracle itself: it
+# assigned every GOOD/BAD label, so its verdicts are definitions rather than measurements.
+# It is reported for completeness and excluded from every comparison.
+DEFINITIONAL_ARM = "existing"
 ARM_LABEL = {"mutation": "ARM M (mutation-guided)", "naive": "ARM N (naive LLM)",
              "existing": "ARM A (developer tests)", "ceiling": "ARM C (sees the diff)"}
 
@@ -196,10 +200,16 @@ def _table(rows, behavioural_only):
                 continue
             name = {"S": "seeded", "N": "harvested"}[pop]
             arm_wide = per[arm]["overall"]
-            gar = "definitional" if arm == "existing" else _pct(arm_wide["gar"])
+            # ARM A *is* the oracle that assigned the labels (spec §4.4), so BOTH of its
+            # headline figures are 1.0 by construction -- a GOOD candidate is one its
+            # suite passed and a BAD one is one its suite failed. Rendering either as a
+            # percentage invites it to be read as a measurement and compared against the
+            # generated arms, which is precisely the comparison it cannot enter.
+            gar = "definitional" if arm == DEFINITIONAL_ARM else _pct(arm_wide["gar"])
+            brr = "definitional" if arm == DEFINITIONAL_ARM else _pct(m["brr"])
             lines.append(f"| {ARM_LABEL.get(arm, arm)} | {name} | "
                          f"{arm_wide['n_tasks']} | {m['n_good']} | "
-                         f"{m['n_bad']} | {gar} | {_pct(m['brr'])} | {_pct(m['ap'])} | "
+                         f"{m['n_bad']} | {gar} | {brr} | {_pct(m['ap'])} | "
                          f"{_pct(m['precision'])} | {_pct(m['f1'])} |")
     return lines
 
@@ -249,9 +259,15 @@ def report(rows, title, failures=()):
             lines.append(f"> - `{f.get('task')}`: {f.get('error')}")
         lines.append("")
     lines += ["The headline is BRR at matched GAR -- an arm that rejects more BAD while also",
-              "rejecting more GOOD has not won anything. ARM A is excluded from GAR",
-              "comparison: its GAR is definitional, since GOOD admission required its suite",
-              "to pass (spec §3.6).", ""]
+              "rejecting more GOOD has not won anything. The comparison is ARM M against",
+              "ARM N. **ARM A is excluded from every comparison: its GAR is definitional AND",
+              "so is its BRR**, because ARM A is the developer suite, which is the hidden",
+              "oracle that assigned the labels -- a GOOD candidate is one it passed and a BAD",
+              "one is one it failed (spec §4.4, superseding §3.6's claim that only its GAR was",
+              "definitional). Its AP, precision and F1 are definitional for the same reason;",
+              "they are printed as numbers only because they are shared table columns.",
+              "`combined_tests_pass` is None throughout for the same reason: combining an arm",
+              "with the oracle that defined the labels answers nothing.", ""]
     lines += _coverage_lines(per)
     lines += _structural_lines(per)
     lines += ["## All rejections", ""]

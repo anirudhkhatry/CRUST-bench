@@ -90,8 +90,8 @@ def assert_no_leak(prompt: str, forbidden) -> None:
 from .score import ACCEPT, verdict          # noqa: E402  (kept next to its use)
 
 
-def _row(task, cand, arm, res, v, kind, combined):
-    """One §19 row. `combined` is the existing+generated verdict, or None.
+def _row(task, cand, arm, res, v, kind, combined=None):
+    """One §19 row. `combined` is retained as a column but is always None -- see below.
 
     `number_generated_tests` is the size of the suite as actually RUN, not the admissible
     subset -- the admissible set is filtered to cases that passed the trusted P0, so using
@@ -142,21 +142,20 @@ def score_task(task, candidates, suites, admissible, adapter, workspace,
 
     rows = []
     for cid, (cand, sources) in sorted(candidates.items()):
-        # Baseline A's verdict is needed by every other arm's `combined` column, so it is
-        # resolved first rather than in dict order.
         results = {}
         for arm, text in sorted(arms.items()):
             ws = adapter.stage(task.task_id, workspace / f"{arm}_{cid}", sources=sources)
             res = adapter.run_suite(ws, text, f"{arm}@{cid}")
             results[arm] = (res, *verdict(res, set(adm.get(arm, []))))
-        existing_accepts = (results["existing"][1] == ACCEPT) if "existing" in results else None
-
         for arm, (res, v, kind) in sorted(results.items()):
-            # Combined = existing tests + this generated suite, the design's §14 fifth
-            # baseline: it answers "do generated tests catch what the developer suite
-            # misses", which is the question that decides adoption. None on the Baseline A
-            # row itself (it IS the baseline) and wherever Baseline A is unavailable.
-            combined = (None if arm == "existing" or existing_accepts is None
-                        else existing_accepts and v == ACCEPT)
-            rows.append(_row(task, cand, arm, res, v, kind, combined))
+            # `combined_tests_pass` (design §14's fifth baseline) is a retained spec §19
+            # column and is None on EVERY row. It used to be "Baseline A accepts AND this
+            # arm accepts", which asked whether the generated suite catches what the
+            # developer suite misses. Since spec §4.4 the developer suite IS the oracle
+            # that assigned the labels, so Baseline A accepts exactly the GOOD candidates
+            # and rejects exactly the BAD ones by construction: the conjunction would
+            # reduce to "this arm accepts, on the GOOD candidates only" and answer
+            # nothing. A column of Nones is honest; a column of derived tautologies is
+            # not. The key stays so downstream readers of rows.json do not KeyError.
+            rows.append(_row(task, cand, arm, res, v, kind))
     return rows

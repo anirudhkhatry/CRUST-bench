@@ -138,6 +138,29 @@ def test_report_renders_and_flags_the_matched_gar_comparison():
     assert "GAR is definitional" in text
 
 
+def test_arm_a_renders_both_gar_and_brr_as_definitional():
+    """Spec §4.4: ARM A is the oracle that assigned the labels, so BOTH figures are 1.0
+    by construction and neither may render as a measurement.
+
+    The ARM A rows below are exactly what the oracle produces -- it accepts the GOOD
+    candidate and rejects the BAD one -- so under the previous code, which special-cased
+    GAR only, ARM A's BRR cell read "100%" and invited comparison with ARM M's 0%. That is
+    the input this assertion fails on. ARM M's own BRR must still be a percentage, or the
+    fix has swallowed the comparison it was protecting.
+    """
+    rows = [_row("existing", "BAD", REJECT, "S", "ordering difference"),
+            _row("existing", "GOOD", ACCEPT),
+            _row("mutation", "BAD", ACCEPT, "S", "ordering difference"),
+            _row("mutation", "GOOD", ACCEPT)]
+    lines = report(rows, title="t").split("\n")
+    a_line = [l for l in lines if "ARM A" in l and "seeded" in l][0]
+    m_line = [l for l in lines if "ARM M" in l and "seeded" in l][0]
+    assert a_line.split("|")[6].strip() == "definitional"      # GAR
+    assert a_line.split("|")[7].strip() == "definitional"      # BRR
+    assert m_line.split("|")[7].strip() == "0%"
+    assert "so is its BRR" in report(rows, title="t")
+
+
 def test_report_never_emits_a_pooled_bad_figure():
     # S is caught, N is missed. A pooled BRR would read 50% and erase the divergence.
     rows = [_row("mutation", "BAD", REJECT, "S", "ordering difference"),

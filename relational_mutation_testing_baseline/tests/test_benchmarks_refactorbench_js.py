@@ -3,15 +3,15 @@
 Every external dependency of `run_task` is monkeypatched so these tests exercise only the
 control flow: which arms get registered into `suites`/`admissible` (and therefore reach
 `freeze`/`score_task`), not the arms' own generation logic (covered by test_arms.py) or
-the oracle split (covered by test_js_oracle.py).
+oracle preparation (covered by test_js_oracle.py).
 """
 from additional_datasets.benchmarks import refactorbench_js as rjs
 
 
-def _oracle(admissible_oracle=True, arm_a_usable=False):
-    return {"oracle_text": "ORACLE_SUITE", "existing_text": "", "assignment": {},
+def _oracle(admissible_oracle=True):
+    return {"oracle_text": "ORACLE_SUITE",
             "admissible_oracle": ["case_a"] if admissible_oracle else [],
-            "admissible_existing": [], "arm_a_usable": arm_a_usable, "reason": ""}
+            "reason": ""}
 
 
 def _wire_common(monkeypatch):
@@ -30,7 +30,7 @@ def _wire_common(monkeypatch):
         return {k: "hash" for k in suites}
 
     def fake_score_task(task, candidates, suites, admissible, adapter, workspace, **kw):
-        scored.update(suites=dict(suites), admissible=dict(admissible))
+        scored.update(suites=dict(suites), admissible=dict(admissible), kw=dict(kw))
         return []
 
     monkeypatch.setattr(rjs, "freeze", fake_freeze)
@@ -52,7 +52,10 @@ def test_arm_n_is_omitted_when_it_compiles_but_admits_nothing(tmp_path, monkeypa
     # ARM N: compiles, but every case failed on P0 -- admissible is empty.
     monkeypatch.setattr(rjs.naive, "generate", lambda *a, **k: (
         "test('a', () => {});", {"suite": "test('a', () => {});", "compiles": True,
-                                 "attempts": [], "on_p0": None, "admissible": []}))
+                                 "n_draws": 6, "n_kept": 1, "kept": [0], "rejected": [],
+                                 "composite_status": "test_failed",
+                                 "dropped_for_collision": [],
+                                 "on_p0": None, "admissible": []}))
     # ARM M: produces nothing either, so only ARM N's registration is under test here.
     monkeypatch.setattr(rjs.mutation, "generate", lambda *a, **k: (
         "", {"suite": "", "n_mutants": 0, "n_kept": 0, "kept": [], "rejected": [],
@@ -79,7 +82,9 @@ def test_arm_n_is_registered_when_it_admits_at_least_one_case(tmp_path, monkeypa
     monkeypatch.setattr(rjs.naive, "generate", lambda *a, **k: (
         "test('a', () => { expect(1).toBe(1); });",
         {"suite": "test('a', () => { expect(1).toBe(1); });", "compiles": True,
-         "attempts": [], "on_p0": None, "admissible": ["a"]}))
+         "n_draws": 6, "n_kept": 1, "kept": [0], "rejected": [],
+         "composite_status": "green", "dropped_for_collision": [],
+         "on_p0": None, "admissible": ["a"]}))
     monkeypatch.setattr(rjs.mutation, "generate", lambda *a, **k: (
         "", {"suite": "", "n_mutants": 0, "n_kept": 0, "kept": [], "rejected": [],
              "composite_status": "empty", "dropped_for_collision": []}))
@@ -89,3 +94,28 @@ def test_arm_n_is_registered_when_it_admits_at_least_one_case(tmp_path, monkeypa
     assert frozen["naive"] == "test('a', () => { expect(1).toBe(1); });"
     assert scored["suites"]["naive"] == "test('a', () => { expect(1).toBe(1); });"
     assert scored["admissible"]["naive"] == ["a"]
+
+
+def test_arm_a_is_the_whole_oracle_suite_frozen_and_scored(tmp_path, monkeypatch):
+    """Spec §4.4: the developer suite IS the oracle, so ARM A is that same whole text.
+
+    This fails on the superseded splitting code, which froze `existing_text` -- a
+    skip-masked HALF of the holdout, and only when `arm_a_usable` was true. Under
+    `_oracle()` (which no longer reports either field) ARM A would then be absent from
+    `frozen` entirely, and `existing_text`/`existing_admissible` would not reach
+    `score_task`.
+    """
+    frozen, scored = _wire_common(monkeypatch)
+    monkeypatch.setattr(rjs.naive, "generate", lambda *a, **k: (
+        "", {"suite": "", "n_draws": 6, "n_kept": 0, "kept": [], "rejected": [],
+             "composite_status": "empty", "dropped_for_collision": [], "compiles": False,
+             "on_p0": None, "admissible": []}))
+    monkeypatch.setattr(rjs.mutation, "generate", lambda *a, **k: (
+        "", {"suite": "", "n_mutants": 0, "n_kept": 0, "kept": [], "rejected": [],
+             "composite_status": "empty", "dropped_for_collision": []}))
+
+    rjs.run_task("fake_fixture", tmp_path, n_good=1, n_bad=1, log=lambda *a: None)
+
+    assert frozen["existing"] == "ORACLE_SUITE"
+    assert scored["kw"]["existing_text"] == "ORACLE_SUITE"
+    assert scored["kw"]["existing_admissible"] == ["case_a"]
