@@ -7,7 +7,7 @@ reorder these steps -- `freeze` refuses once candidates exist.
 import json
 
 from ..adapters import js_oracle, js_vitest as JS
-from ..arms import mutation, naive
+from ..arms import ceiling, mutation, naive
 from ..harvest import label, propose_candidate
 from ..runner import freeze, score_task
 from ..seed import seed_faults
@@ -160,6 +160,13 @@ def run_task(name, results_root, n_good=3, n_bad=3, workspace=None, log=print):
     rows = score_task(task, candidates, suites, admissible, JS, ws / "score",
                       existing_text=oracle["existing_text"] if oracle["arm_a_usable"] else None,
                       existing_admissible=oracle["admissible_existing"])
+    # ARM C is exempt from the freeze: it is handed the GOOD->BAD diff by construction,
+    # which is exactly why it is a ceiling and not a technique.
+    if good_sources:
+        rows += ceiling.score_ceiling(task, candidates, JS, ws / "ceiling", good_sources,
+                                      imp)
+    else:
+        log(f"{name}: no verified-GOOD candidate, ARM C skipped")
     (task.root / "rows.json").write_text(json.dumps(rows, indent=2))
     log(f"{name}: {len(candidates)} candidates, {len(rows)} rows")
     return rows
