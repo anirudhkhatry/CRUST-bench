@@ -123,11 +123,12 @@ def score_task(task, candidates, suites, admissible, adapter, workspace,
            **({"existing": list(existing_admissible)} if existing_text else {})}
     # An arm with no admissible set can never fire a behavioural rejection, so every
     # candidate would be silently ACCEPTed and the run would produce plausible, wrong
-    # numbers. That is a caller bug; fail loudly rather than scoring it.
-    missing = set(arms) - set(adm)
-    if missing:
+    # numbers. Empty counts as missing: passing `existing_text` without
+    # `existing_admissible` would otherwise slip through and read as BRR 0 for Baseline A.
+    empty = sorted(a for a in arms if not adm.get(a))
+    if empty:
         raise LeakageError(f"{task.task_id}: no admissible set for arm(s) "
-                           f"{', '.join(sorted(missing))} -- every candidate would be "
+                           f"{', '.join(empty)} -- every candidate would be "
                            f"accepted by default")
 
     rows = []

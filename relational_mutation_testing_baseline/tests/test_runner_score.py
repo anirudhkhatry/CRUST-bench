@@ -110,6 +110,31 @@ def test_combined_is_the_and_of_baseline_a_and_the_generated_arm(tmp_path):
                       existing_text="E", existing_admissible=["t1"])
     assert {r["arm"]: r for r in rows}["mutation"]["combined_tests_pass"] is True
 
+    # Baseline A rejects, the generated arm accepts -> combined rejects. This is the
+    # quadrant that proves `combined` actually consults Baseline A: a regression to
+    # `combined = v == ACCEPT` passes every other case.
+    rows = score_task(t, {"bad_01": (bad, {})}, suites={"mutation": "M"},
+                      admissible={"mutation": ["t1"]},
+                      adapter=ScriptedAdapter({"mutation@bad_01": GREEN,
+                                               "existing@bad_01": RED}),
+                      workspace=tmp_path / "ws3",
+                      existing_text="E", existing_admissible=["t1"])
+    assert {r["arm"]: r for r in rows}["mutation"]["combined_tests_pass"] is False
+
+
+def test_baseline_a_without_an_admissible_set_is_refused(tmp_path):
+    """Passing existing_text but not existing_admissible would read as BRR 0 for
+    Baseline A -- a headline number, silently wrong, with the rest of the table normal."""
+    t = _task(tmp_path)
+    write_metadata(t, [])
+    bad = Candidate("bad_01", t.task_id, "BAD", "N", None, "m", "m", {}, "ok", "why")
+    freeze(t, {"mutation": "M", "existing": "E"})
+    with pytest.raises(LeakageError, match="no admissible set"):
+        score_task(t, {"bad_01": (bad, {})}, suites={"mutation": "M"},
+                   admissible={"mutation": ["t1"]},
+                   adapter=ScriptedAdapter({}), workspace=tmp_path / "ws",
+                   existing_text="E")          # existing_admissible omitted
+
 
 def test_an_arm_with_no_admissible_set_is_refused(tmp_path):
     """An arm that cannot reject would silently accept everything and look like a result."""
