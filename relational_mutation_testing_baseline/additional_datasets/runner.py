@@ -22,8 +22,30 @@ def _sha(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+def suite_files(suite):
+    """An arm's suite as a LIST of test-file texts. A bare string is a one-file suite.
+
+    Arms return lists (`assemble`); ARM A's suite is one developer file and is passed as a
+    string. Normalising here rather than at each call site is what keeps the freeze hash
+    and the scoring run reading the same thing.
+    """
+    return [suite] if isinstance(suite, str) else list(suite)
+
+
+def _suite_sha(files) -> str:
+    """Hash over the ORDERED file list. Order is part of the suite's identity: case names
+    are file-index prefixed, so two suites with the same files in a different order are
+    different suites as far as every admissible set is concerned."""
+    return _sha(json.dumps(files))
+
+
 def freeze(task: Task, suites: dict) -> dict:
-    """Write every arm's suite, hash it, record the hashes. Candidates must not exist."""
+    """Write every arm's suite, hash it, record the hashes. Candidates must not exist.
+
+    A value may be one file's text or a list of them; either way the arm's files land as
+    `suite_0.<ext>`, `suite_1.<ext>`, ... and the recorded hash covers the whole ordered
+    list.
+    """
     if task.candidates_dir.exists() and any(task.candidates_dir.iterdir()):
         raise LeakageError(
             f"{task.task_id}: candidates already exist -- suites must be frozen before "
@@ -35,20 +57,23 @@ def freeze(task: Task, suites: dict) -> dict:
             f"{task.task_id}: unknown language {task.language!r}; known: "
             f"{', '.join(sorted(EXT))}") from None
     hashes = {}
-    for arm, text in sorted(suites.items()):
-        # An arm that produced no suite (e.g. `naive.generate` returning `None` after
-        # every repair attempt build-errors) must be omitted by the caller, not passed
-        # here. Writing `None` would otherwise reach `Path.write_text` and raise a bare
-        # `TypeError` deep inside the freeze gate -- a crash that reads like a harness
-        # bug rather than "this arm has no suite".
-        if not isinstance(text, str):
+    for arm, suite in sorted(suites.items()):
+        # An arm that produced no suite (e.g. `naive.generate` keeping nothing) must be
+        # omitted by the caller, not passed here. Letting `None` -- or a list holding one --
+        # through would otherwise reach `Path.write_text` and raise a bare `TypeError` deep
+        # inside the freeze gate: a crash that reads like a harness bug rather than "this
+        # arm has no suite". An EMPTY list is the same mistake spelt differently.
+        files = suite_files(suite) if suite is not None else None
+        if files is None or not files or not all(isinstance(f, str) for f in files):
             raise LeakageError(
-                f"{task.task_id}/{arm}: suite is not text ({type(text).__name__}) -- "
-                f"omit arms with no suite rather than freezing one")
+                f"{task.task_id}/{arm}: suite is not one or more test files "
+                f"({type(suite).__name__}) -- omit arms with no suite rather than "
+                f"freezing one")
         d = task.generated_tests_dir / arm
         d.mkdir(parents=True, exist_ok=True)
-        (d / f"suite.{ext}").write_text(text)
-        hashes[arm] = _sha(text)
+        for i, text in enumerate(files):
+            (d / f"suite_{i}.{ext}").write_text(text)
+        hashes[arm] = _suite_sha(files)
     meta = task.root / "metadata.json"
     blob = json.loads(meta.read_text()) if meta.exists() else {}
     blob["suite_hashes"] = hashes
@@ -72,10 +97,10 @@ def assert_frozen(task: Task, suites: dict) -> None:
         raise LeakageError(f"{task.task_id}: metadata.json has no suite_hashes -- "
                            f"freeze() was never called")
     recorded = blob["suite_hashes"]
-    for arm, text in sorted(suites.items()):
+    for arm, suite in sorted(suites.items()):
         if arm not in recorded:
             raise LeakageError(f"{task.task_id}/{arm}: never frozen")
-        if recorded[arm] != _sha(text):
+        if recorded[arm] != _suite_sha(suite_files(suite)):
             raise LeakageError(f"{task.task_id}/{arm}: suite changed after freezing")
 
 
@@ -143,9 +168,13 @@ def score_task(task, candidates, suites, admissible, adapter, workspace,
     rows = []
     for cid, (cand, sources) in sorted(candidates.items()):
         results = {}
-        for arm, text in sorted(arms.items()):
+        for arm, suite in sorted(arms.items()):
             ws = adapter.stage(task.task_id, workspace / f"{arm}_{cid}", sources=sources)
-            res = adapter.run_suite(ws, text, f"{arm}@{cid}")
+            # Every arm goes through `run_suites`, single-file ones included, so that the
+            # case names a candidate is scored on are built the same way as the ones in the
+            # admissible set. Mixing the two namespaces would silently make every
+            # admissible case "missing".
+            res = adapter.run_suites(ws, suite_files(suite), f"{arm}@{cid}")
             results[arm] = (res, *verdict(res, set(adm.get(arm, []))))
         for arm, (res, v, kind) in sorted(results.items()):
             # `combined_tests_pass` (design §14's fifth baseline) is a retained spec §19

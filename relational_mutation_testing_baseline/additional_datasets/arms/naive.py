@@ -42,7 +42,10 @@ SYSTEM = ("You are a precise programmer writing tests. You assert exact values, 
 
 def generate(task, sources, adapter, workspace, import_line, framework="vitest",
              n_draws=N_DRAWS, retries=3, tag="naive", forbidden=()):
-    """(suite_text, record). Repair is build-errors-only; assertions may not weaken.
+    """(suite_files, record). Repair is build-errors-only; assertions may not weaken.
+
+    The first element is a LIST of test-file texts -- one per surviving draw -- not one
+    concatenated file. See `assemble`.
 
     `n_draws` defaults to the shared `assemble.N_DRAWS`, which is also
     `mutation.generate`'s `n_mutants` default: the two arms draw the same number of suites
@@ -90,8 +93,8 @@ def generate(task, sources, adapter, workspace, import_line, framework="vitest",
             continue
         kept.append({"index": k, "suite": suite})
 
-    suite_text, kept, res, meta = assemble(kept, task, adapter, workspace)
-    return suite_text, {"suite": suite_text, "n_draws": n_draws, "n_kept": len(kept),
+    files, kept, res, meta = assemble(kept, task, adapter, workspace)
+    return files, {"suite": files, "n_draws": n_draws, "n_kept": len(kept),
                         "kept": [k["index"] for k in kept],
                         # See `mutation.generate`: the surviving contributors WITH their
                         # text, so the caller can truncate both arms to a matched count

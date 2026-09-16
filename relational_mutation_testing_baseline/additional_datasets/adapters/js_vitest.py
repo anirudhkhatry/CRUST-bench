@@ -138,8 +138,113 @@ def parse_vitest_json(blob):
     return ("test_failed" if any(v == "FAILED" for v in cases.values()) else "green"), cases
 
 
+FILE_INDEX = re.compile(r"__ad(\d+)\.test\.jsx$")
+
+
+def parse_vitest_json_multi(blob, n_files):
+    """(status, cases, load_failures) for a MULTI-FILE run. Case keys are `"<i>::<name>"`.
+
+    Every case name is prefixed with its FILE INDEX, unconditionally. Two independently
+    generated suites routinely choose the same `describe`/`it` titles, and vitest reports a
+    case by title alone, so an unprefixed merge would silently collapse two distinct tests
+    into one -- losing a failure whenever the same-named case passed in another file.
+    Prefixing only on collision would be worse: the name a case gets would then depend on
+    which OTHER files loaded, so a case's identity would change between the P0 run and the
+    candidate run and the admissible set would stop lining up.
+
+    A file that reports `status: "failed"` with zero assertionResults did not run: it failed
+    to LOAD. Its index goes to `load_failures` and its cases are simply absent, which is why
+    that fact has to be returned rather than inferred from `cases`.
+    """
+    cases, loaded, load_failures = {}, set(), []
+    for f in blob.get("testResults") or []:
+        m = FILE_INDEX.search(f.get("name") or "")
+        i = int(m.group(1)) if m else 0
+        got = False
+        for a in f.get("assertionResults") or []:
+            name = a.get("fullName") or a.get("title") or ""
+            st = a.get("status")
+            if st in ("passed", "failed"):
+                cases[f"{i}::{name}"] = "ok" if st == "passed" else "FAILED"
+                got = True
+        if got:
+            loaded.add(i)
+        elif f.get("status") == "failed":
+            load_failures.append(i)
+    # A file vitest never mentioned at all is also a file that did not run. Counting only
+    # the ones it named "failed" would let a collection-time crash pass for "no tests".
+    load_failures += [i for i in range(n_files)
+                      if i not in loaded and i not in load_failures]
+    load_failures = tuple(sorted(set(load_failures)))
+    # A real assertion failure is reported even when a SIBLING file would not load, so
+    # behavioural evidence takes precedence over the structural claim; `load_failures`
+    # carries the structural fact alongside it either way.
+    if any(v == "FAILED" for v in cases.values()):
+        return "test_failed", cases, load_failures
+    if load_failures:
+        return "build_error", cases, load_failures
+    return ("green" if cases else "no_tests"), cases, load_failures
+
+
+def run_suites(workspace, suite_texts, suite_name):
+    """Run several INDEPENDENT suite files in one vitest invocation.
+
+    An arm's suite is a LIST of files, never one concatenated file. Concatenation is not
+    sound: each contributor is a standalone test file with its own `import React from
+    'react'` and its own top-level helpers, so joining two is a duplicate-declaration
+    error. The composite-plus-drop-on-collision scheme that preceded this kept exactly ONE
+    contributor in every arm of every fixture measured (`dropped_for_collision` was
+    `[3, 2, 1]` every time), discarding three proven killing tests per fixture for a syntax
+    reason. Separate files have separate module scopes, so nothing has to be dropped and no
+    model output is rewritten.
+
+    One vitest process runs them all, so this costs no more than the composite did.
+    """
+    workspace = Path(workspace)
+    files = [workspace / f"{suite_name}__ad{i}.test.jsx"
+             for i in range(len(suite_texts))]
+    for p, text in zip(files, suite_texts):
+        p.write_text(text)
+    out_file = workspace / f"{suite_name}.results.json"
+    out_file.unlink(missing_ok=True)
+    env = {**os.environ, "AD_WORKSPACE": str(workspace), "CI": "1",
+           "AD_SRC_PREFIX": staged_prefix(workspace)}
+    t0 = time.time()
+    try:
+        if not suite_texts:
+            return SuiteResult(status="no_tests", cases={}, rc=0, seconds=0.0)
+        try:
+            p = subprocess.run(
+                [str(VITEST), "run", "--config", str(CONFIG), "--reporter=json",
+                 f"--outputFile={out_file}", *(f.name for f in files)],
+                cwd=workspace, env=env, capture_output=True, text=True, timeout=TIMEOUT)
+            rc, out = p.returncode, (p.stdout + p.stderr)
+        except subprocess.TimeoutExpired as e:
+            return SuiteResult(status="timeout", cases={}, rc=124,
+                               seconds=round(time.time() - t0, 1), out=str(e)[-3000:])
+        secs = round(time.time() - t0, 1)
+        if not out_file.exists():
+            return SuiteResult(status="build_error", cases={}, rc=rc, seconds=secs,
+                               out=out[-4000:],
+                               load_failures=tuple(range(len(suite_texts))))
+        status, cases, lf = parse_vitest_json_multi(json.loads(out_file.read_text()),
+                                                    len(suite_texts))
+        return SuiteResult(status=status, cases=cases, rc=rc, seconds=secs,
+                           out=out[-4000:], load_failures=lf)
+    finally:
+        for f in files:
+            f.unlink(missing_ok=True)
+        out_file.unlink(missing_ok=True)
+
+
 def run_suite(workspace, suite_text, suite_name):
-    """Run one suite against a staged workspace. The suite is written in, then removed."""
+    """Run one suite against a staged workspace. The suite is written in, then removed.
+
+    Single-suite runs keep UNPREFIXED case names, so the arms that compare case names
+    across separate invocations of this function -- ARM C's good/bad pair, the oracle's
+    admissible set and a candidate's label -- keep working unchanged. `run_suites` is a
+    different namespace on purpose; do not mix results from the two.
+    """
     workspace = Path(workspace)
     test_file = workspace / f"{suite_name}.test.jsx"
     test_file.write_text(suite_text)

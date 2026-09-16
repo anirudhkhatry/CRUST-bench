@@ -23,6 +23,9 @@ class ScriptedAdapter:
     def run_suite(self, workspace, suite_text, suite_name):
         return self.table[suite_name]
 
+    def run_suites(self, workspace, suite_texts, suite_name):
+        return self.table[suite_name]
+
 
 GREEN = SuiteResult(status="green", cases={"t1": "ok"}, rc=0, seconds=0.1)
 RED = SuiteResult(status="test_failed", cases={"t1": "FAILED"}, rc=1, seconds=0.1)

@@ -142,6 +142,33 @@ def cap_cases(text, k):
     return _mask(text, cases[k:]), k
 
 
+def cap_cases_files(files, k):
+    """(capped_files, n_kept) -- keep the first `k` leaf cases ACROSS an ordered file list.
+
+    The multi-file analogue of `cap_cases`, and the unit is still the leaf case, not the
+    file: the budget is spent walking the files in order, so a first file holding 30 cases
+    consumes the whole cap and the remaining files are fully masked. That matches how
+    `run_suites` numbers cases (file index, then source order), so "the first k cases" means
+    the same thing here and there.
+
+    Files are kept in place even when every one of their cases is masked -- dropping them
+    would renumber the survivors and invalidate the admissible set. `(None, 0)` means
+    REFUSED, on the same terms as `cap_cases`: if any single file is not confidently
+    parseable the whole cap is a lie about how many tests ran, so none of it is applied.
+    """
+    if k <= 0:
+        return None, 0
+    out, budget = [], k
+    for text in files:
+        cases = find_leaf_cases(text)
+        if not _confidently_complete(text, cases):
+            return None, 0
+        keep = min(budget, len(cases))
+        out.append(text if keep == len(cases) else _mask(text, cases[keep:]))
+        budget -= keep
+    return out, k - budget
+
+
 def split_suite(text, seed):
     """(half_a, half_b, {title: "A"|"B"}). An unsplittable suite returns (text, text, {})."""
     cases = find_leaf_cases(text)

@@ -26,7 +26,7 @@ def _nrec(suite="", admissible=(), contributors=(), draws=6, composite="green"):
             "rejected": [], "compiles": bool(suite), "on_p0": None,
             "admissible": list(admissible),
             "composite_status": composite if suite else "empty",
-            "dropped_for_collision": []}
+            "dropped_for_load_failure": []}
 
 
 def _mrec(suite="", admissible=(), contributors=(), draws=6, composite="green"):
@@ -37,7 +37,7 @@ def _mrec(suite="", admissible=(), contributors=(), draws=6, composite="green"):
             "translate_outcomes": {}, "public_surface": [], "on_p0": None,
             "admissible": list(admissible),
             "composite_status": composite if suite else "empty",
-            "dropped_for_collision": []}
+            "dropped_for_load_failure": []}
 
 
 def _wire_common(monkeypatch):
@@ -107,8 +107,8 @@ def test_arm_n_is_registered_when_it_admits_at_least_one_case(tmp_path, monkeypa
 
     rjs.run_task("fake_fixture", tmp_path, n_good=1, n_bad=1, log=lambda *a: None)
 
-    assert frozen["naive"] == "test('a', () => { expect(1).toBe(1); });"
-    assert scored["suites"]["naive"] == "test('a', () => { expect(1).toBe(1); });"
+    assert frozen["naive"] == ["test('a', () => { expect(1).toBe(1); });"]
+    assert scored["suites"]["naive"] == ["test('a', () => { expect(1).toBe(1); });"]
     assert scored["admissible"]["naive"] == ["a"]
 
 
@@ -135,11 +135,17 @@ def test_arm_a_is_the_whole_oracle_suite_frozen_and_scored(tmp_path, monkeypatch
 # --- matched test count, the draws knob, and single-label fixtures ---------------------
 
 def _wire_run_suite(monkeypatch, cases=("a",)):
-    """`assemble` runs the composite through the adapter, so the matched rebuild needs a
-    real-shaped SuiteResult back."""
+    """`assemble` runs the arm's FILES through the adapter, so the matched rebuild needs a
+    real-shaped SuiteResult back. Both entry points are faked: `run_suites` is the one the
+    arms and scoring use, `run_suite` is still used for single self-consistent runs."""
     from additional_datasets.spec import SuiteResult
-    monkeypatch.setattr(rjs.JS, "run_suite", lambda ws, text, name: SuiteResult(
-        status="green", cases={c: "ok" for c in cases}, rc=0, seconds=0.1))
+
+    def result(*a, **k):
+        return SuiteResult(status="green", cases={c: "ok" for c in cases}, rc=0,
+                           seconds=0.1)
+
+    monkeypatch.setattr(rjs.JS, "run_suite", result)
+    monkeypatch.setattr(rjs.JS, "run_suites", result)
 
 
 def _contrib(i):
@@ -169,11 +175,11 @@ def test_both_arms_are_truncated_to_the_smaller_kept_count(tmp_path, monkeypatch
 
     rjs.run_task("fake_fixture", tmp_path, n_good=1, n_bad=1, log=lambda *a: None)
 
-    assert scored["suites"]["naive_matched"] == n_contribs[0]["suite"]
-    assert scored["suites"]["mutation_matched"] == _contrib(9)["suite"]
+    assert scored["suites"]["naive_matched"] == [n_contribs[0]["suite"]]
+    assert scored["suites"]["mutation_matched"] == [_contrib(9)["suite"]]
     # The raw arms are still scored beside the matched ones -- both variants are reported.
-    assert scored["suites"]["naive"] == "N_SUITE"
-    assert scored["suites"]["mutation"] == "M_SUITE"
+    assert scored["suites"]["naive"] == ["N_SUITE"]
+    assert scored["suites"]["mutation"] == ["M_SUITE"]
     # ...and every one of the four goes through the same freeze gate.
     assert set(frozen) == {"naive", "mutation", "naive_matched", "mutation_matched",
                            "existing"}
@@ -202,7 +208,7 @@ def test_an_arm_that_kept_nothing_leaves_both_matched_arms_empty(tmp_path, monke
 
     assert "naive_matched" not in scored["suites"]
     assert "mutation_matched" not in scored["suites"]
-    assert scored["suites"]["naive"] == "N_SUITE"
+    assert scored["suites"]["naive"] == ["N_SUITE"]
 
 
 def test_the_draws_knob_sets_both_arms(tmp_path, monkeypatch):
@@ -391,7 +397,7 @@ def test_the_candidate_sweep_spans_model_strength():
 # --- matched CASE count (the leaf case, not the contributor) ---------------------------
 
 def _wire_case_run_suite(monkeypatch, load_bearing=None):
-    """A fake `run_suite` that responds to skip-masking -- which is what the cap does.
+    """A fake `run_suites` that responds to skip-masking -- which is what the cap does.
 
     The live cases are the ones `find_leaf_cases` still sees, and a skip-masked case is not
     one, so a capped suite really does report fewer cases here; a fake with a fixed case
@@ -402,18 +408,25 @@ def _wire_case_run_suite(monkeypatch, load_bearing=None):
     from additional_datasets.adapters.js_split import find_leaf_cases
     from additional_datasets.spec import SuiteResult
 
-    def run_suite(ws, text, name):
-        live = [c["title"] for c in find_leaf_cases(text)]
-        cases = {}
-        for t in live:
+    def run_suites(ws, texts, name):
+        # Case names are file-index prefixed, exactly as the real `run_suites` does, so a
+        # test asserting on the admissible set sees the same shape the scorer will.
+        live, cases = [], {}
+        for i, text in enumerate(texts):
+            for c in find_leaf_cases(text):
+                live.append((i, c["title"]))
+        titles = [t for _, t in live]
+        for i, t in live:
             need = (load_bearing or {}).get(t)
-            cases[t] = "ok" if not t.startswith("fail_") and (
-                need is None or need in live) else "FAILED"
+            cases[f"{i}::{t}"] = "ok" if not t.startswith("fail_") and (
+                need is None or need in titles) else "FAILED"
         status = ("no_tests" if not cases
                   else "test_failed" if "FAILED" in cases.values() else "green")
         return SuiteResult(status=status, cases=cases, rc=0, seconds=0.1)
 
-    monkeypatch.setattr(rjs.JS, "run_suite", run_suite)
+    monkeypatch.setattr(rjs.JS, "run_suites", run_suites)
+    monkeypatch.setattr(rjs.JS, "run_suite",
+                        lambda ws, text, name: run_suites(ws, [text], name))
 
 
 def _multi(index, titles):
@@ -447,18 +460,19 @@ def test_the_matched_arms_are_capped_to_the_same_number_of_leaf_cases(
 
     rjs.run_task("fake_fixture", tmp_path, n_good=1, n_bad=1, log=lambda *a: None)
 
-    capped = scored["suites"]["naive_matched"]
+    # An arm's suite is a LIST of files; join for the text assertions below.
+    capped = "\n".join(scored["suites"]["naive_matched"])
     # The first case in source order survives; the surplus is masked, not deleted.
     assert "test('n_one'" in capped
     assert "test.skip('n_two'" in capped and "test.skip('n_three'" in capped
     assert capped.count(".skip(") == 2
     assert "describe('d0'" in capped
     # ARM M was already at k, so its suite is untouched.
-    assert scored["suites"]["mutation_matched"].count(".skip(") == 0
+    assert "\n".join(scored["suites"]["mutation_matched"]).count(".skip(") == 0
     # The admissible set comes from the RE-RUN of the capped suite, not inherited from the
     # uncapped one (which admitted all three).
-    assert scored["admissible"]["naive_matched"] == ["n_one"]
-    assert scored["admissible"]["mutation_matched"] == ["m_one"]
+    assert scored["admissible"]["naive_matched"] == ["0::n_one"]
+    assert scored["admissible"]["mutation_matched"] == ["0::m_one"]
     arms = _meta(tmp_path)["arms"]
     assert arms["naive"]["n_cases_p0_matched"] == arms["mutation"]["n_cases_p0_matched"] == 1
     assert arms["naive"]["matched"]["cap"] == {"n_cases": 1, "capped": True}
@@ -485,15 +499,15 @@ def test_an_arm_whose_cap_breaks_a_neighbour_falls_back_to_its_uncapped_suite(
 
     rjs.run_task("fake_fixture", tmp_path, n_good=1, n_bad=1, log=logged.append)
 
-    naive_suite = scored["suites"]["naive_matched"]
+    naive_suite = "\n".join(scored["suites"]["naive_matched"])
     assert naive_suite.count(".skip(") == 0, "the broken capped suite must not be shipped"
-    assert scored["admissible"]["naive_matched"] == ["n_one", "n_three", "n_two"]
+    assert scored["admissible"]["naive_matched"] == ["0::n_one", "0::n_three", "0::n_two"]
     cap = _meta(tmp_path)["arms"]["naive"]["matched"]["cap"]
     assert cap["capped"] is False
     assert "load-bearing" in cap["fallback"]
     assert any("NOT capped" in ln for ln in logged)
     # ARM M is unaffected and still scored -- one arm's fallback is not the other's.
-    assert scored["admissible"]["mutation_matched"] == ["m_one"]
+    assert scored["admissible"]["mutation_matched"] == ["0::m_one"]
 
 
 def test_an_unparseable_arm_suite_is_not_capped_and_says_so(tmp_path, monkeypatch):
@@ -516,8 +530,8 @@ def test_an_unparseable_arm_suite_is_not_capped_and_says_so(tmp_path, monkeypatc
 
     rjs.run_task("fake_fixture", tmp_path, n_good=1, n_bad=1, log=logged.append)
 
-    assert scored["suites"]["naive_matched"].count(".skip(") == 0
-    assert scored["admissible"]["naive_matched"] == ["n_one", "n_two"]
+    assert "\n".join(scored["suites"]["naive_matched"]).count(".skip(") == 0
+    assert scored["admissible"]["naive_matched"] == ["0::n_one", "0::n_two"]
     cap = _meta(tmp_path)["arms"]["naive"]["matched"]["cap"]
     assert cap["capped"] is False and "refused" in cap["fallback"]
     assert any("NOT capped" in ln for ln in logged)
@@ -544,7 +558,7 @@ def test_an_arm_admitting_no_case_skips_the_matched_pair_instead_of_zeroing_both
     assert "mutation_matched" not in scored["suites"]
     assert "naive_matched" not in frozen and "mutation_matched" not in frozen
     # The raw arms are untouched by the skip: a missing matched pair is not a dead fixture.
-    assert scored["suites"] == {"naive": "N_SUITE", "mutation": "M_SUITE"}
+    assert scored["suites"] == {"naive": ["N_SUITE"], "mutation": ["M_SUITE"]}
     meta = _meta(tmp_path)
     # ARM N is the arm that kept nothing, and the reason names it -- not ARM M, which did
     # keep a case, and not a generic "no matched pair".

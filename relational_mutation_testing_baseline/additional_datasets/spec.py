@@ -93,6 +93,13 @@ class SuiteResult:
     rc: int
     seconds: float
     out: str = ""
+    # Which of a MULTI-FILE suite's files failed to load at all, by index. A load failure is
+    # a claim about the candidate's SHAPE -- a renamed export, a moved module -- and it is
+    # invisible in `cases`, because the file's cases are simply absent. Carrying it
+    # separately is what lets `score.verdict` tell "this arm's third file could not resolve
+    # its import" (structural) apart from "the suite crashed part-way through" (behavioural).
+    # Empty for a single-file run, where `status == "build_error"` already says it.
+    load_failures: tuple = ()
 
     @property
     def passed(self) -> list:
@@ -105,6 +112,7 @@ class SuiteResult:
     def as_row(self) -> dict:
         return {"status": self.status, "n_cases": len(self.cases),
                 "n_passed": len(self.passed), "n_failed": len(self.failed),
+                "n_load_failures": len(self.load_failures),
                 "rc": self.rc, "seconds": self.seconds}
 
 

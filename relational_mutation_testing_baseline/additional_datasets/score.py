@@ -32,8 +32,14 @@ def verdict(result, admissible):
     fired = [c for c in result.failed if c in admissible]
     if fired:
         return REJECT, BEHAVIOURAL
-    # Ran but stopped early: a crash took the process down mid-run, which is a detection.
     missing = [c for c in admissible if c not in result.cases]
+    # A multi-file suite can lose a whole FILE's cases without the run being red: that file
+    # did not resolve an import, which is a claim about the candidate's shape. Checked
+    # before the crash branch below, which would otherwise read exactly the same way --
+    # cases absent, non-zero rc -- and bank a structural difference as behavioural evidence.
+    if missing and getattr(result, "load_failures", ()):
+        return REJECT, STRUCTURAL
+    # Ran but stopped early: a crash took the process down mid-run, which is a detection.
     if missing and result.rc:
         return REJECT, BEHAVIOURAL
     return ACCEPT, ""

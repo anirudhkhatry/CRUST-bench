@@ -24,7 +24,12 @@ def prepare_oracle(name, workspace):
     """{oracle_text, admissible_oracle, reason} for `name`, verified against its own P0."""
     whole = JS.holdout_text(name)
     ws = JS.stage(name, workspace)
-    full = JS.run_suite(ws, whole, "whole")
+    # `run_suites`, not `run_suite`, even though the oracle is a single file: its case
+    # names must be built in the same namespace as the names a candidate is scored on, and
+    # `run_suites` file-index prefixes them. `harvest.label` compares a candidate's failed
+    # cases against `admissible_oracle`, and `score_task` scores ARM A from it; both go
+    # through `run_suites`, so all three agree on what a case is called.
+    full = JS.run_suites(ws, [whole], "whole")
     # A non-green holdout still yields whatever cases DID pass: those cases are sound
     # evidence, and the caller (which owns the paid-call budget) decides whether an
     # oracle with too few of them is worth running. It must never be silently upgraded

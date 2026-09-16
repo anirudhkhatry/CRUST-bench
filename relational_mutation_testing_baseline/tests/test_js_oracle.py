@@ -24,11 +24,15 @@ def test_the_oracle_is_the_whole_holdout_suite_unsplit(tmp_path):
     assert got["reason"] == ""
 
     ws = JS.stage("binary_search", tmp_path / "full")
-    run = JS.run_suite(ws, whole, "whole")
+    run = JS.run_suites(ws, [whole], "whole")
     assert run.status == "green"
     # Every case of the whole suite labels candidates, not half of them.
     assert got["admissible_oracle"] == sorted(run.cases)
     assert len(got["admissible_oracle"]) > 1
+    # The names come from `run_suites`, so they are file-index prefixed -- the SAME
+    # namespace a candidate is scored in. Using `run_suite` here instead would hand back
+    # bare names, every one of which would then read as "missing" during scoring.
+    assert all(c.startswith("0::") for c in got["admissible_oracle"])
 
 
 def test_a_holdout_that_is_not_green_on_p0_is_reported_as_such(tmp_path, monkeypatch):
@@ -54,5 +58,5 @@ def test_a_single_case_holdout_is_still_a_usable_oracle(tmp_path, monkeypatch):
                         lambda n: "import { test, expect } from 'vitest';\n"
                                   "test('only', () => { expect(1).toBe(1); });\n")
     got = O.prepare_oracle("binary_search", tmp_path / "ws")
-    assert got["admissible_oracle"] == ["only"]
+    assert got["admissible_oracle"] == ["0::only"]
     assert got["reason"] == ""

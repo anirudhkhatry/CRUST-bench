@@ -13,7 +13,7 @@ from ..adapters import js_oracle, js_split, js_vitest as JS
 from ..arms import ceiling, mutation, naive
 from ..arms.assemble import N_DRAWS, assemble
 from ..harvest import label, propose_candidate
-from ..runner import freeze, score_task
+from ..runner import freeze, score_task, suite_files
 from ..seed import seed_faults
 from ..spec import Candidate, Task, sources_hash, write_metadata
 
@@ -159,10 +159,11 @@ def run_task(name, results_root, n_good=3, n_bad=3, draws=N_DRAWS, workspace=Non
     # below enforces that), and a candidate is mostly P0 verbatim, so passing candidate
     # text here would fire on files nobody changed.
     forbidden = [oracle["oracle_text"]]
-    n_suite, nrec = naive.generate(task, sources, JS, p0_ws, imp, tag=f"{name}_naive",
+    # Both arms return a LIST of test-file texts, one per surviving draw -- see `assemble`.
+    n_files, nrec = naive.generate(task, sources, JS, p0_ws, imp, tag=f"{name}_naive",
                                    n_draws=draws, forbidden=forbidden)
     records["naive"] = nrec
-    m_suite, mrec = mutation.generate(task, sources, JS, ws / "mut", imp,
+    m_files, mrec = mutation.generate(task, sources, JS, ws / "mut", imp,
                                       tag=f"{name}_mut", n_mutants=draws, target=target,
                                       forbidden=forbidden)
     records["mutation"] = mrec
@@ -188,8 +189,8 @@ def run_task(name, results_root, n_good=3, n_bad=3, draws=N_DRAWS, workspace=Non
     matched = {}
     for arm, rec in recs.items():
         contributors = (rec.get("contributors") or [])[:n_match]
-        text, kept, res, meta = assemble(contributors, task, JS, ws / f"matched_{arm}",
-                                         tag=f"matched_{arm}")
+        files, kept, res, meta = assemble(contributors, task, JS, ws / f"matched_{arm}",
+                                          tag=f"matched_{arm}")
         rec["n_kept_raw"] = len(rec.get("contributors") or [])
         rec["n_kept_matched"] = len(kept)
         # The count of test CASES the suite actually ran on P0 -- the size of the thing
@@ -199,7 +200,7 @@ def run_task(name, results_root, n_good=3, n_bad=3, draws=N_DRAWS, workspace=Non
         rec["n_cases_p0_matched"] = len(res.cases) if res else 0
         rec["matched"] = {"n_kept": len(kept), "n_target": n_match,
                           "n_cases_p0": rec["n_cases_p0_matched"], **meta}
-        matched[arm] = (text, res.passed if res else [])
+        matched[arm] = (files, res.passed if res else [])
     log(f"{name}: kept raw N={nrec['n_kept_raw']} M={mrec['n_kept_raw']}; "
         f"matched to {n_match} -> N={nrec['n_kept_matched']} M={mrec['n_kept_matched']} "
         f"(cases on P0: raw N={nrec['n_cases_p0_raw']} M={mrec['n_cases_p0_raw']}, "
@@ -239,16 +240,16 @@ def run_task(name, results_root, n_good=3, n_bad=3, draws=N_DRAWS, workspace=Non
             rec["matched"]["cap"] = {"skipped": matched_skipped}
         matched = {}
     else:
-        for arm, (text, adm) in sorted(matched.items()):
-            capped, n_kept = js_split.cap_cases(text, k_cases)
+        for arm, (files, adm) in sorted(matched.items()):
+            capped, n_kept = js_split.cap_cases_files(files, k_cases)
             why = None
             if capped is None:
                 why = "cap_cases refused (unparseable call form)"
             elif n_kept < k_cases:
                 why = f"only {n_kept} leaf case(s) are parseable, need {k_cases}"
             else:
-                res = JS.run_suite(JS.stage(name, ws / f"capped_{arm}"), capped,
-                                   f"capped_{arm}")
+                res = JS.run_suites(JS.stage(name, ws / f"capped_{arm}"), capped,
+                                    f"capped_{arm}")
                 new_adm = res.passed
                 if len(new_adm) < k_cases:
                     why = (f"capping to {k_cases} left only {len(new_adm)} admissible "
@@ -275,15 +276,17 @@ def run_task(name, results_root, n_good=3, n_bad=3, draws=N_DRAWS, workspace=Non
     # and every paid call already spent on its candidates. An arm keeping nothing is a
     # legitimate, informative outcome (no draw survived its gate), not a reason to crash
     # the task and lose the other arm's results with it. `records[arm]["n_kept"]` says why.
-    def register(arm, text, adm, why):
-        if text and adm:
-            suites[arm], admissible[arm] = text, list(adm)
+    def register(arm, files, adm, why):
+        if files and adm:
+            # `suite_files` and not `list(...)`: a one-file suite handed over as a bare
+            # string would otherwise be exploded into a list of single CHARACTERS.
+            suites[arm], admissible[arm] = suite_files(files), list(adm)
         else:
             log(f"{name}: {why} produced no scorable suite (n_admissible="
                 f"{len(adm or [])}) -- omitted from scoring")
 
-    register("naive", n_suite, nrec.get("admissible"), "ARM N")
-    register("mutation", m_suite, mrec.get("admissible"), "ARM M")
+    register("naive", n_files, nrec.get("admissible"), "ARM N")
+    register("mutation", m_files, mrec.get("admissible"), "ARM M")
     # `matched` is emptied above when the pair is skipped, so neither `*_matched` arm is
     # registered -- not even the arm that did keep cases. Half a matched pair is not a
     # matched comparison, and scoring it alone would put an arm's suite up against nothing.

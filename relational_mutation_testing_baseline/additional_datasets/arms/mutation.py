@@ -147,7 +147,7 @@ def translate(test_text, surface, task, adapter, p0_ws, mut_ws, import_line,
 
 def generate(task, sources, adapter, workspace, import_line, framework="vitest",
              n_mutants=N_DRAWS, retries=3, tag="mut", forbidden=(), target=None):
-    """(suite_text, record). Concatenates every test that killed AND survived translation.
+    """(suite_files, record). One test FILE per test that killed AND survived translation.
 
     `import_line` is the exact import statement the suite must use -- see naive.generate.
     Both arms are given it identically, so neither is advantaged by knowing where the code
@@ -217,13 +217,13 @@ def generate(task, sources, adapter, workspace, import_line, framework="vitest",
                 continue
         kept.append({"index": k, "suite": final, "fault_class": rec.get("fault_class"),
                      "semantic_change": rec.get("semantic_change")})
-    # Each contributor proved its kill in isolation; the CONCATENATION is a different
-    # program, so it is validated and colliding contributors are dropped rather than the
-    # whole suite forfeited. That step is `assemble.assemble`, shared verbatim with ARM N
-    # -- "the two arms assemble identically" is then true by construction rather than by
-    # inspection of two copies of the same loop.
-    suite_text, kept, res, meta = assemble(kept, task, adapter, workspace)
-    return suite_text, {"suite": suite_text, "n_mutants": len(mutants),
+    # Each contributor proved its kill in isolation and STAYS ITS OWN FILE, so it keeps
+    # that property: nothing is concatenated and nothing is dropped to make a join build.
+    # That step is `assemble.assemble`, shared verbatim with ARM N -- "the two arms
+    # assemble identically" is then true by construction rather than by inspection of two
+    # copies of the same loop.
+    files, kept, res, meta = assemble(kept, task, adapter, workspace)
+    return files, {"suite": files, "n_mutants": len(mutants),
                         # What was REQUESTED, which is what the matched control is about.
                         # `n_mutants` is what the model actually proposed and is routinely
                         # smaller, so it cannot stand in for the request.

@@ -18,6 +18,11 @@ class FakeAdapter:
         self.calls.append((suite_name, suite_text))
         return self.results.pop(0)
 
+    def run_suites(self, workspace, suite_texts, suite_name):
+        """Multi-file run. Records the file LIST, so a test can assert what was assembled."""
+        self.calls.append((suite_name, list(suite_texts)))
+        return self.results.pop(0)
+
 
 def _task(tmp_path):
     return Task(task_id="t0", benchmark="refactorbench_js", language="javascript",
@@ -106,16 +111,18 @@ def test_naive_generate_returns_the_suite_and_its_admissible_cases(tmp_path, mon
     # One draw, then the composite validation -- the same two adapter calls ARM M makes
     # around one kept contributor.
     adapter = FakeAdapter([green, green])
-    suite, rec = naive.generate(_task(tmp_path), {"app/index.js": "export const x = 1;"},
+    files, rec = naive.generate(_task(tmp_path), {"app/index.js": "export const x = 1;"},
                                 adapter, tmp_path / "ws",
                                 "import * as mod from './app/index.js';", n_draws=1)
-    assert "expect(1).toBe(1)" in suite
+    # An arm's suite is a LIST of test files, one per surviving draw -- never a
+    # concatenation. See `assemble`.
+    assert files == ["test('a', () => { expect(1).toBe(1); });"]
     assert rec["compiles"] is True
-    # The admissible set now comes from the COMPOSITE run, not from the single draw.
+    # The admissible set now comes from the multi-file run, not from the single draw.
     assert rec["admissible"] == ["a"]
     assert rec["n_draws"] == 1 and rec["n_kept"] == 1
     assert rec["composite_status"] == "green"
-    assert rec["dropped_for_collision"] == []
+    assert rec["dropped_for_load_failure"] == []
     assert len(calls) == 1
 
 
@@ -162,26 +169,51 @@ def test_naive_drops_a_draw_that_is_not_green_on_p0(tmp_path, monkeypatch):
     assert [r["why"] for r in rec["rejected"]] == ["test is not green on P0"]
 
 
-def test_naive_drops_the_newest_contributor_when_the_composite_collides(tmp_path,
-                                                                       monkeypatch):
-    """Identical assembly, exercised through ARM N: a composite that will not build loses
-    its most recent contributor and is retried.
+def test_every_contributor_survives_assembly(tmp_path, monkeypatch):
+    """No contributor is dropped to make an assembly build. THE POINT OF MULTI-FILE SUITES.
 
-    Fails if the composite is not validated at all (`composite_status` would be the last
-    draw's "green" and `dropped_for_collision` empty), or if a collision forfeited the
-    whole suite (`n_kept` 0, empty text).
+    Fails on the concatenate-and-drop-on-collision scheme this replaced: each draw is a
+    standalone test file with its own imports and top-level helpers, so joining two is a
+    duplicate-declaration error, and that scheme popped contributors until exactly ONE
+    survived -- measured as `dropped_for_collision == [3, 2, 1]` in every arm of every
+    fixture. ARM M's suite then held 1 leaf case against ARM N's 32-99.
+    """
+    _script(monkeypatch, naive, [SUITE_REPLY])
+    green = SuiteResult(status="green", cases={"0::a": "ok", "1::a": "ok"}, rc=0,
+                        seconds=0.1)
+    # two green draws, then ONE multi-file run over both -- no retry, nothing dropped.
+    adapter = FakeAdapter([green, green, green])
+    files, rec = naive.generate(_task(tmp_path), {"app/index.js": "export const x = 1;"},
+                                adapter, tmp_path / "ws",
+                                "import * as mod from './app/index.js';", n_draws=2)
+    assert len(files) == 2
+    assert rec["n_kept"] == 2 and rec["dropped_for_load_failure"] == []
+    assert rec["admissible"] == ["0::a", "1::a"]
+    # The last adapter call is the multi-file one, and it got BOTH files.
+    assert adapter.calls[-1][1] == files
+
+
+def test_a_contributor_that_will_not_load_is_dropped_and_the_rest_re_run(tmp_path,
+                                                                        monkeypatch):
+    """A file that cannot load contributes no admissible case while still making the whole
+    arm's status structural, so it goes -- and the survivors are re-run so the admissible
+    set matches the files actually shipped.
+
+    Fails if `assemble` trusts the first run: the arm would be registered with a suite
+    whose second file never loads and an admissible set taken from a run that included it.
     """
     _script(monkeypatch, naive, [SUITE_REPLY])
     green = SuiteResult(status="green", cases={"a": "ok"}, rc=0, seconds=0.1)
-    broken = SuiteResult(status="build_error", cases={}, rc=1, seconds=0.1)
-    # two green draws, a colliding composite, then a composite that builds
-    adapter = FakeAdapter([green, green, broken, green])
-    suite, rec = naive.generate(_task(tmp_path), {"app/index.js": "export const x = 1;"},
-                               adapter, tmp_path / "ws",
-                               "import * as mod from './app/index.js';", n_draws=2)
-    assert rec["dropped_for_collision"] == [1]
-    assert rec["n_kept"] == 1 and rec["composite_status"] == "green"
-    assert suite.count("expect(1).toBe(1)") == 1
+    one_bad = SuiteResult(status="build_error", cases={"0::a": "ok"}, rc=1, seconds=0.1,
+                          load_failures=(1,))
+    fixed = SuiteResult(status="green", cases={"0::a": "ok"}, rc=0, seconds=0.1)
+    adapter = FakeAdapter([green, green, one_bad, fixed])
+    files, rec = naive.generate(_task(tmp_path), {"app/index.js": "export const x = 1;"},
+                                adapter, tmp_path / "ws",
+                                "import * as mod from './app/index.js';", n_draws=2)
+    assert rec["dropped_for_load_failure"] == [1]
+    assert len(files) == 1 and rec["n_kept"] == 1
+    assert rec["composite_status"] == "green" and rec["admissible"] == ["0::a"]
 
 
 def test_both_arms_reach_ask_with_identical_generation_parameters(tmp_path, monkeypatch):
@@ -266,10 +298,10 @@ def test_mutation_generate_keeps_only_tests_that_kill(tmp_path, monkeypatch):
     # green on P0 during generation, then GREEN on the mutant too -- no kill, so the
     # loop never reaches the composite-validation step (kept stays empty).
     adapter = FakeAdapter([green, green, green, green])
-    suite, rec = mutation.generate(_task(tmp_path), sources, adapter, tmp_path / "m",
+    files, rec = mutation.generate(_task(tmp_path), sources, adapter, tmp_path / "m",
                                    "import * as mod from './app/index.js';", n_mutants=1)
     assert rec["n_kept"] == 0
-    assert suite == ""
+    assert files == []
     assert rec["rejected"], "a surviving mutant must be recorded with a reason"
 
 
@@ -349,11 +381,11 @@ def test_a_translated_test_that_still_kills_joins_the_composite_in_translated_fo
     green = SuiteResult(status="green", cases={"a": "ok"}, rc=0, seconds=0.1)
     red = SuiteResult(status="test_failed", cases={"a": "FAILED"}, rc=1, seconds=0.1)
     # testgen-on-p0, on_mutant, on_p0, translated-on-p0, translated-on-mutant, composite
-    suite, rec = _mutation_with_translate(tmp_path, monkeypatch,
+    files, rec = _mutation_with_translate(tmp_path, monkeypatch,
                                           [green, red, green, green, red, green])
     assert rec["n_kept"] == 1
-    assert "expect(mod.f()).toBe(1)" in suite
-    assert "expect(1).toBe(1)" not in suite
+    # The TRANSLATED text is what ships, not the pre-translation test.
+    assert files == ["test('b', () => { expect(mod.f()).toBe(1); });"]
     assert rec["translate_outcomes"] == {"ok": 1}
     assert rec["public_surface"] == ["f", "x"]
 
@@ -368,9 +400,9 @@ def test_a_translation_that_stops_killing_is_dropped_as_F4_not_discriminating(
     green = SuiteResult(status="green", cases={"a": "ok"}, rc=0, seconds=0.1)
     red = SuiteResult(status="test_failed", cases={"a": "FAILED"}, rc=1, seconds=0.1)
     # ...translated is green on P0 AND green on the mutant: it no longer discriminates.
-    suite, rec = _mutation_with_translate(tmp_path, monkeypatch,
+    files, rec = _mutation_with_translate(tmp_path, monkeypatch,
                                           [green, red, green, green, green])
-    assert rec["n_kept"] == 0 and suite == ""
+    assert rec["n_kept"] == 0 and files == []
     assert rec["translate_outcomes"] == {"F4_not_discriminating": 1}
     assert rec["rejected"][0]["why"] == "translation: F4_not_discriminating"
 
@@ -383,9 +415,9 @@ def test_a_translation_that_stops_passing_p0_is_dropped_as_F3_unsound_on_p0(
     green = SuiteResult(status="green", cases={"a": "ok"}, rc=0, seconds=0.1)
     red = SuiteResult(status="test_failed", cases={"a": "FAILED"}, rc=1, seconds=0.1)
     # ...translated is RED on P0.
-    suite, rec = _mutation_with_translate(tmp_path, monkeypatch,
+    files, rec = _mutation_with_translate(tmp_path, monkeypatch,
                                           [green, red, green, red])
-    assert rec["n_kept"] == 0 and suite == ""
+    assert rec["n_kept"] == 0 and files == []
     assert rec["translate_outcomes"] == {"F3_unsound_on_p0": 1}
 
 
@@ -398,9 +430,9 @@ def test_a_translation_that_never_builds_is_dropped_as_F2(tmp_path, monkeypatch)
     green = SuiteResult(status="green", cases={"a": "ok"}, rc=0, seconds=0.1)
     red = SuiteResult(status="test_failed", cases={"a": "FAILED"}, rc=1, seconds=0.1)
     broken = SuiteResult(status="build_error", cases={}, rc=1, seconds=0.1)
-    suite, rec = _mutation_with_translate(
+    files, rec = _mutation_with_translate(
         tmp_path, monkeypatch, [green, red, green] + [broken] * 4)
-    assert rec["n_kept"] == 0 and suite == ""
+    assert rec["n_kept"] == 0 and files == []
     assert rec["translate_outcomes"] == {"F2_translate_no_build": 1}
 
 

@@ -28,6 +28,9 @@ class FakeAdapter:
     def run_suite(self, workspace, suite_text, suite_name):
         return self.result
 
+    def run_suites(self, workspace, suite_texts, suite_name):
+        return self.result
+
 
 def test_a_candidate_passing_the_hidden_oracle_is_good(tmp_path):
     a = FakeAdapter(SuiteResult(status="green", cases={"a": "ok"}, rc=0, seconds=0.1))

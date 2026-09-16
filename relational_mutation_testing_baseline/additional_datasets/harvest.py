@@ -75,7 +75,10 @@ def label(adapter, task, sources, oracle_text, workspace, admissible=None):
     condemn one.
     """
     ws = adapter.stage(task.task_id, workspace, sources=sources)
-    res = adapter.run_suite(ws, oracle_text, "oracle")
+    # `run_suites` so the case names match `prepare_oracle`'s admissible set -- see the
+    # note there. `oracle_text` may be one file's text or a list of them.
+    files = [oracle_text] if isinstance(oracle_text, str) else list(oracle_text)
+    res = adapter.run_suites(ws, files, "oracle")
     if res.status in ("build_error", "no_tests", "error"):
         return "EXCLUDE", f"hidden oracle could not run: {res.status}"
     if res.status == "timeout":
@@ -92,4 +95,13 @@ def label(adapter, task, sources, oracle_text, workspace, admissible=None):
         failed += sorted(missing)
     if not failed:
         return "GOOD", None
-    return "BAD", f"hidden oracle failed: {', '.join(failed[:6])}"
+    # `hidden_oracle_failure` is read by people, so the file-index prefix `run_suites` adds
+    # to every case name comes off here. It is load-bearing for matching admissible sets,
+    # and noise in a sentence explaining why a candidate is BAD.
+    return "BAD", f"hidden oracle failed: {', '.join(_unprefixed(c) for c in failed[:6])}"
+
+
+def _unprefixed(case):
+    """`"3::Foo bar"` -> `"Foo bar"`. Leaves an unprefixed name alone."""
+    head, sep, rest = case.partition("::")
+    return rest if sep and head.isdigit() else case

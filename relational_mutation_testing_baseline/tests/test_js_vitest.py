@@ -127,3 +127,42 @@ def test_run_suite_leaves_no_files_behind(tmp_path):
     JS.run_suite(ws, JS.holdout_text("binary_search"), "whole")
     assert not list(ws.glob("*.test.jsx"))
     assert not list(ws.glob("*.results.json"))
+
+
+def test_run_suites_runs_independent_files_that_could_never_be_concatenated(tmp_path):
+    """The reason an arm's suite is a file LIST. Real vitest, not a fake.
+
+    Both files declare a top-level `const H` -- with DIFFERENT values -- and both name a
+    case `alpha`. Concatenated, that is a redeclaration error, which is exactly why the
+    old composite kept only one contributor per arm (`dropped_for_collision == [3, 2, 1]`
+    in every fixture measured). As separate files they both run, and the identical case
+    titles stay distinct because `run_suites` prefixes every name with its file index.
+    """
+    ws = JS.stage("binary_search", tmp_path / "ws")
+    imp = JS.import_path("binary_search")
+    head = f"import {{ test, expect }} from 'vitest';\nimport * as mod from '{imp}';\n"
+    a = head + "const H = 1;\ntest('alpha', () => { expect(H).toBe(1); });\n"
+    b = (head + "const H = 2;\ntest('alpha', () => { expect(H).toBe(2); });\n"
+         "test('beta', () => { expect(2).toBe(3); });\n")
+    res = JS.run_suites(ws, [a, b], "demo")
+    assert res.status == "test_failed"
+    assert res.cases == {"0::alpha": "ok", "1::alpha": "ok", "1::beta": "FAILED"}
+    assert res.load_failures == ()
+
+
+def test_run_suites_reports_which_file_failed_to_load_and_keeps_the_others_cases(tmp_path):
+    """A load failure is a STRUCTURAL claim and it is per FILE, so it cannot be read off
+    `cases` -- the file's cases are simply absent. Fails on an implementation that reports
+    only an overall status: the surviving file's passing case would be indistinguishable
+    from a suite that ran clean, and `score.verdict` would call the missing cases a
+    mid-run crash (behavioural) instead of a shape difference (structural).
+    """
+    ws = JS.stage("binary_search", tmp_path / "ws")
+    imp = JS.import_path("binary_search")
+    good = (f"import {{ test, expect }} from 'vitest';\nimport * as mod from '{imp}';\n"
+            "test('alpha', () => { expect(1).toBe(1); });\n")
+    unresolvable = "import * as nope from './does-not-exist.js';\ntest('x', () => {});\n"
+    res = JS.run_suites(ws, [good, unresolvable], "demo2")
+    assert res.load_failures == (1,)
+    assert res.status == "build_error"
+    assert res.cases == {"0::alpha": "ok"}
