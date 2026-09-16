@@ -78,6 +78,31 @@ def test_propose_candidate_returns_none_on_an_unusable_reply(monkeypatch):
                                          "m", 1.0, "t") is None, reply
 
 
+def test_a_case_p0_itself_fails_cannot_condemn_a_candidate(tmp_path):
+    """The label is decided on the admissible subset -- the cases green on P0.
+
+    A RefactorBench holdout also asserts post-refactor behaviour, so it is normally NOT
+    green on P0. Judging on whole-suite greenness made GOOD unreachable for every
+    candidate on every fixture, including a faithful refactor.
+    """
+    a = FakeAdapter(SuiteResult(status="test_failed",
+                                cases={"adm": "ok", "not_on_p0": "FAILED"},
+                                rc=1, seconds=0.1))
+    assert harvest.label(a, _task(tmp_path), {}, "suite", tmp_path,
+                         admissible=["adm"]) == ("GOOD", None)
+
+
+def test_an_admissible_case_that_vanished_from_the_report_is_bad(tmp_path):
+    """Not reported is not passed: a candidate that breaks the file carrying a case
+    would otherwise be labelled GOOD for having silenced its own judge."""
+    a = FakeAdapter(SuiteResult(status="test_failed", cases={"other": "FAILED"},
+                                rc=1, seconds=0.1))
+    label, why = harvest.label(a, _task(tmp_path), {}, "suite", tmp_path,
+                               admissible=["adm", "other"])
+    assert label == "BAD"
+    assert "adm" in why
+
+
 def test_propose_candidate_prompt_never_sees_the_oracle_or_a_label(monkeypatch):
     """Arm N's whole value is that its candidates were generated blind.
 

@@ -270,7 +270,7 @@ def _wire_candidates(monkeypatch, labels):
                             "app/index.js": f"export const x = {len(drawn) + 100};"},
                 "model": model, "temperature": temperature}
 
-    def fake_label(adapter, task, sources, oracle_text, ws):
+    def fake_label(adapter, task, sources, oracle_text, ws, admissible=None):
         return drawn[-1]["label"], None
 
     monkeypatch.setattr(rjs, "propose_candidate", fake_propose)

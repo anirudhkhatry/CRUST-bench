@@ -320,7 +320,8 @@ def run_task(name, results_root, n_good=3, n_bad=3, draws=N_DRAWS, workspace=Non
             log(f"{name}: draw {i} returned P0 unchanged -- discarded (an identity "
                 f"candidate would give every arm GAR 100% for free)")
             continue
-        lbl, why = label(JS, task, cand["sources"], oracle["oracle_text"], ws / f"c{i}")
+        lbl, why = label(JS, task, cand["sources"], oracle["oracle_text"], ws / f"c{i}",
+                         admissible=oracle["admissible_oracle"])
         if lbl == "EXCLUDE":
             continue
         if lbl == "GOOD":
@@ -361,14 +362,23 @@ def run_task(name, results_root, n_good=3, n_bad=3, draws=N_DRAWS, workspace=Non
             f"score faults in the pre-migration program as a migration, and ARM M's tests "
             f"were built against that same P0)")
     else:
+        # Arm S is OVER-REQUESTED when it has to carry the BAD side alone. `seed_faults`
+        # returns n applied faults, but only a fraction of those are BAD once the oracle
+        # rules on them -- the rest are equivalent, landing where the tests do not look
+        # (~8% admitted on complex subjects). Asking for exactly n_bad therefore yields
+        # ~zero, and the fixture comes back GOOD-only: every arm gets BRR n/a and the
+        # comparison measures nothing. When the sweep DID harvest a BAD, Arm S is back to
+        # its diagnostic role and n_bad is the right ask.
+        n_seed = n_bad if n_harvested_bad else max(6 * n_bad, 12)
         if not n_harvested_bad:
             log(f"{name}: the sweep produced no BAD candidate -- Arm S must carry the BAD "
-                f"side of this fixture")
-        seeded = seed_faults(task, good_sources, n_bad, f"{name}_seed")
+                f"side of this fixture; seeding {n_seed} faults for {n_bad} wanted")
+        seeded = seed_faults(task, good_sources, n_seed, f"{name}_seed")
     seed_model, seed_params = _seed_provenance()
     n_seeded_bad = 0
     for j, f in enumerate(seeded):
-        lbl, why = label(JS, task, f["sources"], oracle["oracle_text"], ws / f"s{j}")
+        lbl, why = label(JS, task, f["sources"], oracle["oracle_text"], ws / f"s{j}",
+                         admissible=oracle["admissible_oracle"])
         if lbl != "BAD":
             continue          # equivalent fault, or it broke the build: excluded (§3.5)
         cid = f"bad_{sum(1 for c, _ in candidates.values() if c.label == 'BAD') + 1:02d}"
