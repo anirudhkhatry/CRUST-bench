@@ -13,7 +13,23 @@ from .prompts import load
 SYSTEM = "You are a careful software engineer performing a behaviour-preserving refactoring."
 
 
-def propose_candidate(task, sources, target, model, temperature, tag):
+# How much room a draw gets. THE OUTPUT BUDGET IS THE BINDING CONSTRAINT: adaptive
+# thinking draws from the same `max_tokens` pool as the answer, and the answer is a whole
+# decomposed source tree re-emitted as JSON-escaped strings.
+#
+#   "full"  -- enough room to finish. Measured on analytics_dashboard: 11 of 12 draws come
+#              back GOOD, so this is where the GOOD population comes from.
+#   "tight" -- the budget the run `expt3` used throughout, kept deliberately. A model that
+#              must fit the rewrite into less room drops behaviour rather than failing
+#              loudly, which is what a real under-resourced migration agent does and is the
+#              only source that produced genuine harvested BAD candidates (expt3's
+#              analytics_dashboard bad_01 failed five admissible oracle cases). Models with
+#              adaptive thinking mostly spend the whole budget thinking and return nothing
+#              parseable here, so only the weak model is drawn this way.
+BUDGETS = {"full": ("low", 64000), "tight": ("high", 32000)}
+
+
+def propose_candidate(task, sources, target, model, temperature, tag, budget="full"):
     """One candidate transformation, or None if the reply was unusable.
 
     `model` and `temperature` are both forwarded to `ask` and both returned, so what the
@@ -24,17 +40,11 @@ def propose_candidate(task, sources, target, model, temperature, tag):
     sweep real: the spread of GOOD vs BAD candidates depends on it.
     """
     user = load("refactor_js", target=target, sources=_bundle(sources))
-    # THE OUTPUT BUDGET IS THE BINDING CONSTRAINT HERE, not the reasoning budget.
-    # Adaptive thinking draws from the SAME `max_tokens` pool as the answer, and the answer
-    # is a whole decomposed source tree re-emitted as JSON-escaped strings -- tens of
-    # thousands of tokens on its own. Measured at effort="high", max_tokens=32000 on
-    # analytics_dashboard: Sonnet spent all 32000 tokens thinking and returned EMPTY text;
-    # Opus spent 13631 thinking and its JSON was cut off mid-string; only Haiku, which has
-    # no adaptive thinking, ever returned a parseable reply. That is 9 unusable draws out
-    # of 12, and it is why the GOOD population came back empty. Refactoring mechanically is
-    # not the part that needs deliberation, so the effort dial goes down and the ceiling
-    # goes up.
-    reply = ask(SYSTEM, user, effort="low", max_tokens=64000,
+    effort, max_tokens = BUDGETS[budget]
+    # The budget stays out of the cache TAG -- `ask` already folds effort and max_tokens
+    # into the cache KEY, so two budgets at the same draw index get separate entries
+    # without the tag having to say so.
+    reply = ask(SYSTEM, user, effort=effort, max_tokens=max_tokens,
                 model=model, temperature=temperature, tag=f"{tag}_{model}_t{temperature}")
     try:
         files = json_block(reply)
@@ -47,7 +57,8 @@ def propose_candidate(task, sources, target, model, temperature, tag):
     # that looks like a model that cannot refactor rather than a budget we set too low.
     if any(not isinstance(v, str) for v in files.values()):
         return None
-    return {"sources": {**sources, **files}, "model": model, "temperature": temperature}
+    return {"sources": {**sources, **files}, "model": model, "temperature": temperature,
+            "budget": budget}
 
 
 def label(adapter, task, sources, oracle_text, workspace, admissible=None):

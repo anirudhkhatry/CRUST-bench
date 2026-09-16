@@ -150,3 +150,17 @@ def test_two_temperatures_do_not_share_a_cache_tag(monkeypatch):
         harvest.propose_candidate(_task_obj(), {"app/index.js": "export const x = 1;"},
                                   "app/index.js", "m", temp, "t")
     assert len(set(tags)) == 2, tags
+
+
+def test_the_sweep_ends_with_tight_budget_weak_model_draws(monkeypatch):
+    """The only source of genuine harvested BAD candidates must survive refactoring.
+
+    With a full output budget 11 of 12 draws come back GOOD and Arm S admitted 0 BAD from
+    8 seeded faults, so without these trailing draws every fixture is GOOD-only and BRR is
+    n/a for every arm.
+    """
+    from additional_datasets.benchmarks import refactorbench_js as rjs
+    tail = rjs.CANDIDATE_SWEEP[-len(rjs.CONSTRAINED):]
+    assert tail and all(b == "tight" and m == rjs.WEAK_MODEL for m, _, b in tail)
+    assert all(b == "full" for _, _, b in rjs.CANDIDATE_SWEEP[:-len(rjs.CONSTRAINED)])
+    assert harvest.BUDGETS["tight"][1] < harvest.BUDGETS["full"][1]

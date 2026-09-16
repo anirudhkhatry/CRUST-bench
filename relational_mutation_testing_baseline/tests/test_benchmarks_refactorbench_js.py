@@ -259,11 +259,12 @@ def _wire_candidates(monkeypatch, labels):
     seq = list(labels)
     drawn = []
 
-    def fake_propose(task, sources, target, model, temperature, tag):
+    def fake_propose(task, sources, target, model, temperature, tag, budget="full"):
         if not seq:
             return None
         lbl = seq.pop(0)
-        drawn.append({"model": model, "temperature": temperature, "label": lbl})
+        drawn.append({"model": model, "temperature": temperature, "budget": budget,
+                      "label": lbl})
         # +100 so no draw coincides with P0 (`export const x = 1;`) and gets discarded by
         # the identity guard -- that guard has its own test.
         return {"sources": {**sources,
@@ -357,8 +358,9 @@ def test_p0_returned_unchanged_is_never_admitted_as_a_candidate(tmp_path, monkey
     monkeypatch.setattr(rjs, "label", lambda *a, **k: ("GOOD", None))
     # The model echoes P0 back verbatim, every time.
     monkeypatch.setattr(rjs, "propose_candidate", lambda task, sources, target, model,
-                        temperature, tag: {"sources": dict(sources), "model": model,
-                                           "temperature": temperature})
+                        temperature, tag, budget="full": {"sources": dict(sources),
+                                                          "model": model,
+                                                          "temperature": temperature})
 
     rjs.run_task("fake_fixture", tmp_path, n_good=1, n_bad=1, log=lambda *a: None)
 

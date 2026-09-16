@@ -49,9 +49,19 @@ CANDIDATE_MODEL = WEAK_MODEL          # kept: referenced elsewhere as the defaul
 # verified-GOOD migration to seed into) is not skipped for want of one.
 MODELS = [(STRONG_MODEL, 1.0), (MID_MODEL, 1.0), (WEAK_MODEL, 1.0),
           (STRONG_MODEL, 1.0), (MID_MODEL, 1.0), (WEAK_MODEL, 1.0)]
+# The ladder alone does not span the labels either, in the opposite direction: once the
+# output budget is large enough to finish the rewrite, 11 of 12 draws come back GOOD
+# (measured, run `expt4` on analytics_dashboard), and Arm S admitted 0 BAD from 8 seeded
+# faults. So the sweep ENDS with draws from the weak model under a tight output budget --
+# the regime that produced the only genuine harvested BAD candidates we have seen. They are
+# ordinary Arm N candidates: the same prompt, no sight of any test, labelled only by the
+# oracle. Only the room they are given differs, which is a property of the migration agent,
+# not of the experiment. They come last because the loop stops as soon as it holds both
+# labels, so a fixture whose weak draws already broke something never pays for them.
+CONSTRAINED = [(WEAK_MODEL, 1.0, "tight")] * 4
 # The sweep is exhausted after this many draws. Repeated entries are not cache hits (the
 # cache tag carries the draw index), so each is a fresh sample from that model.
-CANDIDATE_SWEEP = MODELS * 2
+CANDIDATE_SWEEP = [(m, t, "full") for m, t in MODELS * 2] + CONSTRAINED
 TRANSFORMATION = ("Decompose the target file into smaller, well-structured modules while "
                   "preserving all externally observable behaviour.")
 # How the two generating arms are named in the log and in `matched_skipped`. The keys are
@@ -80,6 +90,7 @@ def _candidate_provenance(cand):
     it now records the numbers that were actually applied.
     """
     return cand["model"], {"temperature": cand["temperature"],
+                           "output_budget": cand.get("budget"),
                            "sampled_by": "rmt.llm.ask(model=..., temperature=...)"}
 
 
@@ -298,7 +309,7 @@ def run_task(name, results_root, n_good=3, n_bad=3, draws=N_DRAWS, workspace=Non
     candidates, good_sources = {}, None
     p0_hash = sources_hash(sources)
     draws_used = 0
-    for i, (model, temp) in enumerate(CANDIDATE_SWEEP):
+    for i, (model, temp, budget) in enumerate(CANDIDATE_SWEEP):
         n_g = sum(1 for c, _ in candidates.values() if c.label == "GOOD")
         n_b = sum(1 for c, _ in candidates.values()
                   if c.label == "BAD" and c.bad_arm == "N")
@@ -308,7 +319,8 @@ def run_task(name, results_root, n_good=3, n_bad=3, draws=N_DRAWS, workspace=Non
         if n_g >= 1 and n_b >= 1 and n_g >= n_good and n_b >= n_bad:
             break
         draws_used = i + 1
-        cand = propose_candidate(task, sources, target, model, temp, f"{name}_c{i}")
+        cand = propose_candidate(task, sources, target, model, temp, f"{name}_c{i}",
+                                 budget=budget)
         if not cand:
             continue
         # NEVER admit P0 itself as a GOOD candidate. It trivially passes the oracle, and
