@@ -166,3 +166,44 @@ def test_run_suites_reports_which_file_failed_to_load_and_keeps_the_others_cases
     assert res.load_failures == (1,)
     assert res.status == "build_error"
     assert res.cases == {"0::alpha": "ok"}
+
+
+def test_a_fully_skip_masked_file_is_not_a_load_failure(tmp_path):
+    """The case cap masks whole FILES once its leaf-case budget is spent, and vitest
+    reports such a file as `status: "passed"` with every assertionResult `"skipped"`.
+
+    Fails on a parser that needs a passed-or-failed case to believe a file ran: the masked
+    file lands in `load_failures`, the run comes back `build_error`, and `score.verdict`
+    turns that into a STRUCTURAL rejection of a candidate that is in fact fine. Measured
+    on collaborative_doc_editor before the fix: ARM N's matched suite rejected all 4 GOOD
+    candidates this way and its GAR read 0%, which looked exactly like a finding.
+    """
+    ws = JS.stage("binary_search", tmp_path / "ws")
+    imp = JS.import_path("binary_search")
+    head = f"import {{ test, expect }} from 'vitest';\nimport * as mod from '{imp}';\n"
+    live = head + "test('alive', () => { expect(1).toBe(1); });\n"
+    masked = head + "test.skip('a', () => {});\ntest.skip('b', () => {});\n"
+    res = JS.run_suites(ws, [live, masked], "capped")
+    assert res.load_failures == (), "a masked file loaded; it simply has nothing to run"
+    assert res.status == "green"
+    assert res.cases == {"0::alive": "ok"}
+
+
+def test_a_file_declaring_no_test_at_all_is_reported_as_a_load_failure(tmp_path):
+    """Documents where the line actually falls, which is vitest's choice and not ours.
+
+    vitest fails a file that declares no test suite ("No test suite found in file"), so it
+    arrives here as `status: "failed"` with zero assertionResults -- indistinguishable from
+    a file whose imports did not resolve, and reported as a load failure. This is NOT
+    reachable through `cap_cases_files`, which skip-MASKS rather than removes: a masked
+    file still declares its cases, so it lands in the passed-with-skipped shape the test
+    above pins. Kept as the boundary marker, so a future change to masking that drops
+    cases instead of skipping them fails here rather than silently rejecting candidates.
+    """
+    ws = JS.stage("binary_search", tmp_path / "ws")
+    imp = JS.import_path("binary_search")
+    head = f"import {{ test, expect }} from 'vitest';\nimport * as mod from '{imp}';\n"
+    res = JS.run_suites(ws, [head + "test('alive', () => { expect(1).toBe(1); });\n",
+                             head + "const unused = 1;\n"], "empty")
+    assert res.load_failures == (1,)
+    assert res.cases == {"0::alive": "ok"}

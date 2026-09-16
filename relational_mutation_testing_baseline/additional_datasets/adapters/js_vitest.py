@@ -160,16 +160,25 @@ def parse_vitest_json_multi(blob, n_files):
     for f in blob.get("testResults") or []:
         m = FILE_INDEX.search(f.get("name") or "")
         i = int(m.group(1)) if m else 0
-        got = False
+        ran = False
         for a in f.get("assertionResults") or []:
             name = a.get("fullName") or a.get("title") or ""
             st = a.get("status")
             if st in ("passed", "failed"):
                 cases[f"{i}::{name}"] = "ok" if st == "passed" else "FAILED"
-                got = True
-        if got:
+            # A SKIPPED case is not scored either way -- but it is proof the file LOADED.
+            # `cap_cases_files` skip-masks whole files when the leaf-case budget is spent
+            # before reaching them, and vitest reports such a file as `status: "passed"`
+            # with every assertionResult `"skipped"`. Requiring a passed-or-failed case
+            # here therefore recorded a deliberately masked file as a file that would not
+            # load -- which `verdict` reads as a STRUCTURAL rejection of the candidate.
+            # Measured on collaborative_doc_editor: it rejected all 4 GOOD candidates and
+            # put ARM N's matched GAR at 0%, an artefact that looked exactly like a
+            # finding about naive tests.
+            ran = True
+        if ran or f.get("status") != "failed":
             loaded.add(i)
-        elif f.get("status") == "failed":
+        else:
             load_failures.append(i)
     # A file vitest never mentioned at all is also a file that did not run. Counting only
     # the ones it named "failed" would let a collection-time crash pass for "no tests".
