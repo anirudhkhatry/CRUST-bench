@@ -207,3 +207,35 @@ def test_a_file_declaring_no_test_at_all_is_reported_as_a_load_failure(tmp_path)
                              head + "const unused = 1;\n"], "empty")
     assert res.load_failures == (1,)
     assert res.cases == {"0::alive": "ok"}
+
+
+def test_holdout_repair_fixes_a_missing_slash_only_when_the_directory_confirms_it(tmp_path):
+    """Four fixtures ship a holdout whose import of the target is missing the slash after
+    the leading dot (`from '.app/page.jsx'`), so the suite contributes zero cases and the
+    corpus survey counted them unusable.
+
+    Repairing the oracle has to be narrow: the rewrite fires only when the fixture ships a
+    directory under the corrected name and none under the literal one. Fixtures with
+    well-formed imports must come back untouched -- a blanket `.` -> `./` rewrite would
+    corrupt every `..`-relative import in the corpus.
+    """
+    for name in ("taskflow", "wave_chat", "large_landing_page"):
+        assert JS.holdout_repairs(name) == [("from '.app/", "from './app/")]
+        assert "from './app/" in JS.holdout_text(name)
+        assert "from '.app/" not in JS.holdout_text(name)
+    assert JS.holdout_repairs("recipe_sharing_app") == [
+        ("from '.screens/", "from './screens/")]
+    # A fixture whose holdout is well-formed is returned verbatim.
+    for name in ("analytics_dashboard", "binary_search"):
+        assert JS.holdout_repairs(name) == []
+        raw = (JS.FIXTURES / name / JS.fixture_config(name)["testFile"]).read_text()
+        assert JS.holdout_text(name) == raw
+
+
+def test_the_repaired_holdouts_actually_load(tmp_path):
+    """The repair is only worth anything if the suite then runs, so this asserts the
+    outcome rather than the rewrite: a non-empty case set on the fixture's own sources."""
+    ws = JS.stage("taskflow", tmp_path / "ws")
+    res = JS.run_suites(ws, [JS.holdout_text("taskflow")], "holdout")
+    assert res.load_failures == (), res.out[-1500:]
+    assert res.cases, "repaired holdout still contributes no case"

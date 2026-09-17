@@ -27,8 +27,47 @@ def fixture_config(name):
     return json.loads((FIXTURES / name / "refactoring_eval.config.json").read_text())
 
 
+# A relative specifier written with the slash missing after the leading dot:
+# `import TaskFlow from '.app/page.jsx'` for a fixture whose sources live in `app/`. The
+# segment is captured so the repair can be VERIFIED against the fixture's own directory
+# listing rather than applied on faith.
+MALFORMED_REL = re.compile(
+    r"""((?:from|import)\s*\(?\s*['"])\.(?=([A-Za-z_$][\w$-]*)/)""")
+
+
+def holdout_repairs(name):
+    """[(broken, fixed)] -- upstream typos in this fixture's holdout that stop it loading.
+
+    Four fixtures (taskflow, wave_chat, large_landing_page, recipe_sharing_app) ship a
+    holdout whose import of the target is missing the slash after the leading dot, so vite
+    reports `Failed to resolve import ".app/page.jsx"` and the suite contributes zero
+    cases. The corpus survey counted all four as unusable.
+
+    Repairing the ORACLE is not something to do quietly, so it is narrow and checked: the
+    rewrite applies only when the fixture ships a source directory under the corrected
+    name AND ships none under the literal name, i.e. only when the corrected path is the
+    only one that could ever have resolved. A fixture that really did have a `.app/`
+    directory is left exactly as written.
+    """
+    src = FIXTURES / name / "src"
+    if not src.is_dir():
+        return []
+    dirs = {p.name for p in src.iterdir() if p.is_dir()}
+    out = []
+    for m in MALFORMED_REL.finditer(
+            (FIXTURES / name / fixture_config(name)["testFile"]).read_text()):
+        seg = m.group(2)
+        if seg in dirs and f".{seg}" not in dirs:
+            out.append((f"{m.group(1)}.{seg}/", f"{m.group(1)}./{seg}/"))
+    return sorted(set(out))
+
+
 def holdout_text(name):
-    return (FIXTURES / name / fixture_config(name)["testFile"]).read_text()
+    """The fixture's developer suite, with the repairs in `holdout_repairs` applied."""
+    text = (FIXTURES / name / fixture_config(name)["testFile"]).read_text()
+    for broken, fixed in holdout_repairs(name):
+        text = text.replace(broken, fixed)
+    return text
 
 
 def pure_logic_fixtures():
@@ -138,6 +177,17 @@ def parse_vitest_json(blob):
     return ("test_failed" if any(v == "FAILED" for v in cases.values()) else "green"), cases
 
 
+# BOTH reporters, always. `--reporter=json` alone writes the machine-readable report and
+# sends NOTHING to stdout, so `SuiteResult.out` on a build error was the single line
+# "JSON report written to ..." -- the actual cause ("Failed to resolve import
+# \"lucide-react\" from ...") was discarded. That turned every load failure into a dead end:
+# 43 fixtures were written off as unusable by the corpus survey with no recorded reason.
+# The default reporter prints the failure to stdout; `--outputFile.json=` (not
+# `--outputFile=`) is required to keep the JSON report going to a file once there is more
+# than one reporter.
+REPORTERS = ("--reporter=json", "--reporter=default")
+
+
 FILE_INDEX = re.compile(r"__ad(\d+)\.test\.jsx$")
 
 
@@ -224,8 +274,8 @@ def run_suites(workspace, suite_texts, suite_name):
             return SuiteResult(status="no_tests", cases={}, rc=0, seconds=0.0)
         try:
             p = subprocess.run(
-                [str(VITEST), "run", "--config", str(CONFIG), "--reporter=json",
-                 f"--outputFile={out_file}", *(f.name for f in files)],
+                [str(VITEST), "run", "--config", str(CONFIG), *REPORTERS,
+                 f"--outputFile.json={out_file}", *(f.name for f in files)],
                 cwd=workspace, env=env, capture_output=True, text=True, timeout=TIMEOUT)
             rc, out = p.returncode, (p.stdout + p.stderr)
         except subprocess.TimeoutExpired as e:
@@ -268,8 +318,8 @@ def run_suite(workspace, suite_text, suite_name):
     try:
         try:
             p = subprocess.run(
-                [str(VITEST), "run", "--config", str(CONFIG), "--reporter=json",
-                 f"--outputFile={out_file}", test_file.name],
+                [str(VITEST), "run", "--config", str(CONFIG), *REPORTERS,
+                 f"--outputFile.json={out_file}", test_file.name],
                 cwd=workspace, env=env, capture_output=True, text=True, timeout=TIMEOUT)
             rc, out = p.returncode, (p.stdout + p.stderr)
         except subprocess.TimeoutExpired as e:
