@@ -49,19 +49,37 @@ CANDIDATE_MODEL = WEAK_MODEL          # kept: referenced elsewhere as the defaul
 # verified-GOOD migration to seed into) is not skipped for want of one.
 MODELS = [(STRONG_MODEL, 1.0), (MID_MODEL, 1.0), (WEAK_MODEL, 1.0),
           (STRONG_MODEL, 1.0), (MID_MODEL, 1.0), (WEAK_MODEL, 1.0)]
-# The ladder alone does not span the labels either, in the opposite direction: once the
-# output budget is large enough to finish the rewrite, 11 of 12 draws come back GOOD
-# (measured, run `expt4` on analytics_dashboard), and Arm S admitted 0 BAD from 8 seeded
-# faults. So the sweep ENDS with draws from the weak model under a tight output budget --
-# the regime that produced the only genuine harvested BAD candidates we have seen. They are
-# ordinary Arm N candidates: the same prompt, no sight of any test, labelled only by the
-# oracle. Only the room they are given differs, which is a property of the migration agent,
-# not of the experiment. They come last because the loop stops as soon as it holds both
-# labels, so a fixture whose weak draws already broke something never pays for them.
+# THE SWEEP IS WEIGHTED BY MEASURED YIELD, not spread evenly over the ladder. Across the
+# three pilot fixtures (`expt6`, 34 candidates) the harvested label rate was:
+#
+#   claude-opus-5     10 GOOD   0 BAD      <- never broke a refactor in 10 attempts
+#   claude-sonnet-5   10 GOOD   0 BAD      <- never broke a refactor in 10 attempts
+#   claude-haiku-4-5   9 GOOD   3 BAD      <- the ONLY source of a harvested BAD, 25%
+#
+# The even ladder therefore spent 20 of 38 draws on models that can only produce the label
+# already in surplus: 29 GOOD against 5 BAD overall. Cost follows the sweep's LENGTH rather
+# than its order, because a fixture that never yields a BAD exhausts it either way, so the
+# fix is to make it shorter AND weighted -- and the weak model is also a fifth the price of
+# the strong one.
+#
+# Two strong draws stay at the front. One is not redundant: Arm S can only seed into a
+# VERIFIED-GOOD migration, so the sweep must bank one early or the BAD fallback is
+# unavailable, and `n_good` is 2 by default.
+#
+# "tight" is the weak model under a small output budget -- the regime that produced every
+# genuine harvested BAD observed so far. These are ordinary Arm N candidates: same prompt,
+# no sight of any test, labelled only by the oracle. Only the room they are given differs,
+# which is a property of the migration agent, not of the experiment.
 CONSTRAINED = [(WEAK_MODEL, 1.0, "tight")] * 4
 # The sweep is exhausted after this many draws. Repeated entries are not cache hits (the
 # cache tag carries the draw index), so each is a fresh sample from that model.
-CANDIDATE_SWEEP = [(m, t, "full") for m, t in MODELS * 2] + CONSTRAINED
+CANDIDATE_SWEEP = (
+    [(STRONG_MODEL, 1.0, "full"), (STRONG_MODEL, 1.0, "full")]   # bank GOOD; Arm S needs it
+    + CONSTRAINED                                                # hunt BAD where it lives
+    + [(WEAK_MODEL, 1.0, "full")] * 3
+    + [(MID_MODEL, 1.0, "full")]                                 # a GOOD from a third model
+    + [(WEAK_MODEL, 1.0, "tight")] * 2                           # last attempts at a BAD
+)
 TRANSFORMATION = ("Decompose the target file into smaller, well-structured modules while "
                   "preserving all externally observable behaviour.")
 # How the two generating arms are named in the log and in `matched_skipped`. The keys are

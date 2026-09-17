@@ -56,7 +56,15 @@ def cmd_run(a):
         except Exception as e:  # noqa: BLE001 - one task must not sink the run
             print(f"  {n}: ERROR {type(e).__name__}: {e}", flush=True)
             failures.append({"task": n, "error": f"{type(e).__name__}: {e}"})
-    out = root / "rows.json"
+    # A SHARD writes its own rows file. 76 fixtures run serially is a day and a half, and
+    # the fixtures are independent (separate result dirs, disjoint LLM cache keys), so the
+    # run is split across processes. They must not share one `rows.json`: each writes the
+    # whole file at the end, so the last to finish would silently erase every other
+    # shard's results and the run would look complete at a fraction of its real size.
+    # `getattr`, not `a.shard`: callers build this namespace by hand (tests, and any
+    # in-process driver), and an unsharded caller must not have to know the field exists.
+    shard = getattr(a, "shard", None)
+    out = root / (f"rows.{shard}.json" if shard else "rows.json")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps({"rows": rows, "failures": failures}, indent=2))
     print(f"wrote {out} ({len(rows)} rows, {len(failures)} failure(s))")
@@ -65,9 +73,22 @@ def cmd_run(a):
 def cmd_report(a):
     from additional_datasets.score import report
     root = RESULTS / a.run if a.run else RESULTS
-    blob = json.loads((root / "rows.json").read_text())
-    # Older rows.json files (before failures were tracked) were a bare list of rows.
-    rows, failures = (blob["rows"], blob.get("failures", [])) if isinstance(blob, dict) else (blob, [])
+    # Every rows file in the run, so a sharded run reports as one experiment. `rows.json`
+    # (unsharded) and `rows.<shard>.json` are both matched; a run is one or the other.
+    files = sorted(root.glob("rows.json")) + sorted(root.glob("rows.*.json"))
+    if not files:
+        sys.exit(f"no rows.json under {root}")
+    rows, failures = [], []
+    for f in files:
+        blob = json.loads(f.read_text())
+        # Older rows.json files (before failures were tracked) were a bare list of rows.
+        if isinstance(blob, dict):
+            rows += blob["rows"]
+            failures += blob.get("failures", [])
+        else:
+            rows += blob
+    if len(files) > 1:
+        print(f"merged {len(files)} shard(s): {', '.join(f.name for f in files)}")
     text = report(rows, title=a.run or "pilot", failures=failures)
     (root / "REPORT.md").write_text(text)
     print(text)
@@ -87,6 +108,8 @@ def main():
     s.add_argument("--run", default="pilot", help="run name (results/additional_datasets/<run>)")
     s.add_argument("--tasks", type=int, default=3, help="how many tasks")
     s.add_argument("--fixtures", nargs="*", help="restrict to these task ids")
+    s.add_argument("--shard", help="name this process's rows file rows.<shard>.json, so "
+                                   "parallel shards of one run do not overwrite each other")
     s.add_argument("--good", type=int, default=3, help="GOOD candidates per task")
     s.add_argument("--bad", type=int, default=3, help="seeded BAD candidates per task")
     # ONE knob for both arms. ARM N's draw count and ARM M's mutant count must stay equal

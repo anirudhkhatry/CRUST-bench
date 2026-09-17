@@ -155,15 +155,24 @@ def test_two_temperatures_do_not_share_a_cache_tag(monkeypatch):
     assert len(set(tags)) == 2, tags
 
 
-def test_the_sweep_ends_with_tight_budget_weak_model_draws(monkeypatch):
-    """The only source of genuine harvested BAD candidates must survive refactoring.
+def test_the_sweep_is_weighted_towards_the_only_source_of_bad_candidates(monkeypatch):
+    """The sweep's shape is a measurement, not a preference, and it must not drift back.
 
-    With a full output budget 11 of 12 draws come back GOOD and Arm S admitted 0 BAD from
-    8 seeded faults, so without these trailing draws every fixture is GOOD-only and BRR is
-    n/a for every arm.
+    Measured over the `expt6` pilot (34 candidates): Opus produced 10 GOOD and 0 BAD,
+    Sonnet 10 GOOD and 0 BAD, Haiku 9 GOOD and 3 BAD. An evenly-spread ladder therefore
+    spends most of its draws on models that can only produce the label already in surplus
+    -- 29 GOOD against 5 BAD overall -- while a fixture that never yields a BAD exhausts
+    the sweep anyway, so the spend is the sweep's full length either way.
     """
     from additional_datasets.benchmarks import refactorbench_js as rjs
-    tail = rjs.CANDIDATE_SWEEP[-len(rjs.CONSTRAINED):]
-    assert tail and all(b == "tight" and m == rjs.WEAK_MODEL for m, _, b in tail)
-    assert all(b == "full" for _, _, b in rjs.CANDIDATE_SWEEP[:-len(rjs.CONSTRAINED)])
+    sweep = rjs.CANDIDATE_SWEEP
+    weak = [d for d in sweep if d[0] == rjs.WEAK_MODEL]
+    assert len(weak) > len(sweep) / 2, "the weak model must carry most of the sweep"
+    tight = [d for d in sweep if d[2] == "tight"]
+    assert tight and all(m == rjs.WEAK_MODEL for m, _, _ in tight), (
+        "only the weak model is drawn at the tight budget -- models with adaptive "
+        "thinking spend the whole budget thinking and return nothing parseable")
+    # Arm S can seed only into a VERIFIED-GOOD migration, so one must be banked before the
+    # BAD hunt or the fallback is unavailable to a fixture that harvests no BAD.
+    assert sweep[0] == (rjs.STRONG_MODEL, 1.0, "full")
     assert harvest.BUDGETS["tight"][1] < harvest.BUDGETS["full"][1]
