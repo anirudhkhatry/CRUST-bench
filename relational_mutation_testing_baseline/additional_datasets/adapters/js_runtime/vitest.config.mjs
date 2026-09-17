@@ -32,6 +32,16 @@ export default defineConfig({
       // at, the suite dies with "Failed to resolve import" and contributes zero cases
       // while the mock it shipped goes unused.
       'react-native': 'react-native-web',
+      // `lucide-react-native` exports the same icon names as `lucide-react`, and the
+      // fixtures importing it render through their own `vi.mock('react-native')` stand-ins,
+      // so the DOM build is a faithful substitute for resolution purposes. ALIASING RATHER
+      // THAN INSTALLING IS DELIBERATE: the real package will not install next to
+      // react-native-web without `--legacy-peer-deps`, and that flag re-resolves the whole
+      // tree and removes @testing-library/dom -- measured, it drops 10 packages and every
+      // React fixture then reports zero cases. An alias cannot touch the tree.
+      // `react-native-safe-area-context` has the same conflict and gets a local shim.
+      'lucide-react-native': 'lucide-react',
+      'react-native-safe-area-context': path.join(here, 'rn_shims/safe-area-context.mjs'),
     },
   },
   test: {
