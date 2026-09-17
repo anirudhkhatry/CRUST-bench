@@ -21,7 +21,19 @@ export default defineConfig({
   // importing React, so the classic runtime fails every case with
   // "ReferenceError: React is not defined".
   esbuild: { jsx: 'automatic' },
-  resolve: { alias: { '@': srcRoot } },
+  resolve: {
+    alias: {
+      '@': srcRoot,
+      // `react-native` is aliased ONLY so Vite can RESOLVE the specifier. The React
+      // Native fixtures' own holdouts already `vi.mock('react-native', factory)` with
+      // their own DOM stand-ins, so the mock -- not react-native-web -- defines the
+      // behaviour under test. Vite's import-analysis resolves the source file's imports
+      // at transform time, before any mock applies, so without something on disk to point
+      // at, the suite dies with "Failed to resolve import" and contributes zero cases
+      // while the mock it shipped goes unused.
+      'react-native': 'react-native-web',
+    },
+  },
   test: {
     environment: 'jsdom',
     // `globals: true` is required, not a convenience: several holdout suites call
